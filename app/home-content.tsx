@@ -1,47 +1,93 @@
-"use client";
-
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
-import { Diamond, Sparkles, Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/carousel";
+"use client"
+import { motion, useScroll, useTransform } from "framer-motion"
+import { useRef } from "react"
+import { Diamond, Sparkles, Facebook, Instagram, Linkedin, Twitter, Star, Award, Gem } from "lucide-react"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import BusinessHours from "@/components/BusinessHours"
+import Marquee from "react-fast-marquee"
 
 export default function Home() {
-  const containerRef = useRef(null);
+  const containerRef = useRef(null)
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
-  });
+  })
 
-  const logoY = useTransform(scrollYProgress, [0, 1], ["0%", "-100%"]);
-
-  const diamondImages = [
-    "https://images.unsplash.com/photo-1599707367072-cd6ada2bc375?q=80&w=1000",
-    "https://images.unsplash.com/photo-1589118949245-7d38baf380d6?q=80&w=1000",
-    "https://images.unsplash.com/photo-1615655096345-61a54750068d?q=80&w=1000",
-    "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?q=80&w=1000",
-  ];
+  const logoY = useTransform(scrollYProgress, [0, 1], ["0%", "-100%"])
 
   const certificationLogos = [
     {
       name: "GCAL",
-      url: "https://www.gcalusa.com/images/gcal-logo.png"
+      url: "https://www.gcalusa.com/images/gcal-logo.png",
     },
     {
       name: "IGI",
-      url: "https://www.igi.org/images/IGI_Logo.png"
+      url: "https://www.igi.org/images/IGI_Logo.png",
     },
     {
       name: "GIA",
-      url: "https://www.gia.edu/sites/default/files/GIA_Logo.png"
-    }
-  ];
+      url: "https://www.gia.edu/sites/default/files/GIA_Logo.png",
+    },
+  ]
 
   const fadeInUpVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
+    visible: { opacity: 1, y: 0 },
+  }
+
+  const aboutItems = [
+    {
+      title: "OUR STORY",
+      icon: Star,
+      content:
+        "At Cranberri Diamonds, we believe that every diamond tells a story. Our journey began with a passion for exquisite craftsmanship and a commitment to excellence.",
+      bgColor: "from-purple-500/10 to-pink-500/10",
+      iconColor: "text-purple-500",
+    },
+    {
+      title: "OUR MISSION",
+      icon: Award,
+      content:
+        "We empower jewelers by providing direct access to premium loose diamonds and custom jewelry at competitive prices, boosting profitability.",
+      bgColor: "from-blue-500/10 to-cyan-500/10",
+      iconColor: "text-blue-500",
+    },
+    {
+      title: "OUR PRODUCT",
+      icon: Gem,
+      content:
+        "We offer an exclusive selection of D-E color, VVS clarity loose diamonds (both natural and lab-grown), custom jewelry, and components—sourced directly from manufacturers.",
+      bgColor: "from-amber-500/10 to-yellow-500/10",
+      iconColor: "text-amber-500",
+    },
+  ]
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: i * 0.2,
+        duration: 0.7,
+        ease: [0.215, 0.61, 0.355, 1],
+      },
+    }),
+  }
+
+  const iconVariants = {
+    hidden: { scale: 0, rotate: -180 },
+    visible: {
+      scale: 1,
+      rotate: 0,
+      transition: {
+        type: "spring",
+        stiffness: 200,
+        damping: 10,
+      },
+    },
+  }
 
   return (
     <div ref={containerRef} className="overflow-x-hidden">
@@ -50,8 +96,7 @@ export default function Home() {
         <motion.div
           className="absolute top-10 left-1/2 transform -translate-x-1/2 z-50"
           style={{ y: logoY }}
-        >
-        </motion.div>
+        ></motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -59,17 +104,16 @@ export default function Home() {
           transition={{ duration: 0.8 }}
           className="text-center px-4 max-w-4xl mx-auto"
         >
-          <h2 className="text-5xl md:text-7xl font-serif mb-6">
-            Your Journey to Timeless Beauty Begins Here
-          </h2>
+          <h2 className="text-5xl md:text-7xl font-serif mb-6">Your Journey to Timeless Beauty Begins Here</h2>
           <p className="text-xl text-gray-600 mb-8">
-            Whether you&apos;re marking a milestone or creating a bespoke design, our diamonds are the perfect expression of love and luxury
+            Whether you&apos;re marking a milestone or creating a bespoke design, our diamonds are the perfect
+            expression of love and luxury
           </p>
           <Button size="lg" className="animate-pulse">
             Explore Collection
           </Button>
         </motion.div>
-
+        
         <motion.div
           className="absolute inset-0 pointer-events-none"
           initial={{ opacity: 0 }}
@@ -81,43 +125,14 @@ export default function Home() {
           <Sparkles className="absolute bottom-1/4 left-1/3 w-4 h-4 text-yellow-400" />
         </motion.div>
       </section>
-
-      {/* Featured Collection */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <motion.h3
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl font-serif text-center mb-12"
-          >
-            Featured Collection
-          </motion.h3>
-
-          <Carousel className="w-full max-w-5xl mx-auto">
-            <CarouselContent>
-              {diamondImages.map((src, index) => (
-                <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    className="relative aspect-square rounded-lg overflow-hidden"
-                  >
-                    <Image
-                      src={src}
-                      alt={`Diamond ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </motion.div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-          </Carousel>
-        </div>
-      </section>
-
+      <div className="w-full bg-black text-white py-2 overflow-hidden">
+        <Marquee speed={50} gradient={false}>
+          <span className="mx-4">Lab Grown (CVD, HPHT), Colored and Natural Diamond, Custom Jewelery</span>
+          <span className="mx-4">•</span>
+          <span className="mx-4">Lab Grown (CVD, HPHT), Colored and Natural Diamond, Custom Jewelery</span>
+          <span className="mx-4">•</span>
+        </Marquee>
+      </div>
       {/* Diamond Shapes */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
@@ -131,7 +146,7 @@ export default function Home() {
           </motion.h3>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {['Round', 'Princess', 'Oval', 'Emerald'].map((shape, index) => (
+            {["Round", "Princess", "Oval", "Emerald"].map((shape, index) => (
               <motion.div
                 key={shape}
                 initial={{ opacity: 0, y: 20 }}
@@ -150,102 +165,85 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="py-20 bg-white">
+      <section className="py-32 bg-gradient-to-b from-white via-gray-50 to-white relative overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.5 }}
+          transition={{ duration: 1 }}
+          className="absolute inset-0 pointer-events-none"
+        >
+          <Sparkles className="absolute top-20 left-1/4 w-6 h-6 text-yellow-400" />
+          <Sparkles className="absolute top-40 right-1/3 w-4 h-4 text-purple-400" />
+          <Sparkles className="absolute bottom-32 left-1/3 w-8 h-8 text-blue-400" />
+        </motion.div>
+
         <div className="container mx-auto px-4">
-          <motion.h2
+          <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            variants={fadeInUpVariants}
-            className="text-4xl font-serif text-center mb-16"
+            className="text-center mb-20"
           >
-            About Cranberri Diamonds
-          </motion.h2>
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, scale: 0.8 },
+                visible: { opacity: 1, scale: 1 },
+              }}
+              transition={{ duration: 0.5 }}
+              className="inline-block"
+            >
+              <Diamond className="w-12 h-12 mx-auto mb-6 text-gray-800" />
+            </motion.div>
+            <motion.h2
+              variants={fadeInUpVariants}
+              className="text-5xl font-serif mb-6 bg-clip-text text-transparent bg-gradient-to-r from-gray-800 to-gray-600"
+            >
+              About Cranberri Diamonds
+            </motion.h2>
+            <motion.div
+              variants={fadeInUpVariants}
+              className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-amber-600 mx-auto rounded-full"
+            />
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {[
-              {
-                title: "OUR STORY",
-                content: "At Cranberri Diamonds, we believe that every diamond tells a story. Our journey began with a passion for exquisite craftsmanship and a commitment to excellence."
-              },
-              {
-                title: "OUR MISSION",
-                content: "We empower jewelers by providing direct access to premium loose diamonds and custom jewelry at competitive prices, boosting profitability."
-              },
-              {
-                title: "Our Product",
-                content: "We offer an exclusive selection of D-E color, VVS clarity loose diamonds (both natural and lab-grown), custom jewelry, and components—sourced directly from manufacturers."
-              }
-            ].map((item, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+            {aboutItems.map((item, index) => (
               <motion.div
                 key={item.title}
+                custom={index}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: {
-                    opacity: 1,
-                    y: 0,
-                    transition: { delay: index * 0.2 }
-                  }
-                }}
-                className="text-center"
+                variants={cardVariants}
+                whileHover={{ y: -10, transition: { duration: 0.3 } }}
+                className={`relative p-8 rounded-2xl bg-gradient-to-br ${item.bgColor} backdrop-blur-sm border border-white/20 shadow-xl`}
               >
-                <Diamond className="w-16 h-16 mx-auto mb-6 text-gray-800" />
-                <h3 className="text-2xl font-serif mb-4">{item.title}</h3>
-                <p className="text-gray-600">{item.content}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+                <motion.div
+                  variants={iconVariants}
+                  className={`w-16 h-16 mx-auto mb-6 rounded-xl bg-white shadow-lg flex items-center justify-center ${item.iconColor}`}
+                >
+                  <item.icon className="w-8 h-8" />
+                </motion.div>
+                
+                <h3 className="text-2xl font-serif mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700">
+                  {item.title}
+                </h3>
+                
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-gray-600 leading-relaxed"
+                >
+                  {item.content}
+                </motion.p>
 
-      {/* FAQ Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <motion.h2
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeInUpVariants}
-            className="text-4xl font-serif text-center mb-16"
-          >
-            Frequently Asked Questions
-          </motion.h2>
-
-          <div className="max-w-3xl mx-auto space-y-8">
-            {[
-              {
-                question: "Are lab-grown diamonds real diamonds?",
-                answer: "Yes, lab-grown diamonds are real diamonds. They have the same physical, chemical, and optical properties as natural diamonds. The only difference is that lab-grown diamonds are created in a laboratory, rather than mined from the Earth."
-              },
-              {
-                question: "Are lab-grown diamonds cheaper than natural diamonds?",
-                answer: "Yes, lab-grown diamonds are generally more affordable than natural diamonds because they are produced in a controlled environment and do not require the costly mining process. However, their value and price depend on the same factors that affect natural diamonds, such as carat weight, cut, clarity, and color."
-              },
-              {
-                question: "Will my lab-grown diamond lose value over time?",
-                answer: "While lab-grown diamonds generally cost less than natural diamonds, they do not appreciate in value over time like natural diamonds. However, they retain their intrinsic value due to their beauty, durability, and high-quality craftsmanship."
-              }
-            ].map((faq, index) => (
-              <motion.div
-                key={index}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={{
-                  hidden: { opacity: 0, x: -20 },
-                  visible: {
-                    opacity: 1,
-                    x: 0,
-                    transition: { delay: index * 0.2 }
-                  }
-                }}
-                className="bg-white p-6 rounded-lg shadow-lg"
-              >
-                <h3 className="text-xl font-medium mb-3">{faq.question}</h3>
-                <p className="text-gray-600">{faq.answer}</p>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-12 h-1 rounded-full bg-gradient-to-r from-transparent via-gray-300 to-transparent"
+                />
               </motion.div>
             ))}
           </div>
@@ -277,17 +275,12 @@ export default function Home() {
                   visible: {
                     opacity: 1,
                     scale: 1,
-                    transition: { delay: index * 0.2 }
-                  }
+                    transition: { delay: index * 0.2 },
+                  },
                 }}
                 className="relative w-40 h-20"
               >
-                <Image
-                  src={logo.url}
-                  alt={logo.name}
-                  fill
-                  className="object-contain"
-                />
+                <Image src={logo.url || "/placeholder.svg"} alt={logo.name} fill className="object-contain" />
               </motion.div>
             ))}
           </div>
@@ -323,57 +316,19 @@ export default function Home() {
                 <p>+91 845 197 7249</p>
               </div>
 
-              <div className="mt-8">
-                <h3 className="font-medium mb-4">Hours</h3>
-                <div className="space-y-2">
-                  {[
-                    "Mon 09:00 am – 05:00 pm",
-                    "Tue 09:00 am – 05:00 pm",
-                    "Wed 09:00 am – 05:00 pm",
-                    "Thu 09:00 am – 05:00 pm",
-                    "Fri 09:00 am – 05:00 pm",
-                    "Sat Closed",
-                    "Sun Closed"
-                  ].map((hours, index) => (
-                    <motion.p
-                      key={index}
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      {hours}
-                    </motion.p>
-                  ))}
-                </div>
-              </div>
+              <BusinessHours/>
 
               <div className="flex justify-center space-x-6 mt-8">
-                <motion.a
-                  href="#"
-                  whileHover={{ scale: 1.1 }}
-                  className="text-blue-600"
-                >
+                <motion.a href="#" whileHover={{ scale: 1.1 }} className="text-blue-600">
                   <Facebook className="w-6 h-6" />
                 </motion.a>
-                <motion.a
-                  href="#"
-                  whileHover={{ scale: 1.1 }}
-                  className="text-pink-600"
-                >
+                <motion.a href="#" whileHover={{ scale: 1.1 }} className="text-pink-600">
                   <Instagram className="w-6 h-6" />
                 </motion.a>
-                <motion.a
-                  href="#"
-                  whileHover={{ scale: 1.1 }}
-                  className="text-blue-800"
-                >
+                <motion.a href="#" whileHover={{ scale: 1.1 }} className="text-blue-800">
                   <Linkedin className="w-6 h-6" />
                 </motion.a>
-                <motion.a
-                  href="#"
-                  whileHover={{ scale: 1.1 }}
-                  className="text-gray-800"
-                >
+                <motion.a href="#" whileHover={{ scale: 1.1 }} className="text-gray-800">
                   <Twitter className="w-6 h-6" />
                 </motion.a>
               </div>
@@ -382,5 +337,6 @@ export default function Home() {
         </div>
       </section>
     </div>
-  );
+  )
 }
+
