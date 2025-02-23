@@ -1,10 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ["www.gcalusa.com", "www.igi.org", "www.gia.edu", "images.unsplash.com","hebbkx1anhila5yf.public.blob.vercel-storage.com"],
-  },
-};
+    domains: ['d360.tech', 'kslive.blob.core.windows.net'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'd360.tech',
+      },
+      {
+        protocol: 'https',
+        hostname: 'kslive.blob.core.windows.net',
+      }
+    ],
+  }
+}
 
-
-
-module.exports = nextConfig;
+module.exports = nextConfig
