@@ -11,8 +11,8 @@ export default function Navbar() {
   const menuItems = [
     { href: "/", label: "Home" },
     { href: "/shop", label: "Shop" },
-    { href: "/privacy-policy", label: "Privacy Policy" },
-    { href: "/terms", label: "Terms and Conditions" },
+    { href: "/Privacy-Policy", label: "Privacy Policy" },
+    { href: "/terms-and-condition", label: "Terms and Conditions" },
   ]
 
   const moreItems = [
