@@ -7,7 +7,10 @@ const nextConfig = {
       'www.gcalusa.com',
       'www.igi.org',
       'www.gia.edu',
-      'images.unsplash.com' // Add this domain
+      'images.unsplash.com',
+      'video.gem360.in',
+       // Add this domain
+      '*'
     ],
     remotePatterns: [
       {
@@ -32,7 +35,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com', // Add this remote pattern
+        hostname: 'images.unsplash.com', 
+      },
+      {
+        protocol: 'https',
+        hostname: 'video.gem360.in', // Add this explicitly
       },
       {
         protocol: 'https',

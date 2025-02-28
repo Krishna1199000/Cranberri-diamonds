@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Diamond {
+  id             String   @id @default(uuid())
+  stockId        String   @unique @map("stock_id")
+  certificateNo  String   @map("certificate_no")
+  shape          String
+  size           Float
+  color          String
+  clarity        String
+  cut            String?
+  polish         String
+  sym            String
+  floro          String
+  lab            String
+  rapPrice       Float    @map("rap_price")
+  rapAmount      Float    @map("rap_amount")
+  discount       Float
+  pricePerCarat  Float    @map("price_per_carat")
+  finalAmount    Float    @map("final_amount")
+  measurement    String
+  length         Float?
+  width          Float?
+  height         Float?
+  depth          Float?
+  table          Float?
+  ratio          Float?
+  status         String
+  comment        String?
+  videoUrl       String?  @map("video_url")
+  imageUrl       String?  @map("image_url")
+  certUrl        String?  @map("cert_url")
+  girdle         String?
+  culet          String?
+  cAngle         Float?   @map("c_angle")
+  cHeight        Float?   @map("c_height")
+  pAngle         Float?   @map("p_angle")
+  pDepth         Float?   @map("p_depth")
+  fancyIntensity String?  @map("fancy_intensity")
+  fancyOvertone  String?  @map("fancy_overtone")
+  fancyColor     String?  @map("fancy_color")
+  location       String?
+  inscription    String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("diamonds")
+}
+
+model SyncLog {
+  id        String   @id @default(uuid())
+  status    String
+  message   String?
+  count     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("sync_logs")
+}

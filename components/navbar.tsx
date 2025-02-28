@@ -16,7 +16,7 @@ export default function Navbar() {
   ]
 
   const moreItems = [
-    { href: "/about", label: "Beyond 4c's" },
+    { href: "/Beyond-4cs", label: "Beyond 4c's" },
     { href: "/contact", label: "Nurture Nature" },
   ]
 

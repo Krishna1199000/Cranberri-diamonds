@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' });
 
 export const metadata: Metadata = {
-  title: 'Cranberri Diamonds | Luxury Diamond Jewelry',
+  title: 'Cranberri Diamonds',
   description: 'Discover our collection of exquisite diamonds and luxury jewelry at Cranberri Diamonds.',
 };
 
