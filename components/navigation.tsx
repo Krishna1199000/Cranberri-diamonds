@@ -16,16 +16,16 @@ export function Navigation() {
           <Link href="/" className="text-gray-800 hover:text-gray-600 border-b-2 border-black">
             Home
           </Link>
-          <Link href="#" className="text-gray-800 hover:text-gray-600">
+          <Link href="/shop" className="text-gray-800 hover:text-gray-600">
             Shop
           </Link>
-          <Link href="#" className="text-gray-800 hover:text-gray-600">
+          <Link href="Privacy-Policy" className="text-gray-800 hover:text-gray-600">
             Privacy Policy
           </Link>
         </div>
 
         <div className="flex items-center space-x-8">
-          <Link href="#" className="text-gray-800 hover:text-gray-600">
+          <Link href="terms-and-condition" className="text-gray-800 hover:text-gray-600">
             Terms and Conditions
           </Link>
           <button className="text-gray-800 hover:text-gray-600 flex items-center">

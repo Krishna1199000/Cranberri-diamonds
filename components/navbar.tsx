@@ -59,7 +59,7 @@ export default function Navbar() {
 
           {/* Desktop Right Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/terms" className="font-medium hover:text-primary transition-colors">
+            <Link href="/terms-and-condition" className="font-medium hover:text-primary transition-colors">
               Terms and Conditions
             </Link>
             <DropdownMenu>

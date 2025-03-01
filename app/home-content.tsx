@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import BusinessHours from "@/components/BusinessHours"
 import Marquee from "react-fast-marquee"
+import Link from "next/link"
 
 export default function Home() {
   const containerRef = useRef(null)
@@ -109,9 +110,12 @@ export default function Home() {
             Whether you&apos;re marking a milestone or creating a bespoke design, our diamonds are the perfect
             expression of love and luxury
           </p>
+          <Link href="/shop">
           <Button size="lg" className="animate-pulse">
             Explore Collection
           </Button>
+          </Link>
+          
         </motion.div>
         
         <motion.div
