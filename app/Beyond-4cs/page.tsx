@@ -62,7 +62,7 @@ export default function Beyond4Cs() {
           <h1 className="text-4xl font-serif mb-4">Diamond Quality Chart</h1>
           <div className="w-20 h-1 bg-primary mx-auto rounded-full" />
           <p className="mt-6 text-gray-600 max-w-2xl mx-auto">
-            Understanding the 4 C's of diamonds - Cut, Color, Clarity, and Carat - is essential for making an informed diamond purchase.
+            Understanding the 4 C&apos;s of diamonds - Cut, Color, Clarity, and Carat - is essential for making an informed diamond purchase.
           </p>
         </motion.div>
 
@@ -90,7 +90,7 @@ export default function Beyond4Cs() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-4">
               <p className="text-gray-600 leading-relaxed">
-                The cut of a diamond refers to how well it has been shaped and faceted, and it affects how light reflects and disperses within the stone. It is the most important factor for determining a diamond's overall beauty. A well-cut diamond will sparkle more.
+                The cut of a diamond refers to how well it has been shaped and faceted, and it affects how light reflects and disperses within the stone. It is the most important factor for determining a diamond&apos;s overall beauty. A well-cut diamond will sparkle more.
               </p>
               <p className="text-gray-600">
                 The cut grade includes the proportions, symmetry, and polish of the diamond. The quality of the cut can range from Poor to Excellent.
@@ -186,7 +186,7 @@ export default function Beyond4Cs() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-4">
               <p className="text-gray-600 leading-relaxed">
-                Clarity refers to the presence of internal (inclusions) and external (blemishes) imperfections in a diamond. These imperfections can affect the diamond's appearance and brilliance, but many are microscopic and invisible to the naked eye. The clarity of a diamond is graded on a scale from Flawless (FL), meaning no visible imperfections, to Included (I1, I2, I3).
+                Clarity refers to the presence of internal (inclusions) and external (blemishes) imperfections in a diamond. These imperfections can affect the diamond&apos;s appearance and brilliance, but many are microscopic and invisible to the naked eye. The clarity of a diamond is graded on a scale from Flawless (FL), meaning no visible imperfections, to Included (I1, I2, I3).
               </p>
               <motion.div 
                 className="bg-white p-4 rounded-lg shadow-md"
@@ -244,7 +244,7 @@ export default function Beyond4Cs() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-4">
               <p className="text-gray-600 leading-relaxed">
-                Carat refers to the weight of a diamond, not its size, though the two are often correlated. One carat equals 200 milligrams (0.2 grams). The term "carat" is derived from the carob tree's seeds, which were historically used as a standard for weighing gemstones.
+                Carat refers to the weight of a diamond, not its size, though the two are often correlated. One carat equals 200 milligrams (0.2 grams). The term carat is derived from the carob tree&apos;s seeds, which were historically used as a standard for weighing gemstones.
               </p>
               <p className="text-gray-600">
                 Larger diamonds are rarer and typically more expensive because of their scarcity, but the price is also influenced by the other 3 Cs—cut, color, and clarity.
@@ -276,7 +276,7 @@ export default function Beyond4Cs() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-4">
               <p className="text-gray-600 leading-relaxed">
-                While the traditional 4 C's are crucial, the fifth C - Certification - is equally important. A diamond certificate from a reputable laboratory like GIA provides an unbiased assessment of your diamond's quality.
+                While the traditional 4 C&apos;s are crucial, the fifth C - Certification - is equally important. A diamond certificate from a reputable laboratory like GIA provides an unbiased assessment of your diamond&apos;s quality.
               </p>
               <motion.div 
                 className="bg-white p-4 rounded-lg shadow-md"
@@ -326,7 +326,7 @@ export default function Beyond4Cs() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-4">
               <p className="text-gray-600 leading-relaxed">
-                The anatomy of a diamond refers to its various parts and the way they contribute to the overall appearance, brilliance, and value of the stone. A diamond's anatomy can be broken down into several key components:
+                The anatomy of a diamond refers to its various parts and the way they contribute to the overall appearance, brilliance, and value of the stone. A diamond&apos;s anatomy can be broken down into several key components:
               </p>
               <motion.div 
                 className="bg-white p-6 rounded-lg shadow-md space-y-4"
@@ -335,7 +335,7 @@ export default function Beyond4Cs() {
               >
                 <div className="space-y-3">
                   <h3 className="font-semibold text-lg">Table:</h3>
-                  <p className="text-gray-600">The flat, top surface of the diamond, which is the largest facet. The table allows light to enter the diamond, and its size and quality influence the stone's brilliance.</p>
+                  <p className="text-gray-600">The flat, top surface of the diamond, which is the largest facet. The table allows light to enter the diamond, and its size and quality influence the stone brilliance.</p>
                 </div>
                 
                 <div className="space-y-3">
@@ -345,12 +345,12 @@ export default function Beyond4Cs() {
                 
                 <div className="space-y-3">
                   <h3 className="font-semibold text-lg">Girdle:</h3>
-                  <p className="text-gray-600">The outer edge or circumference of the diamond, where the crown meets the pavilion. The girdle serves as a "band" that holds the diamond in its setting.</p>
+                  <p className="text-gray-600">The outer edge or circumference of the diamond, where the crown meets the pavilion. The girdle serves as a band that holds the diamond in its setting.</p>
                 </div>
                 
                 <div className="space-y-3">
                   <h3 className="font-semibold text-lg">Pavilion:</h3>
-                  <p className="text-gray-600">The lower portion of the diamond, below the girdle. It creates the diamond's sparkle through light refraction and dispersion.</p>
+                  <p className="text-gray-600">The lower portion of the diamond, below the girdle. It creates the diamond sparkle through light refraction and dispersion.</p>
                 </div>
                 
                 <div className="space-y-3">

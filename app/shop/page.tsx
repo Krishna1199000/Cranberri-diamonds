@@ -6,7 +6,7 @@ import { Diamond } from "lucide-react"
 import { LoadingCards } from "@/components/loading"
 import PaginationHandler from "@/components/PaginationHandler"
 
-const ITEMS_PER_PAGE = 12
+
 
 export default function ShopPage() {
   const [currentPage, setCurrentPage] = useState(1)
@@ -60,8 +60,10 @@ export default function ShopPage() {
           </h1>
         </div>
 
-        {/* Pagination Handler for fetching page number from URL */}
-        <PaginationHandler onPageChange={setCurrentPage} />
+        {/* ✅ Wrap PaginationHandler inside Suspense */}
+        <Suspense fallback={null}>
+          <PaginationHandler onPageChange={setCurrentPage} />
+        </Suspense>
 
         <Suspense fallback={<LoadingCards />}>
           {isLoading ? (
