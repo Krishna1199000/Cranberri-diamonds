@@ -110,9 +110,9 @@ export default function Home() {
             Whether you&apos;re marking a milestone or creating a bespoke design, our diamonds are the perfect
             expression of love and luxury
           </p>
-          <Link href="/shop">
+          <Link href="/auth/signup">
           <Button size="lg" className="animate-pulse">
-            Explore Collection
+            Get Started
           </Button>
           </Link>
           

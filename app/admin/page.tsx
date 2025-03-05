@@ -68,7 +68,7 @@ export default function AdminPage() {
       setTimeout(() => {
         clearInterval(checkStatus);
         setIsSyncing(false);
-      }, 5 * 60 * 1000);
+      }, 100 * 60 * 1000);
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
