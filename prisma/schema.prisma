@@ -80,3 +80,42 @@ model User {
 
   @@map("users")
 }
+
+model Shipment {
+  id                  String   @id @default(uuid())
+  companyName         String
+  addressLine1        String
+  addressLine2        String?
+  country            String
+  state              String
+  city               String
+  postalCode         String
+  phoneNo            String
+  faxNo              String?
+  email              String
+  website            String?
+  paymentTerms       String
+  carrier            String
+  organizationType   String   @map("organization_type")
+  businessType       String   @map("business_type")
+  businessRegNo      String   @map("business_reg_no")
+  panNo              String   @map("pan_no")
+  sellerPermitNo     String?  @map("seller_permit_no")
+  cstTinNo           String?  @map("cst_tin_no")
+  tradeBodyMembership String[] @map("trade_body_membership")
+  referenceType      String   @map("reference_type")
+  referenceNotes     String?  @map("reference_notes")
+  references         Json[]   @map("references")
+  authorizedBy       String   @map("authorized_by")
+  accountManager     String   @map("account_manager")
+  brokerName         String?  @map("broker_name")
+  partyGroup         String   @map("party_group")
+  salesExecutive     String   @map("sales_executive")
+  leadSource         String   @map("lead_source")
+  limit              Float    @default(0) @map("limit")
+  lastUpdatedBy      String?  @map("last_updated_by")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("shipments")
+}
