@@ -8,10 +8,12 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id
+
   try {
     const session = await getSession()
     
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -19,7 +21,7 @@ export async function GET(
     }
 
     const shipment = await db.shipment.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!shipment) {
@@ -43,10 +45,12 @@ export async function PUT(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id
+
   try {
     const session = await getSession()
     
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -55,10 +59,10 @@ export async function PUT(
 
     const body = await req.json()
     const shipment = await db.shipment.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...body,
-        lastUpdatedBy: (session.user as { name: string }).name
+        lastUpdatedBy: session.user.name || 'Unknown'
       }
     })
 
@@ -76,10 +80,12 @@ export async function DELETE(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id
+
   try {
     const session = await getSession()
     
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -87,7 +93,7 @@ export async function DELETE(
     }
 
     await db.shipment.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json({ success: true })
