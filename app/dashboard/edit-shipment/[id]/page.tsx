@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState,use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,7 +31,9 @@ import {
 
 export default function EditShipment({ params }: { params: { id: string } }) {
   const router = useRouter()
-  const shipmentId = params.id
+  const unwrappedParams = 'then' in params ? use(params) : params
+  const shipmentId = unwrappedParams.id
+  
   const [formData, setFormData] = useState({
     companyName: '',
     addressLine1: '',
