@@ -32,8 +32,9 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getSession()
+    console.log("Session Data:", session)
     
-    if (!session) {
+    if (!session?.userId) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -119,7 +120,8 @@ export async function POST(req: Request) {
         salesExecutive,
         leadSource,
         limit: typeof limit === 'string' ? parseFloat(limit) : limit,
-        // lastUpdatedBy: session.user.name
+        lastUpdatedBy: String(session.email),
+        userId: String(session.userId) // Add the userId from the session
       }
     })
 

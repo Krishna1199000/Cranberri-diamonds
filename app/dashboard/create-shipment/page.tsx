@@ -272,13 +272,13 @@ export default function CreateShipment() {
                       <SelectValue placeholder="Select City" />
                     </SelectTrigger>
                     <SelectContent>
-                      {formData.country && formData.state && 
-                        countries[formData.country as keyof typeof countries][formData.state].map((city) => (
-                          <SelectItem key={city} value={city}>
-                            {city}
-                          </SelectItem>
-                        ))
-                      }
+                        {formData.country && formData.state && 
+                          ((countries[formData.country as keyof typeof countries] as Record<string, string[]>)[formData.state]).map((city) => (
+                            <SelectItem key={city} value={city}>
+                              {city}
+                            </SelectItem>
+                          ))
+                        }
                     </SelectContent>
                   </Select>
                 </div>

@@ -10,6 +10,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  admin
+  employee
+  customer
+}
+
 model Diamond {
   id             String   @id @default(uuid())
   stockId        String   @unique @map("stock_id")
@@ -68,17 +74,26 @@ model SyncLog {
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
-  email     String   @unique
+  email     String    @unique
   phone     String
   password  String
   otp       String?
-  verified  Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  verified  Boolean   @default(false)
+  role      Role      @default(customer)
+  shipments Shipment[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+model AdminEmail {
+  email     String   @id
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("admin_emails")
 }
 
 model Shipment {
@@ -116,6 +131,8 @@ model Shipment {
   lastUpdatedBy      String?  @map("last_updated_by")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          User     @relation(fields: [userId], references: [id])
+  userId             String
 
   @@map("shipments")
 }

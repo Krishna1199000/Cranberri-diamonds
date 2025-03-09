@@ -1,15 +1,37 @@
-import { PrismaClient } from '@prisma/client'
+
 import { NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
-
-const prisma = new PrismaClient()
 
 export async function POST(request: Request) {
   try {
     const { diamonds } = await request.json()
     
     // Transform data for Excel
-    const excelData = diamonds.map((diamond: any) => ({
+    interface Diamond {
+      stockId: string;
+      certificateNo: string;
+      shape: string;
+      size: number;
+      color: string;
+      clarity: string;
+      cut: string;
+      polish: string;
+      sym: string;
+      floro: string;
+      lab: string;
+      measurement: string;
+      table: number;
+      depth: number;
+      ratio: number;
+      rapPrice: number;
+      rapAmount: number;
+      discount: number;
+      pricePerCarat: number;
+      finalAmount: number;
+      location: string;
+    }
+
+    const excelData = diamonds.map((diamond: Diamond) => ({
       'Stock ID': diamond.stockId,
       'Certificate No': diamond.certificateNo,
       'Shape': diamond.shape,

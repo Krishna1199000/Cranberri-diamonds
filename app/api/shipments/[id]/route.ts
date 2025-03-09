@@ -6,16 +6,16 @@ const db = new PrismaClient()
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id
+  const { id } = await params
 
   try {
     const session = await getSession()
     
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
+        { success: false, message: 'Unauthorized - Please login' },
         { status: 401 }
       )
     }
@@ -43,16 +43,16 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id
+  const { id } = await params
 
   try {
     const session = await getSession()
     
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
+        { success: false, message: 'Unauthorized - Please login' },
         { status: 401 }
       )
     }
@@ -62,7 +62,7 @@ export async function PUT(
       where: { id },
       data: {
         ...body,
-        lastUpdatedBy: session.user.name || 'Unknown'
+        lastUpdatedBy: (session.user as { name?: string }).name || 'Unknown'
       }
     })
 
@@ -78,16 +78,16 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id
+  const { id } = await params
 
   try {
     const session = await getSession()
     
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
+        { success: false, message: 'Unauthorized - Please login' },
         { status: 401 }
       )
     }
@@ -96,7 +96,7 @@ export async function DELETE(
       where: { id }
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, message: 'Shipment deleted successfully' })
   } catch (error) {
     console.error('Error deleting shipment:', error)
     return NextResponse.json(

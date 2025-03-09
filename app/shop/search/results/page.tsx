@@ -68,7 +68,20 @@ export default function SearchResults() {
         });
 
         // Parse the parameters
-        const searchCriteria: any = {
+        const searchCriteria: {
+          shapes?: string[];
+          caratRange: { from: string; to: string };
+          stoneId?: string;
+          priceRange: { from: string; to: string };
+          colors?: string[];
+          clarities?: string[];
+          cuts?: string[];
+          labs?: string[];
+          polishes?: string[];
+          symmetries?: string[];
+          fluorescence?: string[];
+          locations?: string[];
+        } = {
           shapes: params.shapes?.split(','),
           caratRange: {
             from: params.caratFrom,

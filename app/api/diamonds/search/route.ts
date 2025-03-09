@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 
 const prisma = new PrismaClient()
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     console.log('Search parameters:', searchParams)
     
     // Build the where clause based on search parameters
-    const where: any = {}
+    const where: Prisma.DiamondWhereInput = {}
     
     if (searchParams.shapes?.length > 0) {
       where.shape = { in: searchParams.shapes.map((s: string) => s.toUpperCase()) }
