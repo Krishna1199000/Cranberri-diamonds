@@ -30,18 +30,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Please verify your email first' });
     }
 
-    // Generate JWT token with role
+    // Generate JWT token with role and name
     const token = jwt.sign(
       { 
         userId: user.id,
         role: user.role,
-        email: user.email
+        email: user.email,
+        name: user.name
       },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '1d' }
     );
 
-    const response = NextResponse.json({ success: true });
+    const response = NextResponse.json({ 
+      success: true,
+      role: user.role 
+    });
+    
     response.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

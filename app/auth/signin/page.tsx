@@ -31,11 +31,24 @@ export default function SignIn() {
 
       if (data.success) {
         toast.success('Signed in successfully')
-        router.push('/dashboard')
+        
+        // Check user role
+        const statusRes = await fetch('/api/auth/status', {
+          credentials: 'include'
+        });
+        const statusData = await statusRes.json();
+
+        // Redirect based on role
+        if (statusData.role === 'admin') {
+          router.push('/Admins');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
-        toast.error('Invalid email or password')
+        toast.error(data.message || 'Invalid email or password')
       }
-    } catch {
+    } catch (error) {
+      console.error('Sign in error:', error);
       toast.error('Failed to sign in')
     }
 
