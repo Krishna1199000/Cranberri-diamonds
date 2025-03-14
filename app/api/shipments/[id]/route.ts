@@ -12,8 +12,11 @@ export async function GET(
 
   try {
     const session = await getSession()
-    
-    if (!session?.user) {
+
+    console.log('Session data:', session)
+
+
+    if (!session?.userId) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized - Please login' },
         { status: 401 }
@@ -43,26 +46,48 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
+
 ) {
-  const { id } = await params
+  const { id } = await params;
+
+
+  console.log('Shipment ID:', id);
 
   try {
     const session = await getSession()
-    
-    if (!session?.user) {
+
+
+    console.log('Session data:', session)
+
+    if (!session?.userId) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized - Please login' },
         { status: 401 }
       )
     }
 
+    if (!req.headers.get('content-type')?.includes('application/json')) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid content type, expected application/json' },
+        { status: 400 }
+      );
+    }
+
     const body = await req.json()
+    console.log('Request body:', body);
+
+    if (!body || typeof body !== 'object' || Object.keys(body).length === 0) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid or empty request body' },
+        { status: 400 }
+      );
+    }
     const shipment = await db.shipment.update({
       where: { id },
       data: {
         ...body,
-        lastUpdatedBy: (session.user as { name?: string }).name || 'Unknown'
+        lastUpdatedBy: session.name || 'Unknown'
       }
     })
 
@@ -84,8 +109,10 @@ export async function DELETE(
 
   try {
     const session = await getSession()
-    
-    if (!session?.user) {
+
+    console.log('Session data:', session)
+
+    if (!session?.userId) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized - Please login' },
         { status: 401 }
