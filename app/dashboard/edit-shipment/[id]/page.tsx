@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState,use } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,7 +23,6 @@ import {
   tradeBodyMemberships,
   authorizedByOptions,
   accountManagerOptions,
-  salesExecutiveOptions,
   leadSourceOptions,
   partyGroupOptions,
   defaultReferences
@@ -31,9 +30,8 @@ import {
 
 export default function EditShipment({ params }: { params: { id: string } }) {
   const router = useRouter()
-  const unwrappedParams = 'then' in params ? use(params) : params
-  const shipmentId = unwrappedParams.id
-  
+  const shipmentId = params.id
+
   const [formData, setFormData] = useState({
     companyName: '',
     addressLine1: '',
@@ -84,6 +82,7 @@ export default function EditShipment({ params }: { params: { id: string } }) {
         router.push('/dashboard')
       }
     } catch (error) {
+      console.error('Error fetching shipment:', error)
       toast.error('Something went wrong')
       router.push('/dashboard')
     }
@@ -126,8 +125,30 @@ export default function EditShipment({ params }: { params: { id: string } }) {
       } else {
         toast.error(data.message || 'Failed to update shipment')
       }
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Something went wrong')
+    }
+  }
+
+  const [salesExecutiveOptions, setSalesExecutiveOptions] = useState<Array<{ id: string, name: string }>>([])
+
+  useEffect(() => {
+    fetchSalesExecutives()
+    fetchShipment()
+  }, [shipmentId])
+
+  const fetchSalesExecutives = async () => {
+    try {
+      const response = await fetch('/api/employees')
+      const data = await response.json()
+      if (data.success) {
+        setSalesExecutiveOptions(data.employees)
+      } else {
+        toast.error('Failed to fetch sales executives')
+      }
     } catch (error) {
-      toast.error('Something went wrong')
+      console.error('Failed to fetch sales executives:', error)
+      toast.error('Error fetching sales executives')
     }
   }
 
@@ -230,8 +251,8 @@ export default function EditShipment({ params }: { params: { id: string } }) {
                       <SelectValue placeholder="Select City" />
                     </SelectTrigger>
                     <SelectContent>
-                      {formData.country && formData.state && 
-                        countries[formData.country as keyof typeof countries][formData.state].map((city) => (
+                      {formData.country && formData.state &&
+                        ((countries[formData.country as keyof typeof countries] as Record<string, string[]>)[formData.state] || []).map((city) => (
                           <SelectItem key={city} value={city}>
                             {city}
                           </SelectItem>
@@ -629,14 +650,13 @@ export default function EditShipment({ params }: { params: { id: string } }) {
                     </SelectTrigger>
                     <SelectContent>
                       {salesExecutiveOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
+                        <SelectItem key={option.id} value={option.name}>
+                          {option.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Lead Source <span className="text-red-500">*</span>

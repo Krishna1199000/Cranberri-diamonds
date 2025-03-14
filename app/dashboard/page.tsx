@@ -13,9 +13,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-interface User {
-  name: string;
-}
 
 interface Shipment {
   id: string
@@ -46,27 +43,16 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
+
   const [searchTerm, setSearchTerm] = useState('')
   const itemsPerPage = 10
   const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
     fetchShipments()
-    fetchUser()
+  
   }, [currentPage])
 
-  const fetchUser = async () => {
-    try {
-      const res = await fetch('/api/auth/user')
-      const data = await res.json()
-      if (data.success) {
-        setUser(data.user)
-      }
-    } catch {
-      toast.error('Failed to fetch user details')
-    }
-  }
 
   const fetchShipments = async () => {
     try {

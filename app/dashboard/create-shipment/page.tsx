@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -84,7 +84,7 @@ const tradeBodyMemberships = ["AGS", "AGTA", "JA", "JBT", "Other"]
 
 const authorizedByOptions = ["Urmil Wadhvana", "Smith Pujara"]
 const accountManagerOptions = ["Urmil Wadhvana", "Smith Pujara"]
-const salesExecutiveOptions = ["krishna", "manav", "geeta"]
+
 const leadSourceOptions = ["Urmil Wadhvana", "Smith Pujara"]
 const partyGroupOptions = ["Customer"]
 
@@ -130,6 +130,27 @@ export default function CreateShipment() {
     leadSource: '',
     limit: 0
   })
+
+  const [salesExecutiveOptions, setSalesExecutiveOptions] = useState<Array<{ id: string, name: string }>>([])
+
+  useEffect(() => {
+    fetchSalesExecutives()
+  }, [])
+
+  const fetchSalesExecutives = async () => {
+    try {
+      const response = await fetch('/api/employees')
+      const data = await response.json()
+      if (data.success) {
+        setSalesExecutiveOptions(data.employees)
+      } else {
+        toast.error('Failed to fetch sales executives')
+      }
+    } catch {
+      toast.error('Error fetching sales executives')
+    }
+  }
+
 
   const handleChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({
@@ -272,13 +293,13 @@ export default function CreateShipment() {
                       <SelectValue placeholder="Select City" />
                     </SelectTrigger>
                     <SelectContent>
-                        {formData.country && formData.state && 
-                          ((countries[formData.country as keyof typeof countries] as Record<string, string[]>)[formData.state]).map((city) => (
-                            <SelectItem key={city} value={city}>
-                              {city}
-                            </SelectItem>
-                          ))
-                        }
+                      {formData.country && formData.state &&
+                        ((countries[formData.country as keyof typeof countries] as Record<string, string[]>)[formData.state]).map((city) => (
+                          <SelectItem key={city} value={city}>
+                            {city}
+                          </SelectItem>
+                        ))
+                      }
                     </SelectContent>
                   </Select>
                 </div>
@@ -671,8 +692,8 @@ export default function CreateShipment() {
                     </SelectTrigger>
                     <SelectContent>
                       {salesExecutiveOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
+                        <SelectItem key={option.id} value={option.name}>
+                          {option.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

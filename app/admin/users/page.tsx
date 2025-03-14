@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { format } from 'date-fns';
 
@@ -32,11 +34,28 @@ interface User {
 export default function UserManagement() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    // Filter users based on search term
+    if (searchTerm.trim() === "") {
+      setFilteredUsers(users);
+    } else {
+      const term = searchTerm.toLowerCase();
+      const filtered = users.filter(
+        user => 
+          user.name.toLowerCase().includes(term) || 
+          user.email.toLowerCase().includes(term)
+      );
+      setFilteredUsers(filtered);
+    }
+  }, [searchTerm, users]);
 
   const fetchUsers = async () => {
     try {
@@ -47,6 +66,7 @@ export default function UserManagement() {
       
       if (data.success) {
         setUsers(data.users);
+        setFilteredUsers(data.users);
       } else {
         toast.error(data.message || 'Failed to fetch users');
       }
@@ -85,6 +105,10 @@ export default function UserManagement() {
     }
   };
 
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
@@ -98,9 +122,38 @@ export default function UserManagement() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">User Management</h1>
-          <Button variant="outline" onClick={() => router.push("/admin")}>
+          <Button variant="outline" onClick={() => router.push("/Admins")}>
             Back to Admin Dashboard
           </Button>
+        </div>
+
+        <div className="mb-4 relative">
+          <div className="flex gap-2 max-w-md">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <Input
+                type="text"
+                placeholder="Search users by name or email..."
+                value={searchTerm}
+                onChange={handleSearch}
+                className="pl-10 w-full"
+              />
+            </div>
+            {searchTerm && (
+              <Button 
+                variant="outline" 
+                onClick={() => setSearchTerm("")}
+                className="text-sm"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+          {searchTerm && (
+            <p className="mt-2 text-sm text-gray-500">
+              Found {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'}
+            </p>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow">
@@ -115,31 +168,39 @@ export default function UserManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>
-                    {format(new Date(user.createdAt), 'PPP')}
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={user.role}
-                      onValueChange={(value) => handleRoleChange(user.id, value)}
-                      disabled={user.role === 'admin'} // Prevent changing admin roles
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="customer">Customer</SelectItem>
-                        <SelectItem value="employee">Employee</SelectItem>
-                      </SelectContent>
-                    </Select>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.role}</TableCell>
+                    <TableCell>
+                      {format(new Date(user.createdAt), 'PPP')}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={user.role}
+                        onValueChange={(value) => handleRoleChange(user.id, value)}
+                        disabled={user.role === 'admin'} // Prevent changing admin roles
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="customer">Customer</SelectItem>
+                          <SelectItem value="employee">Employee</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-4">
+                    No users found matching &quot;{searchTerm}&quot;
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>

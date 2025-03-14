@@ -3,10 +3,15 @@ import { NextResponse } from 'next/server'
 
 const prisma = new PrismaClient()
 
+const ITEMS_PER_PAGE = 40
+
 export async function POST(request: Request) {
   try {
     const searchParams = await request.json()
     console.log('Search parameters:', searchParams)
+    
+    const page = searchParams.page || 1
+    const skip = (page - 1) * ITEMS_PER_PAGE
     
     // Build the where clause based on search parameters
     const where: Prisma.DiamondWhereInput = {}
@@ -76,6 +81,9 @@ export async function POST(request: Request) {
 
     console.log('Final where clause:', where)
 
+    // Get total count for pagination
+    const totalCount = await prisma.diamond.count({ where })
+
     // Add some test data if the database is empty
     const count = await prisma.diamond.count()
     if (count === 0) {
@@ -135,11 +143,22 @@ export async function POST(request: Request) {
 
     const diamonds = await prisma.diamond.findMany({
       where,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: ITEMS_PER_PAGE
     })
 
     console.log(`Found ${diamonds.length} diamonds`)
-    return NextResponse.json({ diamonds })
+    return NextResponse.json({ 
+      diamonds,
+      pagination: {
+        total: totalCount,
+        pages: Math.ceil(totalCount / ITEMS_PER_PAGE),
+        currentPage: page,
+        perPage: ITEMS_PER_PAGE,
+        hasMore: skip + diamonds.length < totalCount
+      }
+    })
   } catch (error) {
     console.error('Search error:', error)
     return NextResponse.json({ error: 'Failed to search diamonds' }, { status: 500 })

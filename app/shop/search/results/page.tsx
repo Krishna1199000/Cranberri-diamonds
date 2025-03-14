@@ -21,7 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Image, Video, FileText } from "lucide-react";
+import { Image, Video, FileText, ChevronDown } from "lucide-react";
 
 interface Diamond {
   id: string;
@@ -51,85 +51,107 @@ interface Diamond {
   certUrl?: string;
 }
 
+interface PaginationInfo {
+  total: number;
+  pages: number;
+  currentPage: number;
+  perPage: number;
+  hasMore: boolean;
+}
+
 export default function SearchResults() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedDiamonds, setSelectedDiamonds] = useState<Set<string>>(new Set());
   const [diamonds, setDiamonds] = useState<Diamond[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    total: 0,
+    pages: 0,
+    currentPage: 1,
+    perPage: 40,
+    hasMore: false
+  });
+
+  const fetchDiamonds = async (page: number, append: boolean = false) => {
+    try {
+      if (!append) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      // Convert searchParams to an object
+      const params: Record<string, string> = {};
+      searchParams.forEach((value, key) => {
+        params[key] = value;
+      });
+
+      // Parse the parameters
+      const searchCriteria = {
+        page,
+        shapes: params.shapes?.split(','),
+        caratRange: {
+          from: params.caratFrom,
+          to: params.caratTo
+        },
+        stoneId: params.stoneId,
+        priceRange: {
+          from: params.priceFrom,
+          to: params.priceTo
+        },
+        colors: params.colors?.split(','),
+        clarities: params.clarities?.split(','),
+        cuts: params.cuts?.split(','),
+        labs: params.labs?.split(','),
+        polishes: params.polishes?.split(','),
+        symmetries: params.symms?.split(','),
+        fluorescence: params.flours?.split(','),
+        locations: params.locations?.split(',')
+      };
+
+      const response = await fetch('/api/diamonds/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(searchCriteria),
+      });
+
+      const data = await response.json();
+      
+      if (data.diamonds) {
+        if (append) {
+          setDiamonds(prev => [...prev, ...data.diamonds]);
+        } else {
+          setDiamonds(data.diamonds);
+        }
+        setPagination(data.pagination);
+        if (data.diamonds.length === 0 && !append) {
+          toast.info('No diamonds found matching your criteria');
+        }
+      } else {
+        toast.error('Failed to fetch diamonds');
+      }
+    } catch (error) {
+      console.error('Failed to fetch diamonds:', error);
+      toast.error('Failed to fetch diamonds');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDiamonds = async () => {
-      try {
-        // Convert searchParams to an object
-        const params: Record<string, string> = {};
-        searchParams.forEach((value, key) => {
-          params[key] = value;
-        });
-
-        // Parse the parameters
-        const searchCriteria: {
-          shapes?: string[];
-          caratRange: { from: string; to: string };
-          stoneId?: string;
-          priceRange: { from: string; to: string };
-          colors?: string[];
-          clarities?: string[];
-          cuts?: string[];
-          labs?: string[];
-          polishes?: string[];
-          symmetries?: string[];
-          fluorescence?: string[];
-          locations?: string[];
-        } = {
-          shapes: params.shapes?.split(','),
-          caratRange: {
-            from: params.caratFrom,
-            to: params.caratTo
-          },
-          stoneId: params.stoneId,
-          priceRange: {
-            from: params.priceFrom,
-            to: params.priceTo
-          },
-          colors: params.colors?.split(','),
-          clarities: params.clarities?.split(','),
-          cuts: params.cuts?.split(','),
-          labs: params.labs?.split(','),
-          polishes: params.polishes?.split(','),
-          symmetries: params.symms?.split(','),
-          fluorescence: params.flours?.split(','),
-          locations: params.locations?.split(',')
-        };
-
-        const response = await fetch('/api/diamonds/search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(searchCriteria),
-        });
-
-        const data = await response.json();
-        
-        if (data.diamonds) {
-          setDiamonds(data.diamonds);
-          if (data.diamonds.length === 0) {
-            toast.info('No diamonds found matching your criteria');
-          }
-        } else {
-          toast.error('Failed to fetch diamonds');
-        }
-      } catch (error) {
-        console.error('Failed to fetch diamonds:', error);
-        toast.error('Failed to fetch diamonds');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDiamonds();
+    fetchDiamonds(1);
   }, [searchParams]);
+
+  const handleLoadMore = () => {
+    if (pagination.hasMore) {
+      fetchDiamonds(pagination.currentPage + 1, true);
+    }
+  };
 
   const handleSelectDiamond = (id: string) => {
     const newSelected = new Set(selectedDiamonds);
@@ -242,7 +264,7 @@ export default function SearchResults() {
                           onChange={() => handleSelectDiamond(diamond.id)}
                         />
                       </TableCell>
-                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>{((pagination.currentPage - 1) * pagination.perPage) + index + 1}</TableCell>
                       <TableCell>{diamond.stockId}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
@@ -302,7 +324,7 @@ export default function SearchResults() {
                           onChange={() => handleSelectDiamond(diamond.id)}
                         />
                       </div>
-                      <CardTitle>Diamond #{index + 1}</CardTitle>
+                      <CardTitle>Diamond #{((pagination.currentPage - 1) * pagination.perPage) + index + 1}</CardTitle>
                       <CardDescription>{diamond.stockId}</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -356,6 +378,32 @@ export default function SearchResults() {
               </div>
             </TabsContent>
           </Tabs>
+
+          {pagination.hasMore && (
+            <div className="flex justify-center p-6 border-t">
+              <Button
+                variant="outline"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="w-full max-w-xs"
+              >
+                {loadingMore ? (
+                  "Loading more..."
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-2" />
+                    Load More Diamonds
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
+          <div className="px-6 py-4 bg-gray-50 border-t">
+            <p className="text-sm text-gray-700 text-center">
+              Showing {diamonds.length} of {pagination.total} diamonds
+            </p>
+          </div>
         </div>
       </div>
     </div>

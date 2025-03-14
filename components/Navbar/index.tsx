@@ -41,7 +41,7 @@ export function Navbar() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                onClick={() => router.push(item.href)}
+                onClick={() => item.href && router.push(item.href)}
               >
                 {item.label}
               </motion.button>
@@ -86,8 +86,10 @@ export function Navbar() {
                   whileTap={{ scale: 0.95 }}
                   className="block w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
                   onClick={() => {
-                    router.push(item.href);
-                    setIsOpen(false);
+                    if (item.href) {
+                      router.push(item.href);
+                      setIsOpen(false);
+                    }
                   }}
                 >
                   {item.label}

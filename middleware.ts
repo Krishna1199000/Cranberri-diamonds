@@ -17,31 +17,72 @@ async function verifyToken(token: string) {
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
-  const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
-  const isDashboardPage = request.nextUrl.pathname.startsWith('/dashboard');
-  const isAdminPage = request.nextUrl.pathname.startsWith('/admin');
-  const isSyncPage = request.nextUrl.pathname.startsWith('/sync');
+  const path = request.nextUrl.pathname;
+  
+  const isAuthPage = path.startsWith('/auth');
+  const isAdminPage = path.startsWith('/Admins');
+  const isEmployeePage = path.startsWith('/employee');
+  const isCustomerPage = path.startsWith('/Customer');
+  const isSyncPage = path.startsWith('/sync');
+  const isDashboardPage = path === '/dashboard';
+  const isAdminUsersPage = path === '/admin/users';
 
   // If no token and trying to access protected routes
-  if (!token && (isDashboardPage || isAdminPage || isSyncPage)) {
+  if (!token && (isAdminPage || isEmployeePage || isCustomerPage || isSyncPage || isDashboardPage || isAdminUsersPage)) {
     return NextResponse.redirect(new URL('/auth/signin', request.url));
   }
 
   // If has token and trying to access auth pages
   if (token && isAuthPage) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  // For protected routes, verify role access
-  if (token && (isDashboardPage || isAdminPage || isSyncPage)) {
     const payload = await verifyToken(token);
     if (!payload) {
       return NextResponse.redirect(new URL('/auth/signin', request.url));
     }
 
-    // Admin-only routes
-    if ((isAdminPage || isSyncPage) && payload.role !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+    // Redirect to appropriate dashboard based on role
+    switch (payload.role) {
+      case 'admin':
+        return NextResponse.redirect(new URL('/Admins', request.url));
+      case 'employee':
+        return NextResponse.redirect(new URL('/employee', request.url));
+      case 'customer':
+        return NextResponse.redirect(new URL('/Customer', request.url));
+      default:
+        return NextResponse.redirect(new URL('/auth/signin', request.url));
+    }
+  }
+
+  // For protected routes, verify role access
+  if (token) {
+    const payload = await verifyToken(token);
+    if (!payload) {
+      return NextResponse.redirect(new URL('/auth/signin', request.url));
+    }
+
+    // Role-based access control
+    if (isAdminPage || isSyncPage || isAdminUsersPage) {
+      if (payload.role !== 'admin') {
+        return NextResponse.redirect(new URL('/auth/signin', request.url));
+      }
+    }
+
+    if (isEmployeePage) {
+      if (payload.role !== 'employee') {
+        return NextResponse.redirect(new URL('/auth/signin', request.url));
+      }
+    }
+
+    if (isCustomerPage) {
+      if (payload.role !== 'customer') {
+        return NextResponse.redirect(new URL('/auth/signin', request.url));
+      }
+    }
+
+    // Dashboard access control - restrict customers
+    if (isDashboardPage) {
+      if (payload.role === 'customer') {
+        return NextResponse.redirect(new URL('/Customer', request.url));
+      }
     }
   }
 
@@ -49,5 +90,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/auth/:path*', '/admin/:path*', '/sync/:path*']
+  matcher: [
+    '/admin/:path*',
+    '/employee/:path*',
+    '/Customer/:path*',
+    '/auth/:path*',
+    '/sync/:path*',
+    '/Admins/:path*',
+    '/dashboard',
+    '/admin/users'
+  ]
 };

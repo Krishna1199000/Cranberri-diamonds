@@ -41,7 +41,14 @@ export default function SignIn() {
         // Redirect based on role
         if (statusData.role === 'admin') {
           router.push('/Admins');
-        } else {
+        } 
+        else if (statusData.role === 'employee') {
+          router.push('/employee');
+        } 
+        else if (statusData.role === 'customer') {
+          router.push('/Customer');
+        }
+        else {
           router.push('/dashboard');
         }
       } else {

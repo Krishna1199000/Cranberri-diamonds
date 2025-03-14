@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -309,6 +308,113 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                   }}
                 >
                   {lab}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Polish, Symmetry, Fluorescence, and Location Section */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <Label className="text-lg font-semibold mb-3 block">Polish</Label>
+            <div className="flex flex-wrap gap-2">
+              {polishes.map((polish) => (
+                <motion.button
+                  key={polish}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedPolishes.includes(polish)
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  onClick={() => {
+                    const newPolishes = selectedPolishes.includes(polish)
+                      ? selectedPolishes.filter(p => p !== polish)
+                      : [polish];
+                    setSelectedPolishes(newPolishes);
+                  }}
+                >
+                  {polish}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-lg font-semibold mb-3 block">Symmetry</Label>
+            <div className="flex flex-wrap gap-2">
+              {symms.map((symm) => (
+                <motion.button
+                  key={symm}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedSymms.includes(symm)
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  onClick={() => {
+                    const newSymms = selectedSymms.includes(symm)
+                      ? selectedSymms.filter(s => s !== symm)
+                      : [symm];
+                    setSelectedSymms(newSymms);
+                  }}
+                >
+                  {symm}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-lg font-semibold mb-3 block">Fluorescence</Label>
+            <div className="flex flex-wrap gap-2">
+              {flours.map((flour) => (
+                <motion.button
+                  key={flour}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedFlours.includes(flour)
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  onClick={() => {
+                    const newFlours = selectedFlours.includes(flour)
+                      ? selectedFlours.filter(f => f !== flour)
+                      : [flour];
+                    setSelectedFlours(newFlours);
+                  }}
+                >
+                  {flour}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-lg font-semibold mb-3 block">Location</Label>
+            <div className="flex flex-wrap gap-2">
+              {locations.map((location) => (
+                <motion.button
+                  key={location}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedLocations.includes(location)
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  onClick={() => {
+                    const newLocations = selectedLocations.includes(location)
+                      ? selectedLocations.filter(l => l !== location)
+                      : [location];
+                    setSelectedLocations(newLocations);
+                  }}
+                >
+                  {location}
                 </motion.button>
               ))}
             </div>
