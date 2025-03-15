@@ -25,7 +25,7 @@ export default function CustomerDashboard() {
 
   const navItems = [
     { label: 'Home', icon: Home, href: '/' },
-    { label: 'Search Diamond', icon: Search, href: '/customer/search' },
+    { label: 'Search Diamond', icon: Search, href: '/Customer' },
   ];
 
   return (
