@@ -26,7 +26,7 @@ export default function AdminDashboard() {
   const navItems = [
     { label: 'Home', icon: Home, href: '/' },
     { label: 'Search Diamond', icon: Search, href: '/Admins' },
-    { label: 'Shipments', icon: Package, href: '/dashboard' },
+    { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
     { label: 'Manage Users', icon: Users, href: '/admin/users' },
     { label: 'Sync Database', icon: Database, href: '/sync' },
   ];
