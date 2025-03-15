@@ -6,6 +6,7 @@ import { motion } from "framer-motion"
 import { Diamond, ChevronDown, Menu } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import Image from "next/image"
 
 export default function Navbar() {
   const menuItems = [
@@ -52,8 +53,9 @@ export default function Navbar() {
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
-              <Diamond className="w-6 h-6" />
-              <span className="font-serif text-2xl">Cranberri</span>
+              <Image src="/IMG_8981[1].png" alt="Cranberri Logo" width={200} height={200} className="object-contain" />
+
+        
             </motion.div>
           </Link>
 

@@ -20,17 +20,59 @@ export default function Home() {
   const certificationLogos = [
     {
       name: "GCAL",
-      url: "https://www.gcalusa.com/images/gcal-logo.png",
+      url: "/e8310c82-41b0-4a1b-8cf9-3744c09f8176_removalai_preview.png",
     },
     {
       name: "IGI",
-      url: "https://www.igi.org/images/IGI_Logo.png",
+      url: "/23d688c0cc81dd2f7d4f41a84b6cfd92.png",
     },
     {
       name: "GIA",
-      url: "https://www.gia.edu/sites/default/files/GIA_Logo.png",
+      url: "/bfbb77ae2465ce3dbd7544459195ab57.png",
     },
   ]
+  const PartnerLogos = [
+    {
+      name: "Payoneer",
+      url: "/6102d9aca849c40004f9a134.png",
+    },
+    {
+      name: "WISE",
+      url: "/62a89334da9e7313e0262a70.png",
+    },
+    {
+      name: "PAYPAL",
+      url: "/580b57fcd9996e24bc43c530.png",
+    },
+    {
+      name: "REMITLY",
+      url: "/pinpng.com-rupee-sign-png-207821.png",
+    },
+    {
+      name: "RAZORPAY",
+      url: "/pngwing.com.png",
+    },
+  ]
+
+  const DiscoverShapes = [
+    {
+      name: "Round",
+      url: "/LABON - Search Inventory.png",
+    },
+    {
+      name: "Princess",
+      url: "/Princess.png",
+    },
+    {
+      name: "Oval",
+      url: "/Oval.png",
+    },
+    {
+      name: "Emerald",
+      url: "/Emerald.png",
+    }
+  ]
+
 
   const fadeInUpVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -150,9 +192,9 @@ export default function Home() {
           </motion.h3>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {["Round", "Princess", "Oval", "Emerald"].map((shape, index) => (
+            {DiscoverShapes.map((shape, index) => (
               <motion.div
-                key={shape}
+                key={shape.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -161,7 +203,7 @@ export default function Home() {
                 className="bg-white p-6 rounded-lg shadow-lg text-center"
               >
                 <Diamond className="w-12 h-12 mx-auto mb-4" />
-                <h4 className="text-xl font-medium">{shape}</h4>
+                <h4 className="text-xl font-medium">{shape.name}</h4>
               </motion.div>
             ))}
           </div>
@@ -269,6 +311,43 @@ export default function Home() {
 
           <div className="flex justify-center items-center space-x-12">
             {certificationLogos.map((logo, index) => (
+              <motion.div
+                key={logo.name}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={{
+                  hidden: { opacity: 0, scale: 0.8 },
+                  visible: {
+                    opacity: 1,
+                    scale: 1,
+                    transition: { delay: index * 0.2 },
+                  },
+                }}
+                className="relative w-40 h-20"
+              >
+                <Image src={logo.url || "/placeholder.svg"} alt={logo.name} fill className="object-contain" />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Our Partners */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUpVariants}
+            className="text-4xl font-serif text-center mb-16"
+          >
+            Our Partners
+          </motion.h2>
+
+          <div className="flex justify-center items-center space-x-12">
+            {PartnerLogos.map((logo, index) => (
               <motion.div
                 key={logo.name}
                 initial="hidden"
