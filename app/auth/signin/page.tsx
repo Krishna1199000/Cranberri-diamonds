@@ -1,7 +1,10 @@
 "use client"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
@@ -9,8 +12,8 @@ import { toast } from "sonner"
 export default function SignIn() {
   const router = useRouter()
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   })
   const [loading, setLoading] = useState(false)
 
@@ -19,10 +22,10 @@ export default function SignIn() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/auth/signin', {
-        method: 'POST',
+      const res = await fetch("/api/auth/signin", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       })
@@ -30,33 +33,30 @@ export default function SignIn() {
       const data = await res.json()
 
       if (data.success) {
-        toast.success('Signed in successfully')
-        
+        toast.success("Signed in successfully")
+
         // Check user role
-        const statusRes = await fetch('/api/auth/status', {
-          credentials: 'include'
-        });
-        const statusData = await statusRes.json();
+        const statusRes = await fetch("/api/auth/status", {
+          credentials: "include",
+        })
+        const statusData = await statusRes.json()
 
         // Redirect based on role
-        if (statusData.role === 'admin') {
-          router.push('/Admins');
-        } 
-        else if (statusData.role === 'employee') {
-          router.push('/employee');
-        } 
-        else if (statusData.role === 'customer') {
-          router.push('/Customer');
-        }
-        else {
-          router.push('/dashboard');
+        if (statusData.role === "admin") {
+          router.push("/Admins")
+        } else if (statusData.role === "employee") {
+          router.push("/employee")
+        } else if (statusData.role === "customer") {
+          router.push("/Customer")
+        } else {
+          router.push("/dashboard")
         }
       } else {
-        toast.error(data.message || 'Invalid email or password')
+        toast.error(data.message || "Invalid email or password")
       }
     } catch (error) {
-      console.error('Sign in error:', error);
-      toast.error('Failed to sign in')
+      console.error("Sign in error:", error)
+      toast.error("Failed to sign in")
     }
 
     setLoading(false)
@@ -89,10 +89,20 @@ export default function SignIn() {
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? "Signing in..." : "Sign In"}
           </Button>
+
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-600">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="font-medium text-primary hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>
   )
 }
+

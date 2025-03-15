@@ -1,20 +1,23 @@
 "use client"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 
 export default function SignUp() {
   const router = useRouter()
-  const [step, setStep] = useState('signup') // 'signup' or 'otp'
+  const [step, setStep] = useState("signup") // 'signup' or 'otp'
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    otp: ''
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    otp: "",
   })
   const [loading, setLoading] = useState(false)
 
@@ -23,10 +26,10 @@ export default function SignUp() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: formData.name,
@@ -39,13 +42,13 @@ export default function SignUp() {
       const data = await res.json()
 
       if (data.success) {
-        setStep('otp')
-        toast.success('Please check your email for OTP')
+        setStep("otp")
+        toast.success("Please check your email for OTP")
       } else {
-        toast.error(data.message || 'Something went wrong')
+        toast.error(data.message || "Something went wrong")
       }
     } catch {
-      toast.error('Failed to sign up')
+      toast.error("Failed to sign up")
     }
 
     setLoading(false)
@@ -56,10 +59,10 @@ export default function SignUp() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/auth/verify', {
-        method: 'POST',
+      const res = await fetch("/api/auth/verify", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: formData.email,
@@ -70,19 +73,19 @@ export default function SignUp() {
       const data = await res.json()
 
       if (data.success) {
-        toast.success('Account verified successfully')
-        router.push('/dashboard')
+        toast.success("Account verified successfully")
+        router.push("/dashboard")
       } else {
-        toast.error(data.message || 'Invalid OTP')
+        toast.error(data.message || "Invalid OTP")
       }
     } catch {
-      toast.error('Failed to verify OTP')
+      toast.error("Failed to verify OTP")
     }
 
     setLoading(false)
   }
 
-  if (step === 'otp') {
+  if (step === "otp") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
@@ -101,7 +104,7 @@ export default function SignUp() {
             />
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Verifying...' : 'Verify OTP'}
+              {loading ? "Verifying..." : "Verify OTP"}
             </Button>
           </form>
         </div>
@@ -150,10 +153,20 @@ export default function SignUp() {
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Signing up...' : 'Sign Up'}
+            {loading ? "Signing up..." : "Sign Up"}
           </Button>
+
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-600">
+              Already have an account?{" "}
+              <Link href="/signin" className="font-medium text-primary hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>
   )
 }
+
