@@ -200,10 +200,10 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-lg shadow-lg text-center"
+                className="relative w-40 h-20"
               >
-                <Diamond className="w-12 h-12 mx-auto mb-4" />
-                <h4 className="text-xl font-medium">{shape.name}</h4>
+        
+                <Image src={shape.url || "/placeholder.svg"} alt={shape.name} fill className="object-contain" />
               </motion.div>
             ))}
           </div>

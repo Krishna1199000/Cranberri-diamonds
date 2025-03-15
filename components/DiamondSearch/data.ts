@@ -72,4 +72,4 @@ export const shapes = [
   export const polishes = ["ID", "EX", "VG", "GD", "FR"];
   export const symms = ["EX", "VG", "GD", "FR", "G"];
   export const flours = ["NON", "FNT", "MED", "SL", "VSL", "STG", "VST"];
-  export const locations = ["USA", "IND"];
+  export const locations = ["USA", "INDIA"];
