@@ -6,13 +6,14 @@ import { NextRequest } from 'next/server'
 const db = new PrismaClient()
 
 export async function GET(
-  req: NextRequest,
-  context: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+
+  const resolvedParams = await params;
+
   try {
     
-    const { id } = context.params
-    console.log('GET Request - Params:', { id })
     
     const session = await getSession()
     console.log('Session data:', session)
@@ -28,12 +29,12 @@ export async function GET(
     }
 
     const shipment = await db.shipment.findUnique({
-      where: { id }
+      where: { id: resolvedParams.id }
     })
     console.log('Found shipment:', shipment)
 
     if (!shipment) {
-      console.log('Shipment not found for id:', id)
+      console.log('Shipment not found for id:', resolvedParams.id)
       return NextResponse.json(
         { success: false, message: 'Shipment not found' },
         { status: 404 }
@@ -61,11 +62,13 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+
+  const resolvedParams = await params;
   try {
-    const { id } = context.params
-    console.log('PUT Request - Params:', { id })
+  
+
     
     const session = await getSession()
     console.log('Session data:', session)
@@ -80,12 +83,12 @@ export async function PUT(
 
     // Check if the shipment exists and if the user has permission to edit it
     const existingShipment = await db.shipment.findUnique({
-      where: { id }
+      where: { id: resolvedParams.id }
     })
     console.log('Existing shipment:', existingShipment)
 
     if (!existingShipment) {
-      console.log('Shipment not found for id:', id)
+      console.log('Shipment not found for id:', resolvedParams.id)
       return NextResponse.json(
         { success: false, message: 'Shipment not found' },
         { status: 404 }
@@ -119,7 +122,7 @@ export async function PUT(
     }
 
     const shipment = await db.shipment.update({
-      where: { id },
+      where: {id: resolvedParams.id },
       data: {
         ...body,
         lastUpdatedBy: session.email || 'Unknown'
@@ -138,11 +141,12 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+
+  const resolvedParams = await params;
   try {
-    const { id } = context.params
-    console.log('DELETE Request - Params:', { id })
+
     
     const session = await getSession()
     console.log('Session data:', session)
@@ -157,12 +161,12 @@ export async function DELETE(
 
     // Check if the shipment exists and if the user has permission to delete it
     const existingShipment = await db.shipment.findUnique({
-      where: { id }
+      where: { id: resolvedParams.id }
     })
     console.log('Existing shipment:', existingShipment)
 
     if (!existingShipment) {
-      console.log('Shipment not found for id:', id)
+      console.log('Shipment not found for id:', resolvedParams.id)
       return NextResponse.json(
         { success: false, message: 'Shipment not found' },
         { status: 404 }
@@ -179,9 +183,9 @@ export async function DELETE(
     }
 
     await db.shipment.delete({
-      where: { id }
+      where: { id: resolvedParams.id }
     })
-    console.log('Successfully deleted shipment:', id)
+    console.log('Successfully deleted shipment:', resolvedParams.id)
 
     return NextResponse.json({ success: true, message: 'Shipment deleted successfully' })
   } catch (error) {
