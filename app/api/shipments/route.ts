@@ -15,7 +15,12 @@ export async function GET() {
       )
     }
 
+    // If user is admin, return all shipments
+    // If user is employee, return only their shipments
     const shipments = await db.shipment.findMany({
+      where: session.role === 'admin' ? {} : {
+        userId: String(session.userId)
+      },
       orderBy: { updatedAt: 'desc' }
     })
 
@@ -32,7 +37,6 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getSession()
-    console.log("Session Data:", session)
     
     if (!session?.userId) {
       return NextResponse.json(
@@ -121,7 +125,7 @@ export async function POST(req: Request) {
         leadSource,
         limit: typeof limit === 'string' ? parseFloat(limit) : limit,
         lastUpdatedBy: String(session.email),
-        userId: String(session.userId) // Add the userId from the session
+        userId: String(session.userId)
       }
     })
 

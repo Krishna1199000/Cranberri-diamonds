@@ -5,14 +5,13 @@ import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Eye, Pencil, Trash2, Search } from 'lucide-react'
+import { Eye, Pencil, Trash2, Search, LogOut, Package, Plus } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-
 
 interface Shipment {
   id: string
@@ -43,16 +42,13 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-
   const [searchTerm, setSearchTerm] = useState('')
   const itemsPerPage = 10
   const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
     fetchShipments()
-  
   }, [currentPage])
-
 
   const fetchShipments = async () => {
     try {
@@ -130,126 +126,142 @@ export default function Dashboard() {
   const startIndex = (currentPage - 1) * itemsPerPage
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 transition-all duration-300">
       {/* Navbar */}
-      
-      <nav className="bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="bg-white shadow-lg backdrop-blur-lg bg-opacity-80 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <span className="text-xl font-bold">Shipments</span>
-              <Button 
-                variant="outline"
-                onClick={handleLogout}
-              >
-                Logout
-              </Button>
+            <div className="flex items-center space-x-4">
+              <Package className="h-8 w-8 text-blue-600 animate-[pulse_2s_ease-in-out_infinite]" />
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+                Shipments Dashboard
+              </span>
             </div>
-            </div>
-            </div>
-      </nav >
+            <Button 
+              variant="outline"
+              onClick={handleLogout}
+              className="flex items-center space-x-2 hover:bg-red-50 hover:text-red-600 transition-all duration-300 ease-in-out transform hover:scale-105"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </Button>
+          </div>
+        </div>
+      </nav>
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Shipments</h1>
+          <h1 
+            className="text-3xl font-bold text-blue-900 animate-slideDown opacity-0"
+            style={{
+              animation: 'slideDown 0.5s ease-out forwards'
+            }}
+          >
+            Manage Shipments
+          </h1>
           <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 h-4 w-4 transition-colors group-hover:text-blue-600" />
               <Input
                 type="text"
                 placeholder="Search shipments..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-64"
+                className="pl-10 pr-4 py-2 w-64 transition-all duration-300 border-blue-200 focus:border-blue-400 focus:ring-blue-400 rounded-full"
               />
             </div>
             <Button 
               variant="default"
               onClick={() => router.push('/dashboard/create-shipment')}
+              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 transform hover:scale-105 transition-all duration-300 ease-in-out animate-[fadeIn_0.5s_ease-out]"
+              style={{
+                animation: 'fadeIn 0.5s ease-out',
+              }}
             >
-              Create Shipment
+              <Plus className="h-4 w-4" />
+              <span>Create Shipment</span>
             </Button>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sr No
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Company Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Salesman
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Updated
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedShipments.map((shipment, index) => (
-                <tr key={shipment.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {startIndex + index + 1}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {shipment.companyName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {shipment.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {shipment.phoneNo}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {shipment.salesExecutive}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(shipment.updatedAt).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleView(shipment)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push(`/dashboard/edit-shipment/${shipment.id}`)}
-                      className="text-indigo-600 hover:text-indigo-900"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(shipment.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </td>
+        <div
+          className="bg-white rounded-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl"
+          style={{
+            animation: 'slideUp 0.5s ease-out',
+          }}
+        >
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-blue-200">
+              <thead className="bg-blue-50">
+                <tr>
+                  {["Sr No", "Company Name", "Email", "Phone", "Salesman", "Last Updated", "Actions"].map((header) => (
+                    <th key={header} className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
+                      {header}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-blue-100">
+                {paginatedShipments.map((shipment, index) => (
+                  <tr 
+                    key={shipment.id}
+                    className="hover:bg-blue-50 transition-colors duration-200 ease-in-out animate-[fadeIn_0.5s_ease-out]"
+                    style={{
+                      animation: `fadeIn 0.5s ease-out ${index * 0.1}s`
+                    }}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-900">
+                      {startIndex + index + 1}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-900">
+                      {shipment.companyName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                      {shipment.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                      {shipment.phoneNo}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                      {shipment.salesExecutive}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                      {new Date(shipment.updatedAt).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleView(shipment)}
+                          className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 transition-all duration-200 ease-in-out transform hover:scale-110"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/edit-shipment/${shipment.id}`)}
+                          className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 transition-all duration-200 ease-in-out transform hover:scale-110"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(shipment.id)}
+                          className="text-red-600 hover:text-red-900 hover:bg-red-50 transition-all duration-200 ease-in-out transform hover:scale-110"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Pagination */}
@@ -258,6 +270,7 @@ export default function Dashboard() {
             variant="outline"
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
+            className="transition-all duration-200 hover:bg-blue-600 hover:text-white disabled:opacity-50 border-blue-200"
           >
             Previous
           </Button>
@@ -266,6 +279,11 @@ export default function Dashboard() {
               key={page}
               variant={currentPage === page ? "default" : "outline"}
               onClick={() => setCurrentPage(page)}
+              className={`transition-all duration-200 ${
+                currentPage === page 
+                  ? 'bg-blue-600 text-white transform scale-105'
+                  : 'hover:bg-blue-600 hover:text-white border-blue-200'
+              }`}
             >
               {page}
             </Button>
@@ -274,6 +292,7 @@ export default function Dashboard() {
             variant="outline"
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
+            className="transition-all duration-200 hover:bg-blue-600 hover:text-white disabled:opacity-50 border-blue-200"
           >
             Next
           </Button>
@@ -282,38 +301,48 @@ export default function Dashboard() {
 
       {/* View Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl transform transition-all duration-300">
           <DialogHeader>
-            <DialogTitle>Shipment Details</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-blue-600">
+              Shipment Details
+            </DialogTitle>
           </DialogHeader>
           {selectedShipment && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-semibold mb-2">Company Information</h3>
-                <p><strong>Company Name:</strong> {selectedShipment.companyName}</p>
-                <p><strong>Email:</strong> {selectedShipment.email}</p>
-                <p><strong>Phone:</strong> {selectedShipment.phoneNo}</p>
-                <p><strong>Website:</strong> {selectedShipment.website || 'N/A'}</p>
+            <div className="grid grid-cols-2 gap-6 mt-4">
+              <div className="bg-blue-50 p-4 rounded-lg transition-all duration-300 hover:shadow-md hover:transform hover:scale-[1.02]">
+                <h3 className="text-lg font-semibold text-blue-600 mb-3">Company Information</h3>
+                <div className="space-y-2">
+                  <p><span className="font-medium">Company Name:</span> {selectedShipment.companyName}</p>
+                  <p><span className="font-medium">Email:</span> {selectedShipment.email}</p>
+                  <p><span className="font-medium">Phone:</span> {selectedShipment.phoneNo}</p>
+                  <p><span className="font-medium">Website:</span> {selectedShipment.website || 'N/A'}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold mb-2">Address</h3>
-                <p>{selectedShipment.addressLine1}</p>
-                {selectedShipment.addressLine2 && <p>{selectedShipment.addressLine2}</p>}
-                <p>{`${selectedShipment.city}, ${selectedShipment.state}`}</p>
-                <p>{`${selectedShipment.country} - ${selectedShipment.postalCode}`}</p>
+              <div className="bg-blue-50 p-4 rounded-lg transition-all duration-300 hover:shadow-md hover:transform hover:scale-[1.02]">
+                <h3 className="text-lg font-semibold text-blue-600 mb-3">Address</h3>
+                <div className="space-y-2">
+                  <p>{selectedShipment.addressLine1}</p>
+                  {selectedShipment.addressLine2 && <p>{selectedShipment.addressLine2}</p>}
+                  <p>{`${selectedShipment.city}, ${selectedShipment.state}`}</p>
+                  <p>{`${selectedShipment.country} - ${selectedShipment.postalCode}`}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold mb-2">Business Details</h3>
-                <p><strong>Organization Type:</strong> {selectedShipment.organizationType}</p>
-                <p><strong>Business Type:</strong> {selectedShipment.businessType}</p>
-                <p><strong>Business Reg No:</strong> {selectedShipment.businessRegNo}</p>
-                <p><strong>PAN No:</strong> {selectedShipment.panNo}</p>
+              <div className="bg-blue-50 p-4 rounded-lg transition-all duration-300 hover:shadow-md hover:transform hover:scale-[1.02]">
+                <h3 className="text-lg font-semibold text-blue-600 mb-3">Business Details</h3>
+                <div className="space-y-2">
+                  <p><span className="font-medium">Organization Type:</span> {selectedShipment.organizationType}</p>
+                  <p><span className="font-medium">Business Type:</span> {selectedShipment.businessType}</p>
+                  <p><span className="font-medium">Business Reg No:</span> {selectedShipment.businessRegNo}</p>
+                  <p><span className="font-medium">PAN No:</span> {selectedShipment.panNo}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold mb-2">Shipping Details</h3>
-                <p><strong>Payment Terms:</strong> {selectedShipment.paymentTerms}</p>
-                <p><strong>Carrier:</strong> {selectedShipment.carrier}</p>
-                <p><strong>Sales Executive:</strong> {selectedShipment.salesExecutive}</p>
+              <div className="bg-blue-50 p-4 rounded-lg transition-all duration-300 hover:shadow-md hover:transform hover:scale-[1.02]">
+                <h3 className="text-lg font-semibold text-blue-600 mb-3">Shipping Details</h3>
+                <div className="space-y-2">
+                  <p><span className="font-medium">Payment Terms:</span> {selectedShipment.paymentTerms}</p>
+                  <p><span className="font-medium">Carrier:</span> {selectedShipment.carrier}</p>
+                  <p><span className="font-medium">Sales Executive:</span> {selectedShipment.salesExecutive}</p>
+                </div>
               </div>
             </div>
           )}
