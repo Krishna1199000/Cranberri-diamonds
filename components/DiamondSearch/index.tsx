@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { shapes, additionalShapes, colors, clarities, cuts, labs, polishes, symms, flours, locations } from './data';
+import Image from 'next/image';
 
 export interface DiamondSearchProps {
   onSearch?: (params: URLSearchParams) => void;
@@ -48,7 +49,7 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
     setLoading(true);
     try {
       const searchParams = new URLSearchParams();
-      
+
       if (selectedShapes.length > 0) searchParams.set('shapes', selectedShapes.join(','));
       if (caratFrom) searchParams.set('caratFrom', caratFrom);
       if (caratTo) searchParams.set('caratTo', caratTo);
@@ -96,18 +97,19 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                 key={shape.id}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`flex flex-col items-center cursor-pointer p-3 rounded-lg border-2 transition-colors ${
-                  selectedShapes.includes(shape.id)
+                className={`flex flex-col items-center cursor-pointer p-3 rounded-lg border-2 transition-colors ${selectedShapes.includes(shape.id)
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-blue-300'
-                }`}
+                  }`}
                 onClick={() => handleShapeClick(shape.id, shape.id === "others")}
               >
                 <div className="w-16 h-16 flex items-center justify-center">
-                  <img
+                  <Image
                     src={shape.image || "/placeholder.svg"}
                     alt={shape.label}
-                    className="max-w-full max-h-full"
+                    width={64}
+                    height={64}
+                    className="max-w-full max-h-full object-contain"
                   />
                 </div>
                 <span className="text-sm font-medium mt-2 text-center">{shape.label}</span>
@@ -128,18 +130,19 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                     key={shape.id}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`flex flex-col items-center cursor-pointer p-3 rounded-lg border-2 transition-colors ${
-                      selectedShapes.includes(shape.id)
+                    className={`flex flex-col items-center cursor-pointer p-3 rounded-lg border-2 transition-colors ${selectedShapes.includes(shape.id)
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-blue-300'
-                    }`}
+                      }`}
                     onClick={() => handleShapeClick(shape.id, false)}
                   >
                     <div className="w-16 h-16 flex items-center justify-center">
-                      <img
+                      <Image
                         src={shape.image || "/placeholder.svg"}
                         alt={shape.label}
-                        className="max-w-full max-h-full"
+                        width={64}
+                        height={64}
+                        className="max-w-full max-h-full object-contain"
                       />
                     </div>
                     <span className="text-sm font-medium mt-2 text-center">{shape.label}</span>
@@ -214,11 +217,10 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                   key={color}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedColors.includes(color)
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedColors.includes(color)
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                   onClick={() => {
                     const newColors = selectedColors.includes(color)
                       ? selectedColors.filter(c => c !== color)
@@ -240,11 +242,10 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                   key={clarity}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedClarities.includes(clarity)
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedClarities.includes(clarity)
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                   onClick={() => {
                     const newClarities = selectedClarities.includes(clarity)
                       ? selectedClarities.filter(c => c !== clarity)
@@ -269,11 +270,10 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                   key={cut}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedCuts.includes(cut)
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedCuts.includes(cut)
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                   onClick={() => {
                     const newCuts = selectedCuts.includes(cut)
                       ? selectedCuts.filter(c => c !== cut)
@@ -295,11 +295,10 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                   key={lab}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedLabs.includes(lab)
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedLabs.includes(lab)
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                   onClick={() => {
                     const newLabs = selectedLabs.includes(lab)
                       ? selectedLabs.filter(l => l !== lab)
@@ -324,11 +323,10 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                   key={polish}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedPolishes.includes(polish)
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedPolishes.includes(polish)
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                   onClick={() => {
                     const newPolishes = selectedPolishes.includes(polish)
                       ? selectedPolishes.filter(p => p !== polish)
@@ -350,11 +348,10 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                   key={symm}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedSymms.includes(symm)
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedSymms.includes(symm)
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                   onClick={() => {
                     const newSymms = selectedSymms.includes(symm)
                       ? selectedSymms.filter(s => s !== symm)
@@ -376,11 +373,10 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                   key={flour}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedFlours.includes(flour)
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedFlours.includes(flour)
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                   onClick={() => {
                     const newFlours = selectedFlours.includes(flour)
                       ? selectedFlours.filter(f => f !== flour)
@@ -402,11 +398,10 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
                   key={location}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedLocations.includes(location)
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedLocations.includes(location)
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                   onClick={() => {
                     const newLocations = selectedLocations.includes(location)
                       ? selectedLocations.filter(l => l !== location)
@@ -426,15 +421,14 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
-              loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+            className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             onClick={handleSearch}
             disabled={loading}
           >
             {loading ? 'Searching...' : 'Search Diamonds'}
           </motion.button>
-          
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -442,7 +436,7 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
           >
             Advanced Search
           </motion.button>
-          
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

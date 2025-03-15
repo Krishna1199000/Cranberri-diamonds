@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect,useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -74,7 +74,8 @@ export default function SearchResults() {
     hasMore: false
   });
 
-  const fetchDiamonds = async (page: number, append: boolean = false) => {
+  // Wrap fetchDiamonds with useCallback
+  const fetchDiamonds = useCallback(async (page: number, append: boolean = false) => {
     try {
       if (!append) {
         setLoading(true);
@@ -141,12 +142,11 @@ export default function SearchResults() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [searchParams]); // Add searchParams as dependency
 
   useEffect(() => {
     fetchDiamonds(1);
-  }, [searchParams]);
-
+  }, [fetchDiamonds]); // Add fetchDiamonds to dependency array
   const handleLoadMore = () => {
     if (pagination.hasMore) {
       fetchDiamonds(pagination.currentPage + 1, true);
@@ -274,7 +274,7 @@ export default function SearchResults() {
                               size="icon"
                               onClick={() => window.open(diamond.imageUrl)}
                             >
-                              <Image className="h-4 w-4" />
+                              <Image className="h-4 w-4" alt="Diamond image" />
                             </Button>
                           )}
                           {diamond.videoUrl && (
@@ -333,9 +333,10 @@ export default function SearchResults() {
                           {diamond.imageUrl && (
                             <Button
                               variant="outline"
+                              size="icon"
                               onClick={() => window.open(diamond.imageUrl)}
                             >
-                              <Image className="h-4 w-4 mr-2" />
+                              <Image className="h-4 w-4" alt="Diamond image" />
                               View Image
                             </Button>
                           )}

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import Image from "next/image"
 
 const shapes = [
   { id: "round", label: "ROUND", image: "/shapes/round.png" },
@@ -117,7 +118,7 @@ export default function SearchDiamonds() {
     setLoading(true)
     try {
       const searchParams = new URLSearchParams()
-      
+
       if (selectedShapes.length > 0) searchParams.set('shapes', selectedShapes.join(','))
       if (caratFrom) searchParams.set('caratFrom', caratFrom)
       if (caratTo) searchParams.set('caratTo', caratTo)
@@ -179,13 +180,18 @@ export default function SearchDiamonds() {
               {shapes.map((shape) => (
                 <div
                   key={shape.id}
-                  className={`flex flex-col items-center cursor-pointer p-2 rounded border ${
-                    selectedShapes.includes(shape.id) ? "border-blue-500 bg-blue-50" : "border-gray-200"
-                  }`}
+                  className={`flex flex-col items-center cursor-pointer p-2 rounded border ${selectedShapes.includes(shape.id) ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                    }`}
                   onClick={() => handleShapeClick(shape.id, shape.id === "others")}
                 >
                   <div className="w-12 h-12 flex items-center justify-center">
-                    <img src={shape.image || "/placeholder.svg"} alt={shape.label} className="max-w-full max-h-full" />
+                    <Image
+                      src={shape.image || "/placeholder.svg"}
+                      alt={shape.label}
+                      width={48}
+                      height={48}
+                      className="max-w-full max-h-full"
+                    />
                   </div>
                   <span className="text-xs mt-1">{shape.label}</span>
                 </div>
@@ -196,17 +202,20 @@ export default function SearchDiamonds() {
                 {additionalShapes.map((shape) => (
                   <div
                     key={shape.id}
-                    className={`flex flex-col items-center cursor-pointer p-2 rounded border ${
-                      selectedShapes.includes(shape.id) ? "border-blue-500 bg-blue-50" : "border-gray-200"
-                    }`}
+                    className={`flex flex-col items-center cursor-pointer p-2 rounded border ${selectedShapes.includes(shape.id) ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                      }`}
                     onClick={() => handleShapeClick(shape.id, false)}
                   >
                     <div className="w-12 h-12 flex items-center justify-center">
-                      <img
-                        src={shape.image || "/placeholder.svg"}
-                        alt={shape.label}
-                        className="max-w-full max-h-full"
-                      />
+                      <div className="w-12 h-12 flex items-center justify-center">
+                        <Image
+                          src={shape.image || "/placeholder.svg"}
+                          alt={shape.label}
+                          width={48}
+                          height={48}
+                          className="max-w-full max-h-full"
+                        />
+                      </div>
                     </div>
                     <span className="text-xs mt-1">{shape.label}</span>
                   </div>

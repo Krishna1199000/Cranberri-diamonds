@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter,useParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -28,9 +28,10 @@ import {
   defaultReferences
 } from '../../create-shipment/constants'
 
-export default function EditShipment({ params }: { params: { id: string } }) {
-  const router = useRouter()
-  const shipmentId = params.id
+export default function EditShipment() {
+  const router = useRouter();
+  const params = useParams(); // Use useParams to get the ID
+  const shipmentId = params.id as string; // Ensure it's a string
 
   const [formData, setFormData] = useState({
     companyName: '',
@@ -68,25 +69,25 @@ export default function EditShipment({ params }: { params: { id: string } }) {
   })
 
   useEffect(() => {
-    fetchShipment()
-  }, [shipmentId])
-
-  const fetchShipment = async () => {
-    try {
-      const res = await fetch(`/api/shipments/${shipmentId}`)
-      const data = await res.json()
-      if (data.success) {
-        setFormData(data.shipment)
-      } else {
-        toast.error('Failed to fetch shipment')
+    const fetchShipment = async () => {
+      try {
+        const res = await fetch(`/api/shipments/${shipmentId}`)
+        const data = await res.json()
+        if (data.success) {
+          setFormData(data.shipment)
+        } else {
+          toast.error('Failed to fetch shipment')
+          router.push('/dashboard')
+        }
+      } catch (error) {
+        console.error('Error fetching shipment:', error)
+        toast.error('Something went wrong')
         router.push('/dashboard')
       }
-    } catch (error) {
-      console.error('Error fetching shipment:', error)
-      toast.error('Something went wrong')
-      router.push('/dashboard')
     }
-  }
+  
+    fetchShipment()
+  }, [shipmentId, router])
 
   const handleChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({
@@ -133,24 +134,23 @@ export default function EditShipment({ params }: { params: { id: string } }) {
   const [salesExecutiveOptions, setSalesExecutiveOptions] = useState<Array<{ id: string, name: string }>>([])
 
   useEffect(() => {
-    fetchSalesExecutives()
-    fetchShipment()
-  }, [shipmentId])
-
-  const fetchSalesExecutives = async () => {
-    try {
-      const response = await fetch('/api/employees')
-      const data = await response.json()
-      if (data.success) {
-        setSalesExecutiveOptions(data.employees)
-      } else {
-        toast.error('Failed to fetch sales executives')
+    const fetchSalesExecutives = async () => {
+      try {
+        const response = await fetch('/api/employees')
+        const data = await response.json()
+        if (data.success) {
+          setSalesExecutiveOptions(data.employees)
+        } else {
+          toast.error('Failed to fetch sales executives')
+        }
+      } catch (error) {
+        console.error('Failed to fetch sales executives:', error)
+        toast.error('Error fetching sales executives')
       }
-    } catch (error) {
-      console.error('Failed to fetch sales executives:', error)
-      toast.error('Error fetching sales executives')
     }
-  }
+  
+    fetchSalesExecutives()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

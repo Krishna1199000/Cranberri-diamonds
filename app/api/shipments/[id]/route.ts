@@ -1,20 +1,26 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { getSession } from '@/lib/session'
+import { NextRequest } from 'next/server'
 
 const db = new PrismaClient()
 
-
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: { id: string } }
 ) {
-  const { id } = params
-
   try {
+    
+    const { id } = context.params
+    console.log('GET Request - Params:', { id })
+    
     const session = await getSession()
+    console.log('Session data:', session)
 
+    
+    
     if (!session?.userId) {
+      console.log('Unauthorized access attempt - no userId')
       return NextResponse.json(
         { success: false, message: 'Unauthorized - Please login' },
         { status: 401 }
@@ -24,8 +30,10 @@ export async function GET(
     const shipment = await db.shipment.findUnique({
       where: { id }
     })
+    console.log('Found shipment:', shipment)
 
     if (!shipment) {
+      console.log('Shipment not found for id:', id)
       return NextResponse.json(
         { success: false, message: 'Shipment not found' },
         { status: 404 }
@@ -34,6 +42,7 @@ export async function GET(
 
     // Check if user has permission to view this shipment
     if (session.role !== 'admin' && shipment.userId !== session.userId) {
+      console.log('Permission denied - User:', session.userId, 'Role:', session.role)
       return NextResponse.json(
         { success: false, message: 'Unauthorized - You do not have permission to view this shipment' },
         { status: 403 }
@@ -51,15 +60,18 @@ export async function GET(
 }
 
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: { id: string } }
 ) {
-  const { id } =  await params;
-
   try {
+    const { id } = context.params
+    console.log('PUT Request - Params:', { id })
+    
     const session = await getSession()
+    console.log('Session data:', session)
 
     if (!session?.userId) {
+      console.log('Unauthorized access attempt - no userId')
       return NextResponse.json(
         { success: false, message: 'Unauthorized - Please login' },
         { status: 401 }
@@ -70,8 +82,10 @@ export async function PUT(
     const existingShipment = await db.shipment.findUnique({
       where: { id }
     })
+    console.log('Existing shipment:', existingShipment)
 
     if (!existingShipment) {
+      console.log('Shipment not found for id:', id)
       return NextResponse.json(
         { success: false, message: 'Shipment not found' },
         { status: 404 }
@@ -80,17 +94,19 @@ export async function PUT(
 
     // Only allow admin or the creator to edit the shipment
     if (session.role !== 'admin' && existingShipment.userId !== session.userId) {
+      console.log('Permission denied - User:', session.userId, 'Role:', session.role)
       return NextResponse.json(
         { success: false, message: 'Unauthorized - You do not have permission to edit this shipment' },
         { status: 403 }
       )
     }
 
-    if (!req.headers.get('content-type')?.includes('application/json')) {
+    const contentType = req.headers.get('content-type')
+    if (!contentType?.includes('application/json')) {
       return NextResponse.json(
         { success: false, message: 'Invalid content type, expected application/json' },
         { status: 400 }
-      );
+      )
     }
 
     const body = await req.json()
@@ -99,7 +115,7 @@ export async function PUT(
       return NextResponse.json(
         { success: false, message: 'Invalid or empty request body' },
         { status: 400 }
-      );
+      )
     }
 
     const shipment = await db.shipment.update({
@@ -121,15 +137,18 @@ export async function PUT(
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: { id: string } }
 ) {
-  const { id } =  params
-
   try {
+    const { id } = context.params
+    console.log('DELETE Request - Params:', { id })
+    
     const session = await getSession()
+    console.log('Session data:', session)
 
     if (!session?.userId) {
+      console.log('Unauthorized access attempt - no userId')
       return NextResponse.json(
         { success: false, message: 'Unauthorized - Please login' },
         { status: 401 }
@@ -140,8 +159,10 @@ export async function DELETE(
     const existingShipment = await db.shipment.findUnique({
       where: { id }
     })
+    console.log('Existing shipment:', existingShipment)
 
     if (!existingShipment) {
+      console.log('Shipment not found for id:', id)
       return NextResponse.json(
         { success: false, message: 'Shipment not found' },
         { status: 404 }
@@ -150,6 +171,7 @@ export async function DELETE(
 
     // Only allow admin or the creator to delete the shipment
     if (session.role !== 'admin' && existingShipment.userId !== session.userId) {
+      console.log('Permission denied - User:', session.userId, 'Role:', session.role)
       return NextResponse.json(
         { success: false, message: 'Unauthorized - You do not have permission to delete this shipment' },
         { status: 403 }
@@ -159,6 +181,7 @@ export async function DELETE(
     await db.shipment.delete({
       where: { id }
     })
+    console.log('Successfully deleted shipment:', id)
 
     return NextResponse.json({ success: true, message: 'Shipment deleted successfully' })
   } catch (error) {
