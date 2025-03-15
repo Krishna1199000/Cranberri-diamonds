@@ -11,7 +11,6 @@ export function Navbar() {
 
   const navItems = [
     { label: 'Home', href: '/' },
-    { label: 'Stone Inventory', href: '/shop' },
     { label: 'Search Stone', href: '/shop/search' },
     { label: 'Customer/Vendor', href: '/dashboard' },
     { label: 'Roles', href: '/admin/users' },

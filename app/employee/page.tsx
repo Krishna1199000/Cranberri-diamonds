@@ -29,7 +29,7 @@ export default function EmployeeDashboard() {
   const navItems = [
     { label: 'Home', icon: Home, href: '/' },
     { label: 'Search Diamond', icon: Search, href: 'employee' },
-    { label: 'Shipments', icon: Package, href: '/dashboard' },
+    { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
   ];
 
   return (

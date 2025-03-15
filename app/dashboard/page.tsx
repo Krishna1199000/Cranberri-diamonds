@@ -134,7 +134,7 @@ export default function Dashboard() {
             <div className="flex items-center space-x-4">
               <Package className="h-8 w-8 text-blue-600 animate-[pulse_2s_ease-in-out_infinite]" />
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-                Shipments Dashboard
+                Master
               </span>
             </div>
             <Button 
