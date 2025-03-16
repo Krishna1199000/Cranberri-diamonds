@@ -9,16 +9,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-
   const resolvedParams = await params;
 
   try {
-    
-    
     const session = await getSession()
     console.log('Session data:', session)
-
-    
     
     if (!session?.userId) {
       console.log('Unauthorized access attempt - no userId')
@@ -64,12 +59,8 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-
   const resolvedParams = await params;
   try {
-  
-
-    
     const session = await getSession()
     console.log('Session data:', session)
 
@@ -121,12 +112,29 @@ export async function PUT(
       )
     }
 
-    const shipment = await db.shipment.update({
-      where: {id: resolvedParams.id },
-      data: {
-        ...body,
-        lastUpdatedBy: session.email || 'Unknown'
+    // Clean up the body data before updating
+    const updateData = {
+      ...body,
+      lastUpdatedBy: session.email || 'Unknown',
+      // Ensure numeric fields are properly typed
+      limit: typeof body.limit === 'string' ? parseFloat(body.limit) : body.limit,
+      // Ensure arrays are properly handled
+      tradeBodyMembership: Array.isArray(body.tradeBodyMembership) ? body.tradeBodyMembership : [],
+      references: Array.isArray(body.references) ? body.references : [],
+      // Force update the timestamp
+      updatedAt: new Date()
+    }
+
+    // Remove any undefined or null values to prevent Prisma errors
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined || updateData[key] === null) {
+        delete updateData[key]
       }
+    })
+
+    const shipment = await db.shipment.update({
+      where: { id: resolvedParams.id },
+      data: updateData
     })
 
     return NextResponse.json({ success: true, shipment })
@@ -143,11 +151,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-
   const resolvedParams = await params;
   try {
-
-    
     const session = await getSession()
     console.log('Session data:', session)
 
