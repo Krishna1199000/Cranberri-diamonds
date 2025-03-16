@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Home, Search, LogOut, Package, Users, Database } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { DiamondSearch } from '@/components/DiamondSearch/index';
+import ChatMessages from '@/components/chat-messages';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -116,12 +117,13 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Chat Messages Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="mb-8"
         >
-          {/* Add any admin-specific cards or content here */}
+          <ChatMessages />
         </motion.div>
 
         {/* Diamond Search Section */}

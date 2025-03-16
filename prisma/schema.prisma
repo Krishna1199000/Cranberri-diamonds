@@ -136,3 +136,13 @@ model Shipment {
 
   @@map("shipments")
 }
+model ChatMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  status    String   @default("pending") // pending or completed
+  createdAt DateTime @default(now())
+
+  @@map("chat_messages")
+}

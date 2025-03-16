@@ -3,8 +3,11 @@
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import Link from "next/link";
 
 export default function VipSignup() {
+
+
   return (
     <section className="py-24 bg-gradient-to-br from-gray-50 to-white">
       <div className="container mx-auto px-4">
@@ -37,10 +40,13 @@ export default function VipSignup() {
             className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto"
           >
             <Input type="email" placeholder="Enter your email" className="flex-grow" />
-            <motion.button>
+            <motion.button >
+              <Link href="/auth/signup">
               <Button className="whitespace-nowrap">
                 Sign up
               </Button>
+              </Link>
+            
             </motion.button>
           </motion.form>
         </motion.div>

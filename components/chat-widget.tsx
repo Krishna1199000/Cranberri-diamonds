@@ -6,9 +6,45 @@ import { MessageSquare, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: ""
+  })
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success('Message sent successfully!')
+        setFormData({ name: "", email: "", message: "" })
+        setIsOpen(false)
+      } else {
+        toast.error(data.message || 'Failed to send message')
+      }
+    } catch {
+      toast.error('Failed to send message')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <>
@@ -29,12 +65,36 @@ export default function ChatWidget() {
               </div>
             </div>
             <div className="p-4">
-              <p className="text-sm text-gray-600 mb-4">Hi! Let us know how we can help and we&apos;ll respond shortly.</p>
-              <form className="space-y-4">
-                <Input placeholder="Name*" required />
-                <Input type="email" placeholder="Email*" required />
-                <Textarea placeholder="How can we help?*" required />
-                <Button className="w-full">Send Message</Button>
+              <p className="text-sm text-gray-600 mb-4">
+                Hi! Let us know how we can help and we&apos;ll respond shortly.
+              </p>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Input
+                  placeholder="Name*"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                />
+                <Input
+                  type="email"
+                  placeholder="Email*"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                />
+                <Textarea
+                  placeholder="How can we help?*"
+                  required
+                  value={formData.message}
+                  onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                />
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Sending...' : 'Send Message'}
+                </Button>
               </form>
             </div>
           </motion.div>
@@ -53,4 +113,3 @@ export default function ChatWidget() {
     </>
   )
 }
-
