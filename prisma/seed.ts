@@ -6,7 +6,9 @@ async function main() {
   // Create admin emails
   const adminEmails = [
     'gohilkrishna9004@gmail.com',
-    'geetagohil2004@gmail.com'
+    'geetagohil2004@gmail.com',
+    'urmilw@cranberridiamonds.in',
+    'smithp@cranberridiamonds.in '
   ]
 
   for (const email of adminEmails) {

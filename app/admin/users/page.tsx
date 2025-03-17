@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { format } from 'date-fns';
+import { handleRoleChange } from '@/lib/roleChangeHandler';
 
 interface User {
   id: string;
@@ -37,13 +38,29 @@ export default function UserManagement() {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchUsers();
   }, []);
 
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCurrentUserId(data.user.id);
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
+
   useEffect(() => {
-    // Filter users based on search term
     if (searchTerm.trim() === "") {
       setFilteredUsers(users);
     } else {
@@ -59,7 +76,7 @@ export default function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users',{
+      const response = await fetch('/api/admin/users', {
         credentials: 'include',
       });
       const data = await response.json();
@@ -78,8 +95,12 @@ export default function UserManagement() {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
+  const onRoleChange = async (userId: string, newRole: 'admin' | 'employee' | 'customer') => {
+    if (isUpdating) return;
+    
+    setIsUpdating(true);
     try {
+      // First update the role in the database
       const response = await fetch('/api/admin/users', {
         method: 'PUT',
         headers: {
@@ -89,19 +110,34 @@ export default function UserManagement() {
           userId,
           role: newRole,
         }),
+        credentials: 'include',
       });
 
       const data = await response.json();
       
       if (data.success) {
-        toast.success('User role updated successfully');
-        fetchUsers(); // Refresh the user list
+        // Handle role change and session management
+        const result = await handleRoleChange(userId, newRole, currentUserId);
+        
+        if (result.success) {
+          toast.success('User role updated successfully');
+          // Update local state
+          setUsers(prevUsers =>
+            prevUsers.map(user =>
+              user.id === userId ? { ...user, role: newRole } : user
+            )
+          );
+        } else {
+          toast.error('Failed to update user sessions');
+        }
       } else {
         toast.error(data.message || 'Failed to update user role');
       }
     } catch (error) {
       console.error('Error updating user role:', error);
       toast.error('Failed to update user role');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -180,8 +216,8 @@ export default function UserManagement() {
                     <TableCell>
                       <Select
                         value={user.role}
-                        onValueChange={(value) => handleRoleChange(user.id, value)}
-                        disabled={user.role === 'admin'} // Prevent changing admin roles
+                        onValueChange={(value: string) => onRoleChange(user.id, value as 'admin' | 'employee' | 'customer')}
+                        disabled={user.role === 'admin' || isUpdating || user.id === currentUserId}
                       >
                         <SelectTrigger className="w-32">
                           <SelectValue placeholder="Select role" />
