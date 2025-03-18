@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -21,8 +19,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Video, FileText, ChevronDown } from "lucide-react";
+import { Video, FileText, Search } from "lucide-react";
 import Image from "next/image";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface Diamond {
   id: string;
@@ -57,31 +64,23 @@ interface PaginationInfo {
   pages: number;
   currentPage: number;
   perPage: number;
-  hasMore: boolean;
 }
 
 export default function SearchResultsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedDiamonds, setSelectedDiamonds] = useState<Set<string>>(new Set());
   const [diamonds, setDiamonds] = useState<Diamond[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<PaginationInfo>({
     total: 0,
     pages: 0,
     currentPage: 1,
-    perPage: 40,
-    hasMore: false
+    perPage: 40
   });
 
-  const fetchDiamonds = useCallback(async (page: number, append: boolean = false) => {
+  const fetchDiamonds = useCallback(async (page: number) => {
     try {
-      if (!append) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
+      setLoading(true);
 
       const params: Record<string, string> = {};
       searchParams.forEach((value, key) => {
@@ -121,13 +120,9 @@ export default function SearchResultsContent() {
       const data = await response.json();
 
       if (data.diamonds) {
-        if (append) {
-          setDiamonds(prev => [...prev, ...data.diamonds]);
-        } else {
-          setDiamonds(data.diamonds);
-        }
+        setDiamonds(data.diamonds);
         setPagination(data.pagination);
-        if (data.diamonds.length === 0 && !append) {
+        if (data.diamonds.length === 0) {
           toast.info('No diamonds found matching your criteria');
         }
       } else {
@@ -138,7 +133,6 @@ export default function SearchResultsContent() {
       toast.error('Failed to fetch diamonds');
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   }, [searchParams]);
 
@@ -146,10 +140,8 @@ export default function SearchResultsContent() {
     fetchDiamonds(1);
   }, [fetchDiamonds]);
 
-  const handleLoadMore = () => {
-    if (pagination.hasMore) {
-      fetchDiamonds(pagination.currentPage + 1, true);
-    }
+  const handlePageChange = (page: number) => {
+    fetchDiamonds(page);
   };
 
   const handleSelectDiamond = (id: string) => {
@@ -204,6 +196,15 @@ export default function SearchResultsContent() {
     }
   };
 
+  const router = useRouter();
+  const handleModifySearch = () => {
+    const currentParams = new URLSearchParams();
+    searchParams.forEach((value, key) => {
+      currentParams.set(key, value);
+    });
+    router.push(`/search?${currentParams.toString()}`);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
@@ -218,8 +219,13 @@ export default function SearchResultsContent() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Search Results</h1>
           <div className="space-x-4">
-            <Button variant="outline" onClick={() => router.back()}>
-              Back to Search
+            <Button 
+              variant="outline" 
+              onClick={handleModifySearch}
+              className="flex items-center gap-2"
+            >
+              <Search className="h-4 w-4" />
+              Modify Search
             </Button>
             <Button
               onClick={handleExport}
@@ -402,29 +408,61 @@ export default function SearchResultsContent() {
             </TabsContent>
           </Tabs>
 
-          {pagination.hasMore && (
-            <div className="flex justify-center p-6 border-t">
-              <Button
-                variant="outline"
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="w-full max-w-xs"
-              >
-                {loadingMore ? (
-                  "Loading more..."
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4 mr-2" />
-                    Load More Diamonds
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+          <div className="flex justify-center p-6 border-t">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(pagination.currentPage - 1)}
+                    disabled={pagination.currentPage === 1}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => {
+                  // Show first page, last page, current page, and pages around current
+                  if (
+                    page === 1 ||
+                    page === pagination.pages ||
+                    (page >= pagination.currentPage - 2 && page <= pagination.currentPage + 2)
+                  ) {
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(page)}
+                          isActive={page === pagination.currentPage}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  } else if (
+                    page === pagination.currentPage - 3 ||
+                    page === pagination.currentPage + 3
+                  ) {
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    );
+                  }
+                  return null;
+                })}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(pagination.currentPage + 1)}
+                    disabled={pagination.currentPage === pagination.pages}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
 
           <div className="px-6 py-4 bg-gray-50 border-t">
             <p className="text-sm text-gray-700 text-center">
-              Showing {diamonds.length} of {pagination.total} diamonds
+              Showing {((pagination.currentPage - 1) * pagination.perPage) + 1} to{' '}
+              {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} of{' '}
+              {pagination.total} diamonds
             </p>
           </div>
         </div>
