@@ -1,15 +1,33 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Home, Search, LogOut, Package, Users, Database } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { DiamondSearch } from '@/components/DiamondSearch/index';
+import { UserProfileDropdown } from '@/components/UserProfileDropdown';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const user = await response.json();
+          setUserName(user.name);
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -63,6 +81,7 @@ export default function AdminDashboard() {
                   <span>{item.label}</span>
                 </motion.button>
               ))}
+              <UserProfileDropdown userName={userName} />
               <Button
                 variant="default"
                 className="flex items-center space-x-2"
@@ -100,6 +119,9 @@ export default function AdminDashboard() {
                     <span>{item.label}</span>
                   </motion.button>
                 ))}
+                <div className="px-3 py-2">
+                  <UserProfileDropdown userName={userName} />
+                </div>
                 <Button
                   variant="default"
                   className="flex items-center space-x-2 w-full"

@@ -19,7 +19,6 @@ export function LoadingCards() {
                 <Skeleton className="h-4 w-20" />
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
