@@ -1,22 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getSession } from '@/lib/session';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
-    if (!session || typeof session.userId !== 'string') {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-    if (!session?.userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const { otp, newPassword } = await request.json();
+    const { email, otp, newPassword } = await request.json();
 
     const user = await prisma.user.findUnique({
-      where: { id: session.userId },
+      where: { email },
     });
 
     if (!user || user.otp !== otp) {
@@ -25,10 +16,10 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({
-      where: { id: session.userId},
+      where: { email },
       data: { 
         password: hashedPassword,
-        otp: null,
+        otp: null, // Clear the OTP after successful verification
       },
     });
 

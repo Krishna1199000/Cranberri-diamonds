@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ForgotPasswordDialog } from './ForgotPasswordDialog';
 
 interface UserProfileDropdownProps {
   userName: string;
@@ -20,16 +21,18 @@ interface UserProfileDropdownProps {
 export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
   const [isUpdateOpen, setIsUpdateOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
-  const [isOtpOpen, setIsOtpOpen] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [newName, setNewName] = useState(userName);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleUpdateProfile = async () => {
     try {
+      setIsLoading(true);
+      setError('');
       const response = await fetch('/api/auth/me', {
         method: 'PUT',
         headers: {
@@ -42,10 +45,13 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
         setIsUpdateOpen(false);
         window.location.reload();
       } else {
-        setError('Failed to update profile');
+        const data = await response.text();
+        setError(data || 'Failed to update profile');
       }
-    } catch {
+    } catch  {
       setError('An error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -56,6 +62,8 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
     }
 
     try {
+      setIsLoading(true);
+      setError('');
       const response = await fetch('/api/auth/password', {
         method: 'PUT',
         headers: {
@@ -66,48 +74,18 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
 
       if (response.ok) {
         setIsPasswordOpen(false);
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
         setError('');
       } else {
-        setError('Invalid old password');
+        const data = await response.text();
+        setError(data || 'Invalid old password');
       }
     } catch {
       setError('An error occurred');
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        setIsPasswordOpen(false);
-        setIsOtpOpen(true);
-      }
-    } catch {
-      setError('Failed to send OTP');
-    }
-  };
-
-  const verifyOtp = async () => {
-    try {
-      const response = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ otp, newPassword, confirmPassword }),
-      });
-
-      if (response.ok) {
-        setIsOtpOpen(false);
-        setError('');
-      } else {
-        setError('Invalid OTP');
-      }
-    } catch {
-      setError('An error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -147,7 +125,12 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
               />
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button onClick={handleUpdateProfile}>Update</Button>
+            <Button 
+              onClick={handleUpdateProfile} 
+              disabled={isLoading}
+            >
+              {isLoading ? 'Updating...' : 'Update'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -187,8 +170,20 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <div className="flex justify-between">
-              <Button onClick={handlePasswordUpdate}>Update Password</Button>
-              <Button variant="outline" onClick={handleForgotPassword}>
+              <Button 
+                onClick={handlePasswordUpdate}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Updating...' : 'Update Password'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsPasswordOpen(false);
+                  setIsForgotPasswordOpen(true);
+                }}
+                disabled={isLoading}
+              >
                 Forgot Password?
               </Button>
             </div>
@@ -196,43 +191,10 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isOtpOpen} onOpenChange={setIsOtpOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enter OTP</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="otp">OTP</Label>
-              <Input
-                id="otp"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="newPasswordOtp">New Password</Label>
-              <Input
-                id="newPasswordOtp"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="confirmPasswordOtp">Confirm Password</Label>
-              <Input
-                id="confirmPasswordOtp"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button onClick={verifyOtp}>Verify OTP</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ForgotPasswordDialog
+        isOpen={isForgotPasswordOpen}
+        onClose={() => setIsForgotPasswordOpen(false)}
+      />
     </>
   );
 }
