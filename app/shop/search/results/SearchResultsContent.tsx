@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {LoadingCards} from "@/components/loading";
 import {
   Card,
   CardContent,
@@ -205,13 +206,9 @@ export default function SearchResultsContent() {
     router.push(`/search?${currentParams.toString()}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-        <div className="text-lg">Loading diamonds...</div>
-      </div>
-    );
-  }
+   if (loading) {
+     return <LoadingCards />;
+   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { shapes, additionalShapes, colors, clarities, cuts, labs, polishes, symms, flours, locations } from './data';
 import Image from 'next/image';
+import { LoadingSpinner } from "@/components/LoadingSpinner" // Import the loading component
 
 export interface DiamondSearchProps {
   onSearch?: (params: URLSearchParams) => void;
@@ -92,6 +93,11 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
       setLoading(false);
     }
   };
+
+  // If loading is true, render the loading component
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <motion.div

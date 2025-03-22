@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Diamond, RefreshCw, CheckCircle, AlertCircle, Clock } from "lucide-react"
-import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
+import { Diamond, CheckCircle, AlertCircle, Clock } from "lucide-react"
+import { formatDistanceToNow } from "date-fns/formatDistanceToNow"
+import { LoadingSpinner } from "@/components/LoadingSpinner"
 
 interface SyncLog {
   id: string
@@ -17,7 +17,7 @@ interface SyncLog {
 
 export default function AdminPage() {
   const [syncStatus, setSyncStatus] = useState<SyncLog | null>(null)
-  const [isSyncing, setIsSyncing] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchSyncStatus = async () => {
@@ -30,52 +30,17 @@ export default function AdminPage() {
       setSyncStatus(data.latestSync)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
     fetchSyncStatus()
+    // Poll for updates every minute
+    const interval = setInterval(fetchSyncStatus, 60000)
+    return () => clearInterval(interval)
   }, [])
-
-  const handleSync = async () => {
-    setIsSyncing(true);
-    setError(null);
-    
-    try {
-      // Run the sync script using a shell command
-      const response = await fetch('/api/admin/sync', {
-        method: 'POST',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to start sync process');
-      }
-      
-      // Poll for sync status
-      const checkStatus = setInterval(async () => {
-        // Don't try to use response.json() here again
-        // Instead, just call fetchSyncStatus which will update the syncStatus state
-        await fetchSyncStatus();
-        
-        // Check if sync is complete based on the state
-        if (syncStatus?.status === 'COMPLETED') {
-          clearInterval(checkStatus);
-          setIsSyncing(false);
-        }
-      }, 2000);
-      
-      // Set a timeout to stop polling after 5 minutes
-      setTimeout(() => {
-        clearInterval(checkStatus);
-        setIsSyncing(false);
-      }, 100 * 60 * 1000);
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setIsSyncing(false);
-    }
-  };
-  
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -90,13 +55,24 @@ export default function AdminPage() {
     }
   }
 
+  const getNextSyncTime = () => {
+    if (!syncStatus?.createdAt) return null
+    const lastSync = new Date(syncStatus.createdAt)
+    const nextSync = new Date(lastSync.getTime() + (2 * 60 * 60 * 1000)) // 2 hours
+    return formatDistanceToNow(nextSync, { addSuffix: true })
+  }
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-4xl font-bold flex items-center gap-2">
           <Diamond className="h-8 w-8 text-primary" />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-            Admin Dashboard
+            Diamond Sync Status
           </span>
         </h1>
       </div>
@@ -104,9 +80,9 @@ export default function AdminPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Diamond Sync</CardTitle>
+            <CardTitle>Latest Sync Status</CardTitle>
             <CardDescription>
-              Sync diamonds from the external API to your database
+              Diamonds are automatically synced every 2 hours
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -119,7 +95,7 @@ export default function AdminPage() {
             {syncStatus ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">Last Sync Status:</span>
+                  <span className="font-medium">Status:</span>
                   <div className="flex items-center gap-1">
                     {getStatusIcon(syncStatus.status)}
                     <span>{syncStatus.status}</span>
@@ -127,15 +103,22 @@ export default function AdminPage() {
                 </div>
                 
                 <div>
-                  <span className="font-medium">Last Run:</span>
+                  <span className="font-medium">Last Sync:</span>
                   <span className="ml-2">
                     {formatDistanceToNow(new Date(syncStatus.createdAt), { addSuffix: true })}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="font-medium">Next Sync:</span>
+                  <span className="ml-2">
+                    {getNextSyncTime()}
                   </span>
                 </div>
                 
                 {syncStatus.count > 0 && (
                   <div>
-                    <span className="font-medium">Diamonds Synced:</span>
+                    <span className="font-medium">Diamonds Updated:</span>
                     <span className="ml-2">{syncStatus.count}</span>
                   </div>
                 )}
@@ -151,25 +134,6 @@ export default function AdminPage() {
               <div className="text-muted-foreground">No sync history found</div>
             )}
           </CardContent>
-          <CardFooter>
-            <Button 
-              onClick={handleSync} 
-              disabled={isSyncing}
-              className="w-full"
-            >
-              {isSyncing ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Sync Diamonds
-                </>
-              )}
-            </Button>
-          </CardFooter>
         </Card>
         
         <Card>
@@ -192,7 +156,7 @@ export default function AdminPage() {
               
               <div>
                 <p className="text-muted-foreground">
-                  The database is now used to serve diamond data instead of fetching from the external API each time.
+                  The database is automatically updated every 2 hours to ensure you have the latest diamond data.
                 </p>
               </div>
             </div>
