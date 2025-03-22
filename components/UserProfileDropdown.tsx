@@ -44,7 +44,7 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
       } else {
         setError('Failed to update profile');
       }
-    } catch (error) {
+    } catch {
       setError('An error occurred');
     }
   };
@@ -70,7 +70,7 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
       } else {
         setError('Invalid old password');
       }
-    } catch (error) {
+    } catch {
       setError('An error occurred');
     }
   };
@@ -85,7 +85,7 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
         setIsPasswordOpen(false);
         setIsOtpOpen(true);
       }
-    } catch (error) {
+    } catch {
       setError('Failed to send OTP');
     }
   };
@@ -106,7 +106,7 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
       } else {
         setError('Invalid OTP');
       }
-    } catch (error) {
+    } catch {
       setError('An error occurred');
     }
   };
