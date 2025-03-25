@@ -73,18 +73,20 @@ model SyncLog {
   @@map("sync_logs")
 }
 
+// Update User model to include the relation
 model User {
-  id        String    @id @default(uuid())
-  name      String
-  email     String    @unique
-  phone     String
-  password  String
-  otp       String?
-  verified  Boolean   @default(false)
-  role      Role      @default(customer)
-  shipments Shipment[]
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  phone        String
+  password     String
+  otp          String?
+  verified     Boolean       @default(false)
+  role         Role          @default(customer)
+  shipments    Shipment[]
+  salesEntries SalesEntry[]  // Add this line
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -145,4 +147,23 @@ model ChatMessage {
   createdAt DateTime @default(now())
 
   @@map("chat_messages")
+}
+model SalesEntry {
+  id              String   @id @default(uuid())
+  employeeId      String
+  employee        User     @relation(fields: [employeeId], references: [id])
+  companyName     String?  // Made optional for no-sale entries
+  carat           Float?   // Made optional for no-sale entries
+  color           String?  // Made optional for no-sale entries
+  clarity         String?  // Made optional for no-sale entries
+  cut             String?  // Made optional for no-sale entries
+  totalSaleValue  Float?   // Made optional for no-sale entries
+  totalProfit     Float?   // Made optional for no-sale entries
+  description     String?  // New field for descriptions
+  isNoSale        Boolean  @default(false) // New field for no-sale indicator
+  saleDate        DateTime @default(now()) // New field for sale date
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("sales_entries")
 }

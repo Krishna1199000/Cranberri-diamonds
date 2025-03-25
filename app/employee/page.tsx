@@ -30,6 +30,7 @@ export default function EmployeeDashboard() {
     { label: 'Home', icon: Home, href: '/' },
     { label: 'Search Diamond', icon: Search, href: 'employee' },
     { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
+    { label: 'Sales-Report', icon: Package, href: '/employee/sales' },
   ];
 
   return (
