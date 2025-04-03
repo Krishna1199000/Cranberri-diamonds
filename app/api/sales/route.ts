@@ -63,21 +63,17 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, entry });
   } catch (error) {
-    console.error('Detailed error information:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : 'Unknown'
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error('Error creating sales entry:', {
+      message: errorMessage,
+      stack: errorStack
     });
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error('Prisma error details:', {
-        code: error.code,
-        meta: error.meta,
-        message: error.message
-      });
       return NextResponse.json(
-        { success: false, message: 'Database error', error: error.message },
+        { success: false, message: 'Database error', error: errorMessage },
         { status: 400 }
       );
     }
@@ -89,7 +85,6 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  console.log('GET /api/sales - Starting request');
   try {
     const session = await getSession();
     const { searchParams } = new URL(req.url);
@@ -98,10 +93,7 @@ export async function GET(req: Request) {
     const end = searchParams.get('end');
     const employeeId = searchParams.get('employeeId');
     
-    console.log('Request parameters:', { period, start, end, employeeId });
-    
     if (!session) {
-      console.log('Unauthorized access attempt - no session');
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -121,21 +113,19 @@ export async function GET(req: Request) {
         gte: filterDate
       };
     }
-    console.log('Constructed date filter:', dateFilter);
 
     const where = {
       saleDate: dateFilter,
       ...(session.role === 'employee' ? { employeeId: session.userId as string } : {}),
       ...(employeeId ? { employeeId: employeeId as string } : {})
     };
-    console.log('Final query where clause:', where);
 
-    console.log('Executing database query');
     const entries = await prisma.salesEntry.findMany({
       where,
       include: {
         employee: {
           select: {
+            id: true,
             name: true
           }
         }
@@ -144,16 +134,15 @@ export async function GET(req: Request) {
         saleDate: 'desc'
       }
     });
-    console.log(`Found ${entries.length} entries`);
 
     return NextResponse.json({ success: true, entries });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     console.error('Error fetching sales entries:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : 'Unknown'
+      message: errorMessage
     });
+
     return NextResponse.json(
       { success: false, message: 'Failed to fetch sales entries' },
       { status: 500 }
@@ -162,12 +151,10 @@ export async function GET(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  console.log('DELETE /api/sales - Starting request');
   try {
     const session = await getSession();
     
     if (!session || session.role !== 'admin') {
-      console.log('Unauthorized delete attempt:', { session });
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -175,21 +162,19 @@ export async function DELETE(req: Request) {
     }
 
     const { id } = await req.json();
-    console.log('Attempting to delete entry:', { id });
     
     await prisma.salesEntry.delete({
       where: { id }
     });
-    console.log('Successfully deleted entry');
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     console.error('Error deleting sales entry:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : 'Unknown'
+      message: errorMessage
     });
+
     return NextResponse.json(
       { success: false, message: 'Failed to delete sales entry' },
       { status: 500 }
@@ -198,12 +183,10 @@ export async function DELETE(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  console.log('PUT /api/sales - Starting request');
   try {
     const session = await getSession();
     
     if (!session || session.role !== 'admin') {
-      console.log('Unauthorized update attempt:', { session });
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -211,22 +194,26 @@ export async function PUT(req: Request) {
     }
 
     const { id, ...data } = await req.json();
-    console.log('Updating entry:', { id, data });
     
     const entry = await prisma.salesEntry.update({
       where: { id },
-      data
+      data: {
+        ...data,
+        saleDate: data.saleDate ? new Date(data.saleDate) : undefined,
+        totalSaleValue: data.totalSaleValue ? parseFloat(data.totalSaleValue) : null,
+        totalProfit: data.totalProfit ? parseFloat(data.totalProfit) : null,
+        carat: data.carat ? parseFloat(data.carat) : null
+      }
     });
-    console.log('Successfully updated entry:', entry);
 
     return NextResponse.json({ success: true, entry });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     console.error('Error updating sales entry:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : 'Unknown'
+      message: errorMessage
     });
+
     return NextResponse.json(
       { success: false, message: 'Failed to update sales entry' },
       { status: 500 }

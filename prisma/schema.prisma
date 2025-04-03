@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,12 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-enum Role {
-  admin
-  employee
-  customer
 }
 
 model Diamond {
@@ -74,22 +65,22 @@ model SyncLog {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  name         String
-  email        String        @unique
-  phone        String
-  password     String
-  otp          String?
-  verified     Boolean       @default(false)
-  role         Role          @default(customer)
-  shipments    Shipment[]
-  salesEntries SalesEntry[]
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  id                String              @id @default(uuid())
+  name              String
+  email             String              @unique
+  phone             String
+  password          String
+  otp               String?
+  verified          Boolean             @default(false)
+  role              Role                @default(customer)
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  salesEntries      SalesEntry[]
+  shipments         Shipment[]
+  performanceReports PerformanceReport[]
 
   @@map("users")
 }
-
 model AdminEmail {
   email     String   @id
   createdAt DateTime @default(now()) @map("created_at")
@@ -102,38 +93,38 @@ model Shipment {
   companyName         String
   addressLine1        String
   addressLine2        String?
-  country            String
-  state              String
-  city               String
-  postalCode         String
-  phoneNo            String
-  faxNo              String?
-  email              String
-  website            String?
-  paymentTerms       String
-  carrier            String
-  organizationType   String   @map("organization_type")
-  businessType       String   @map("business_type")
-  businessRegNo      String   @map("business_reg_no")
-  panNo              String   @map("pan_no")
-  sellerPermitNo     String?  @map("seller_permit_no")
-  cstTinNo           String?  @map("cst_tin_no")
+  country             String
+  state               String
+  city                String
+  postalCode          String
+  phoneNo             String
+  faxNo               String?
+  email               String
+  website             String?
+  paymentTerms        String
+  carrier             String
+  organizationType    String   @map("organization_type")
+  businessType        String   @map("business_type")
+  businessRegNo       String   @map("business_reg_no")
+  panNo               String   @map("pan_no")
+  sellerPermitNo      String?  @map("seller_permit_no")
+  cstTinNo            String?  @map("cst_tin_no")
   tradeBodyMembership String[] @map("trade_body_membership")
-  referenceType      String   @map("reference_type")
-  referenceNotes     String?  @map("reference_notes")
-  references         Json[]   @map("references")
-  authorizedBy       String   @map("authorized_by")
-  accountManager     String   @map("account_manager")
-  brokerName         String?  @map("broker_name")
-  partyGroup         String   @map("party_group")
-  salesExecutive     String   @map("sales_executive")
-  leadSource         String   @map("lead_source")
-  limit              Float    @default(0) @map("limit")
-  lastUpdatedBy      String?  @map("last_updated_by")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-  createdBy          User     @relation(fields: [userId], references: [id])
-  userId             String
+  referenceType       String   @map("reference_type")
+  referenceNotes      String?  @map("reference_notes")
+  references          Json[]   @map("references")
+  authorizedBy        String   @map("authorized_by")
+  accountManager      String   @map("account_manager")
+  brokerName          String?  @map("broker_name")
+  partyGroup          String   @map("party_group")
+  salesExecutive      String   @map("sales_executive")
+  leadSource          String   @map("lead_source")
+  limit               Float    @default(0) @map("limit")
+  lastUpdatedBy       String?  @map("last_updated_by")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  userId              String
+  createdBy           User     @relation(fields: [userId], references: [id])
 
   @@map("shipments")
 }
@@ -143,29 +134,60 @@ model ChatMessage {
   name      String
   email     String
   message   String
-  status    String   @default("pending") // pending or completed
+  status    String   @default("pending")
   createdAt DateTime @default(now())
 
   @@map("chat_messages")
 }
 
 model SalesEntry {
-  id              String   @id @default(uuid())
-  trackingId      String   @unique @default(uuid()) // Added tracking ID
-  employeeId      String
-  employee        User     @relation(fields: [employeeId], references: [id])
-  companyName     String?  // Made optional for no-sale entries
-  carat           Float?   // Made optional for no-sale entries
-  color           String?  // Made optional for no-sale entries
-  clarity         String?  // Made optional for no-sale entries
-  cut             String?  // Made optional for no-sale entries
-  totalSaleValue  Float?   // Made optional for no-sale entries
-  totalProfit     Float?   // Made optional for no-sale entries
-  description     String?  // New field for descriptions
-  isNoSale        Boolean  @default(false) // New field for no-sale indicator
-  saleDate        DateTime @default(now()) // New field for sale date
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(uuid())
+  employeeId     String
+  carat          Float?
+  color          String?
+  clarity        String?
+  cut            String?
+  totalSaleValue Float?
+  totalProfit    Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  companyName    String?
+  description    String?
+  isNoSale       Boolean  @default(false)
+  saleDate       DateTime @default(now())
+  employee       User     @relation(fields: [employeeId], references: [id])
 
   @@map("sales_entries")
+}
+
+model PerformanceReport {
+  id                    String   @id @default(uuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id])
+  totalCalls            Int
+  totalEmails           Int
+  requirementsReceived  Int
+  memo                  String?  @db.Text
+  invoice               String?  @db.Text
+  date                  DateTime @default(now())
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("performance_reports")
+}
+
+model ParcelGoods {
+  id        String   @id @default(uuid())
+  sieve     String
+  price     Float
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("parcel_goods")
+}
+
+enum Role {
+  admin
+  employee
+  customer
 }
