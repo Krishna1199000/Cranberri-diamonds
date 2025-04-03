@@ -73,7 +73,6 @@ model SyncLog {
   @@map("sync_logs")
 }
 
-// Update User model to include the relation
 model User {
   id           String        @id @default(uuid())
   name         String
@@ -84,7 +83,7 @@ model User {
   verified     Boolean       @default(false)
   role         Role          @default(customer)
   shipments    Shipment[]
-  salesEntries SalesEntry[]  // Add this line
+  salesEntries SalesEntry[]
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
 
@@ -138,6 +137,7 @@ model Shipment {
 
   @@map("shipments")
 }
+
 model ChatMessage {
   id        String   @id @default(uuid())
   name      String
@@ -148,8 +148,10 @@ model ChatMessage {
 
   @@map("chat_messages")
 }
+
 model SalesEntry {
   id              String   @id @default(uuid())
+  trackingId      String   @unique @default(uuid()) // Added tracking ID
   employeeId      String
   employee        User     @relation(fields: [employeeId], references: [id])
   companyName     String?  // Made optional for no-sale entries
