@@ -77,7 +77,7 @@ export default function DiamondDetails() {
   }, [params.id]);
 
   const handleShare = async (platform: string) => {
-    const shareUrl = `${window.location.origin}/shop/diamond/${params.id}`;
+    const shareUrl = `${window.location.origin}/shop/search/results/${params.id}`;
     const shareText = `Check out this ${diamond?.size}ct ${diamond?.shape} diamond!`;
 
     switch (platform) {
