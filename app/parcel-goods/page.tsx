@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Edit2, Trash2 } from "lucide-react";
-import { getSession } from "@/lib/session";
+import { Plus, Trash2 } from "lucide-react";
 
 const SIEVE_SIZES = [
   "0.8", "0.9", "1", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8",
@@ -21,10 +21,9 @@ interface Price {
 }
 
 export default function ParcelGoods() {
+  const router = useRouter();
   const [prices, setPrices] = useState<Price[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState("");
   const [formData, setFormData] = useState({
     sieve: "",
     price: "",
@@ -58,13 +57,8 @@ export default function ParcelGoods() {
     if (!isAdmin) return;
 
     try {
-      const method = isEditing ? "PUT" : "POST";
-      const url = isEditing 
-        ? `/api/parcel-goods/${editingId}` 
-        : "/api/parcel-goods";
-
-      const response = await fetch(url, {
-        method,
+      const response = await fetch("/api/parcel-goods", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -74,28 +68,16 @@ export default function ParcelGoods() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success(`Price ${isEditing ? "updated" : "added"} successfully`);
+        toast.success("Price added successfully");
         setFormData({ sieve: "", price: "" });
-        setIsEditing(false);
-        setEditingId("");
         fetchPrices();
       } else {
-        toast.error(data.message || `Failed to ${isEditing ? "update" : "add"} price`);
+        toast.error(data.message || "Failed to add price");
       }
     } catch (error) {
       console.error("Error submitting form:", error);
-      toast.error(`Failed to ${isEditing ? "update" : "add"} price`);
+      toast.error("Failed to add price");
     }
-  };
-
-  const handleEdit = (price) => {
-    if (!isAdmin) return;
-    setIsEditing(true);
-    setEditingId(price.id);
-    setFormData({
-      sieve: price.sieve,
-      price: price.price.toString(),
-    });
   };
 
   const handleDelete = async (id) => {
@@ -128,9 +110,7 @@ export default function ParcelGoods() {
           {/* Price Form - Only visible to admin */}
           {isAdmin && (
             <Card className="p-6">
-              <h2 className="text-2xl font-bold mb-6">
-                {isEditing ? "Edit Price" : "Add New Price"}
-              </h2>
+              <h2 className="text-2xl font-bold mb-6">Add New Price</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Sieve Size (mm)</label>
@@ -161,7 +141,7 @@ export default function ParcelGoods() {
                 </div>
 
                 <Button type="submit" className="w-full">
-                  {isEditing ? "Update Price" : "Add Price"}
+                  Add Price
                 </Button>
               </form>
             </Card>
@@ -206,9 +186,9 @@ export default function ParcelGoods() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleEdit(price)}
+                              onClick={() => router.push(`/parcel-goods/edit/${price.id}`)}
                             >
-                              <Edit2 className="w-4 h-4" />
+                              Edit
                             </Button>
                             <Button
                               size="sm"

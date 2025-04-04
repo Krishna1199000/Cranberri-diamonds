@@ -65,22 +65,23 @@ model SyncLog {
 }
 
 model User {
-  id                String              @id @default(uuid())
-  name              String
-  email             String              @unique
-  phone             String
-  password          String
-  otp               String?
-  verified          Boolean             @default(false)
-  role              Role                @default(customer)
-  createdAt         DateTime            @default(now()) @map("created_at")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
-  salesEntries      SalesEntry[]
-  shipments         Shipment[]
+  id                 String              @id @default(uuid())
+  name               String
+  email              String              @unique
+  phone              String
+  password           String
+  otp                String?
+  verified           Boolean             @default(false)
+  role               Role                @default(customer)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
   performanceReports PerformanceReport[]
+  salesEntries       SalesEntry[]
+  shipments          Shipment[]
 
   @@map("users")
 }
+
 model AdminEmail {
   email     String   @id
   createdAt DateTime @default(now()) @map("created_at")
@@ -161,17 +162,17 @@ model SalesEntry {
 }
 
 model PerformanceReport {
-  id                    String   @id @default(uuid())
-  userId                String
-  user                  User     @relation(fields: [userId], references: [id])
-  totalCalls            Int
-  totalEmails           Int
-  requirementsReceived  Int
-  memo                  String?  @db.Text
-  invoice               String?  @db.Text
-  date                  DateTime @default(now())
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                   String   @id @default(uuid())
+  userId               String
+  totalCalls           Int
+  totalEmails          Int
+  requirementsReceived Int
+  memo                 String?
+  invoice              String?
+  date                 DateTime @default(now())
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  user                 User     @relation(fields: [userId], references: [id])
 
   @@map("performance_reports")
 }
