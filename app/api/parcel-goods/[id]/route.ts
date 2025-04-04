@@ -1,11 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextResponse,NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getSession } from '@/lib/session';
 
 const prisma = new PrismaClient();
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
+    const resolvedParams = await params;
   try {
+
     const session = await getSession();
     
     if (!session || session.role !== 'admin') {
@@ -15,11 +18,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       );
     }
 
-    const data = await req.json();
+    const data = await request.json();
     
     const price = await prisma.parcelGoods.update({
       where: {
-        id: params.id
+        id: resolvedParams.id
       },
       data: {
         sieve: data.sieve,
@@ -37,7 +40,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
+    const resolvedParams = await params;
   try {
     const session = await getSession();
     
@@ -50,7 +55,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
     await prisma.parcelGoods.delete({
       where: {
-        id: params.id
+        id: resolvedParams.id
       }
     });
 

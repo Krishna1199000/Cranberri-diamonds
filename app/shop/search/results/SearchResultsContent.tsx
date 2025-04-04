@@ -16,6 +16,7 @@ import {
 import { LoadingCards } from "@/components/loading";
 import { Video, FileText, Search } from "lucide-react";
 import Image from "next/image";
+
 import {
   Pagination,
   PaginationContent,
@@ -73,6 +74,8 @@ export default function SearchResultsContent() {
     currentPage: 1,
     perPage: 40
   });
+
+  const router = useRouter();
 
   useEffect(() => {
     // Fetch user role
@@ -208,7 +211,11 @@ export default function SearchResultsContent() {
     }
   };
 
-  const router = useRouter();
+  // Add the new handler for lab click
+  const handleLabClick = (diamondId: string) => {
+    router.push(`/shop/search/results/${diamondId}`);
+  };
+
   const handleModifySearch = () => {
     const currentParams = new URLSearchParams();
     searchParams.forEach((value, key) => {
@@ -328,7 +335,12 @@ export default function SearchResultsContent() {
                   <TableCell>{diamond.cut}</TableCell>
                   <TableCell>{diamond.polish}</TableCell>
                   <TableCell>{diamond.sym}</TableCell>
-                  <TableCell>{diamond.lab}</TableCell>
+                  <TableCell 
+                    className="cursor-pointer hover:text-blue-600 hover:underline"
+                    onClick={() => handleLabClick(diamond.id)}
+                  >
+                    {diamond.lab}
+                  </TableCell>
                   {(userRole === 'admin' || userRole === 'employee') && (
                     <>
                       <TableCell>${diamond.pricePerCarat.toLocaleString()}</TableCell>

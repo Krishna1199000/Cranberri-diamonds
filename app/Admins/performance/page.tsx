@@ -58,30 +58,33 @@ export default function AdminPerformance() {
     }
   };
 
-  const fetchReports = async () => {
-    try {
-      const url = selectedEmployee === "all" 
-        ? "/api/performance/admin"
-        : `/api/performance/admin?employeeId=${selectedEmployee}`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      if (data.success) {
-        setReports(data.reports);
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const url = selectedEmployee === "all" 
+          ? "/api/performance/admin"
+          : `/api/performance/admin?employeeId=${selectedEmployee}`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.success) {
+          setReports(data.reports);
+        }
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+        toast.error("Failed to fetch reports");
       }
-    } catch (error) {
-      console.error("Error fetching reports:", error);
-      toast.error("Failed to fetch reports");
-    }
-  };
+    };
+  
+    fetchReports();
+  }, [selectedEmployee]);
+  
 
   useEffect(() => {
     fetchEmployees();
   }, []);
 
-  useEffect(() => {
-    fetchReports();
-  }, [selectedEmployee]);
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -115,7 +118,7 @@ export default function AdminPerformance() {
         });
         setIsEditing(false);
         setEditingId("");
-        fetchReports();
+      
       } else {
         toast.error(data.message || `Failed to ${isEditing ? "update" : "submit"} report`);
       }
@@ -149,7 +152,7 @@ export default function AdminPerformance() {
 
         if (response.ok) {
           toast.success("Report deleted successfully");
-          fetchReports();
+        
         } else {
           toast.error("Failed to delete report");
         }

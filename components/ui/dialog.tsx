@@ -50,6 +50,30 @@ export function Dialog({ open = false, onOpenChange, children }: DialogProps) {
   )
 }
 
+interface DialogTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  asChild?: boolean
+  children: React.ReactNode
+}
+
+export function DialogTrigger({ 
+  children, 
+  ...props 
+}: DialogTriggerProps) {
+  const { onOpenChange } = useDialogContext()
+  
+  // If asChild is true, clone the child element and add props
+  
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenChange(true)}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
 interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   className?: string

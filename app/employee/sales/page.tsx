@@ -99,51 +99,52 @@ export default function EmployeeDashboard() {
       toast.error("Failed to fetch companies")
     }
   }
-
-  const fetchSalesData = async () => {
-    try {
-      console.log('Fetching sales data...');
-      let url = `/api/sales?period=${period}`
-      if (period === "custom" && customPeriod.start && customPeriod.end) {
-        url = `/api/sales?start=${customPeriod.start}&end=${customPeriod.end}`
+  useEffect(()=>{
+    const fetchSalesData = async () => {
+      try {
+        console.log('Fetching sales data...');
+        let url = `/api/sales?period=${period}`
+        if (period === "custom" && customPeriod.start && customPeriod.end) {
+          url = `/api/sales?start=${customPeriod.start}&end=${customPeriod.end}`
+        }
+        console.log('Fetching from URL:', url);
+  
+        const response = await fetch(url)
+        const data = await response.json()
+        console.log('Sales data response:', data);
+        
+        if (data.success) {
+          const formattedData = data.entries.map((entry) => ({
+            date: new Date(entry.saleDate).toLocaleDateString(),
+            profit: entry.totalProfit || 0,
+            sale: entry.totalSaleValue || 0,
+            company: entry.companyName || "No Sale",
+            isNoSale: entry.isNoSale,
+            description: entry.description,
+            details: {
+              carat: entry.carat,
+              color: entry.color,
+              clarity: entry.clarity,
+              cut: entry.cut,
+            },
+          }))
+          console.log('Formatted sales data:', formattedData);
+          setSalesData(formattedData)
+        }
+      } catch (error) {
+        console.error("Error fetching sales data:", error)
+        toast.error("Failed to fetch sales data")
       }
-      console.log('Fetching from URL:', url);
-
-      const response = await fetch(url)
-      const data = await response.json()
-      console.log('Sales data response:', data);
-      
-      if (data.success) {
-        const formattedData = data.entries.map((entry) => ({
-          date: new Date(entry.saleDate).toLocaleDateString(),
-          profit: entry.totalProfit || 0,
-          sale: entry.totalSaleValue || 0,
-          company: entry.companyName || "No Sale",
-          isNoSale: entry.isNoSale,
-          description: entry.description,
-          details: {
-            carat: entry.carat,
-            color: entry.color,
-            clarity: entry.clarity,
-            cut: entry.cut,
-          },
-        }))
-        console.log('Formatted sales data:', formattedData);
-        setSalesData(formattedData)
-      }
-    } catch (error) {
-      console.error("Error fetching sales data:", error)
-      toast.error("Failed to fetch sales data")
     }
-  }
+    fetchSalesData()
+  },[period, customPeriod])
+  
 
   useEffect(() => {
     fetchCompanies()
   }, [])
 
-  useEffect(() => {
-    fetchSalesData()
-  }, [period, customPeriod])
+
 
   const validateForm = () => {
     if (!isNoSale) {
@@ -216,7 +217,7 @@ export default function EmployeeDashboard() {
           isNoSale: false,
         })
         setIsNoSale(false)
-        fetchSalesData()
+      
       } else {
         console.error('Error response:', data);
         toast.error(data.message || "Failed to submit sales entry")

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,17 +15,12 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  Area,
-  AreaChart,
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
   Bar,
 } from "recharts"
 import { Edit2, Trash2, Award } from "lucide-react"
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]
+
 
 export default function AdminDashboard() {
   const [companies, setCompanies] = useState<{ id: string; companyName: string }[]>([])
@@ -55,6 +50,9 @@ export default function AdminDashboard() {
     isNoSale: boolean
     sale: number
     profit: number
+    totalSaleValue: number
+    totalProfit: number
+    saleDate: string
   }
 
   const [salesData, setSalesData] = useState<SalesEntry[]>([])
@@ -183,9 +181,7 @@ export default function AdminDashboard() {
     fetchCompanies()
   }, [])
 
-  useEffect(() => {
-    fetchSalesData()
-  }, [period, customPeriod, selectedEmployee])
+  
 
   const handleEdit = (entry) => {
     setIsEditing(true)

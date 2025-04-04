@@ -6,7 +6,13 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const session = await getSession();
+    type Session = {
+      userId: string;
+      // add other fields as needed
+    };
+    
+    const session = await getSession() as Session;
+    
     
     if (!session) {
       return NextResponse.json(
