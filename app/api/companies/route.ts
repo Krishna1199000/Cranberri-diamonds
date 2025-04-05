@@ -15,7 +15,11 @@ export async function GET() {
       );
     }
 
+    // Only fetch companies created by the current employee if they're not an admin
     const companies = await prisma.shipment.findMany({
+      where: session.role === 'employee' ? {
+        userId: session.userId as string
+      } : undefined,
       select: {
         id: true,
         companyName: true

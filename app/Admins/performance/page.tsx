@@ -4,11 +4,10 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, User } from "lucide-react";
 
 export default function AdminPerformance() {
   interface Employee {
@@ -36,6 +35,7 @@ export default function AdminPerformance() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState("");
+  const [currentAdmin, setCurrentAdmin] = useState<Employee | null>(null);
   const [formData, setFormData] = useState({
     totalCalls: "",
     totalEmails: "",
@@ -44,6 +44,19 @@ export default function AdminPerformance() {
     invoice: "",
     userId: "",
   });
+
+  const fetchCurrentAdmin = async () => {
+    try {
+      const response = await fetch("/api/auth/me");
+      const data = await response.json();
+      if (data.success) {
+        setCurrentAdmin(data.user);
+        setEmployees(prev => [...prev, data.user]); // Add admin to employees list
+      }
+    } catch (error) {
+      console.error("Error fetching current admin:", error);
+    }
+  };
 
   const fetchEmployees = async () => {
     try {
@@ -78,13 +91,11 @@ export default function AdminPerformance() {
   
     fetchReports();
   }, [selectedEmployee]);
-  
 
   useEffect(() => {
     fetchEmployees();
+    fetchCurrentAdmin();
   }, []);
-
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,12 +107,18 @@ export default function AdminPerformance() {
         ? `/api/performance/admin/${editingId}` 
         : "/api/performance/admin";
 
+      // If no user is selected, use current admin's ID
+      const submitData = {
+        ...formData,
+        userId: formData.userId || currentAdmin?.id,
+      };
+
       const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       const data = await response.json();
@@ -118,7 +135,17 @@ export default function AdminPerformance() {
         });
         setIsEditing(false);
         setEditingId("");
-      
+        
+        // Refresh reports
+        const reportsUrl = selectedEmployee === "all" 
+          ? "/api/performance/admin"
+          : `/api/performance/admin?employeeId=${selectedEmployee}`;
+        
+        const reportsResponse = await fetch(reportsUrl);
+        const reportsData = await reportsResponse.json();
+        if (reportsData.success) {
+          setReports(reportsData.reports);
+        }
       } else {
         toast.error(data.message || `Failed to ${isEditing ? "update" : "submit"} report`);
       }
@@ -152,7 +179,17 @@ export default function AdminPerformance() {
 
         if (response.ok) {
           toast.success("Report deleted successfully");
-        
+          
+          // Refresh reports
+          const url = selectedEmployee === "all" 
+            ? "/api/performance/admin"
+            : `/api/performance/admin?employeeId=${selectedEmployee}`;
+          
+          const reportsResponse = await fetch(url);
+          const data = await reportsResponse.json();
+          if (data.success) {
+            setReports(data.reports);
+          }
         } else {
           toast.error("Failed to delete report");
         }
@@ -176,7 +213,10 @@ export default function AdminPerformance() {
               <SelectItem value="all">All Employees</SelectItem>
               {employees.map((employee) => (
                 <SelectItem key={employee.id} value={employee.id}>
-                  {employee.name}
+                  <div className="flex items-center gap-2">
+                    {employee.id === currentAdmin?.id && <User className="w-4 h-4" />}
+                    {employee.name}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -200,10 +240,20 @@ export default function AdminPerformance() {
                     <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name}
+                    {currentAdmin && (
+                      <SelectItem value={currentAdmin.id}>
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4" />
+                          {currentAdmin.name} (You)
+                        </div>
                       </SelectItem>
+                    )}
+                    {employees
+                      .filter(emp => emp.id !== currentAdmin?.id)
+                      .map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id}>
+                          {employee.name}
+                        </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -240,20 +290,22 @@ export default function AdminPerformance() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Memo</label>
-                <Textarea
+                <label className="block text-sm font-medium mb-1">Memo Number</label>
+                <Input
+                  type="text"
                   value={formData.memo}
                   onChange={(e) => setFormData((prev) => ({ ...prev, memo: e.target.value }))}
-                  placeholder="Add any notes about memos..."
+                  placeholder="Enter memo number"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Invoice</label>
-                <Textarea
+                <label className="block text-sm font-medium mb-1">Invoice Number</label>
+                <Input
+                  type="text"
                   value={formData.invoice}
                   onChange={(e) => setFormData((prev) => ({ ...prev, invoice: e.target.value }))}
-                  placeholder="Add any notes about invoices..."
+                  placeholder="Enter invoice number"
                 />
               </div>
 
@@ -280,7 +332,10 @@ export default function AdminPerformance() {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <p className="font-medium">{report.user.name}</p>
+                      <div className="flex items-center gap-2">
+                        {report.userId === currentAdmin?.id && <User className="w-4 h-4" />}
+                        <p className="font-medium">{report.user.name}</p>
+                      </div>
                       <p className="text-sm text-gray-500">
                         {new Date(report.date).toLocaleDateString()}
                       </p>
@@ -293,6 +348,16 @@ export default function AdminPerformance() {
                       <p>
                         <strong>Requirements:</strong> {report.requirementsReceived}
                       </p>
+                      {report.memo && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Memo Number:</strong> {report.memo}
+                        </p>
+                      )}
+                      {report.invoice && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Invoice Number:</strong> {report.invoice}
+                        </p>
+                      )}
                     </div>
                     <div className="flex space-x-2">
                       <Button
@@ -312,16 +377,6 @@ export default function AdminPerformance() {
                       </Button>
                     </div>
                   </div>
-                  {report.memo && (
-                    <p className="text-sm text-gray-600">
-                      <strong>Memo:</strong> {report.memo}
-                    </p>
-                  )}
-                  {report.invoice && (
-                    <p className="text-sm text-gray-600">
-                      <strong>Invoice:</strong> {report.invoice}
-                    </p>
-                  )}
                 </motion.div>
               ))}
             </div>

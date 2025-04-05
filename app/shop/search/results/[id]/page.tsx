@@ -52,6 +52,22 @@ export default function DiamondDetails() {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showVideoDialog, setShowVideoDialog] = useState(false);
   const [showCertDialog, setShowCertDialog] = useState(false);
+  const [userRole, setUserRole] = useState<'admin' | 'employee' | 'customer'>('customer');
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const user = await response.json();
+          setUserRole(user.role);
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      }
+    };
+    fetchUserRole();
+  }, []);
 
   useEffect(() => {
     const fetchDiamond = async () => {
@@ -77,26 +93,60 @@ export default function DiamondDetails() {
   }, [params.id]);
 
   const handleShare = async (platform: string) => {
-    const shareUrl = `${window.location.origin}/shop/search/results/${params.id}`;
-    const shareText = `Check out this ${diamond?.size}ct ${diamond?.shape} diamond!`;
+    if (!diamond) return;
+
+    const productUrl = `${window.location.origin}/shop/search/results/${params.id}`;
+    const shareText = `Check out this ${diamond.size}ct ${diamond.shape} diamond!`;
+
+    // Function to convert image to base64
+    const getImageBase64 = async (imageUrl: string): Promise<string> => {
+      try {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.error('Error converting image to base64:', error);
+        return '';
+      }
+    };
 
     switch (platform) {
       case 'whatsapp':
-        window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`);
+        if (diamond.imageUrl) {
+          // WhatsApp can't directly share images via URL, so we'll include the image URL and product URL
+          const whatsappText = `${shareText}\n\n${productUrl}`;
+          window.open(`https://wa.me/?text=${encodeURIComponent(whatsappText)}`);
+        } else {
+          window.open(`https://wa.me/?text=${encodeURIComponent(shareText + '\n\n' + productUrl)}`);
+        }
         break;
+
       case 'email':
-        window.open(`mailto:?subject=${encodeURIComponent(shareText)}&body=${encodeURIComponent(shareUrl)}`);
+        let emailBody = shareText + '\n\n';
+        if (diamond.imageUrl) {
+          const imageBase64 = await getImageBase64(diamond.imageUrl);
+          emailBody += `<img src="${imageBase64}" alt="Diamond Image" style="max-width: 100%; height: auto;"><br><br>`;
+        }
+        emailBody += `View more details: ${productUrl}`;
+
+        const mailtoLink = `mailto:?subject=${encodeURIComponent(`${diamond.size}ct ${diamond.shape} Diamond`)}&body=${encodeURIComponent(emailBody)}`;
+        window.open(mailtoLink);
         break;
+
       case 'copy':
+        const textToCopy = `${shareText}\n\n${productUrl}`;
         try {
-          await navigator.clipboard.writeText(shareUrl);
+          await navigator.clipboard.writeText(textToCopy);
           toast.success('Link copied to clipboard!');
         } catch (error) {
           console.error('Failed to copy link:', error);
           toast.error('Failed to copy link');
         }
-        break;
-      default:
         break;
     }
     setShowShareDialog(false);
@@ -122,7 +172,6 @@ export default function DiamondDetails() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          {/* Header */}
           <div className="p-6 border-b border-gray-200 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">
               {diamond.shape} Diamond - {diamond.size}ct {diamond.color} {diamond.clarity}
@@ -167,9 +216,7 @@ export default function DiamondDetails() {
             </Dialog>
           </div>
 
-          {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
-            {/* Media Section */}
             <div className="space-y-6">
               <Card>
                 <CardContent className="p-6">
@@ -239,7 +286,6 @@ export default function DiamondDetails() {
               </div>
             </div>
 
-            {/* Details Section */}
             <div>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
@@ -328,20 +374,25 @@ export default function DiamondDetails() {
                 </TabsContent>
               </Tabs>
 
-              {/* Price Section */}
-              <div className="mt-8 p-6 bg-gray-50 rounded-lg">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Price per Carat</span>
-                    <span className="font-semibold">${diamond.pricePerCarat.toLocaleString()}</span>
+              {userRole === 'admin' || userRole === 'employee' ? (
+                <div className="mt-8 p-6 bg-gray-50 rounded-lg">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Price per Carat</span>
+                      <span className="font-semibold">${diamond.pricePerCarat.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Total Price</span>
+                      <span className="text-2xl font-bold">${diamond.finalAmount.toLocaleString()}</span>
+                    </div>
+                    <Button className="w-full">Request More Information</Button>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Total Price</span>
-                    <span className="text-2xl font-bold">${diamond.finalAmount.toLocaleString()}</span>
-                  </div>
-                  <Button className="w-full">Request More Information</Button>
                 </div>
-              </div>
+              ) : (
+                <div className="mt-8">
+                  <Button className="w-full">Request Price Information</Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

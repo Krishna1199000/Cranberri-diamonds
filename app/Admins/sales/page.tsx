@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
 import { toast } from "sonner"
 import {
@@ -20,8 +19,6 @@ import {
 } from "recharts"
 import { Edit2, Trash2, Award } from "lucide-react"
 
-
-
 export default function AdminDashboard() {
   const [companies, setCompanies] = useState<{ id: string; companyName: string }[]>([])
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([])
@@ -31,6 +28,7 @@ export default function AdminDashboard() {
   const [editingId, setEditingId] = useState("")
   const [formData, setFormData] = useState({
     companyName: "",
+    trackingId: "",
     carat: "",
     color: "",
     clarity: "",
@@ -41,6 +39,7 @@ export default function AdminDashboard() {
     saleDate: new Date().toISOString().split("T")[0],
     isNoSale: false,
   })
+
   interface SalesEntry {
     id: string
     date: string
@@ -58,7 +57,8 @@ export default function AdminDashboard() {
   const [salesData, setSalesData] = useState<SalesEntry[]>([])
   const [period, setPeriod] = useState("7")
   const [customPeriod, setCustomPeriod] = useState({ start: "", end: "" })
-  const [selectedEmployee, setSelectedEmployee] = useState("all") // Changed default value
+  const [selectedEmployee, setSelectedEmployee] = useState("all")
+
   interface EmployeeRanking {
     id: string
     name: string
@@ -67,6 +67,7 @@ export default function AdminDashboard() {
     salesCount: number
     avgProfit: number
   }
+
   const [rankings, setRankings] = useState<EmployeeRanking[]>([])
   const [showRankings, setShowRankings] = useState(false)
 
@@ -107,10 +108,10 @@ export default function AdminDashboard() {
   }
 
   interface EmployeeStats {
-    name: string;
-    totalSales: number;
-    totalProfit: number;
-    salesCount: number;
+    name: string
+    totalSales: number
+    totalProfit: number
+    salesCount: number
   }
 
   const calculateRankings = (data: SalesEntry[]) => {
@@ -181,13 +182,12 @@ export default function AdminDashboard() {
     fetchCompanies()
   }, [])
 
-  
-
   const handleEdit = (entry) => {
     setIsEditing(true)
     setEditingId(entry.id)
     setFormData({
       companyName: entry.companyName || "",
+      trackingId: entry.trackingId || "",
       carat: entry.carat?.toString() || "",
       color: entry.color || "",
       clarity: entry.clarity || "",
@@ -250,6 +250,7 @@ export default function AdminDashboard() {
         toast.success(`Sales entry ${isEditing ? "updated" : "submitted"} successfully`)
         setFormData({
           companyName: "",
+          trackingId: "",
           carat: "",
           color: "",
           clarity: "",
@@ -348,7 +349,6 @@ export default function AdminDashboard() {
               {isEditing ? "Edit Sales Entry" : "New Sales Entry"}
             </h2>
             
-            {/* Form content - Same as employee form but with employee selection */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Employee</label>
@@ -389,6 +389,7 @@ export default function AdminDashboard() {
                       ...prev,
                       isNoSale: true,
                       companyName: "",
+                      trackingId: "",
                       carat: "",
                       color: "",
                       clarity: "",
@@ -434,6 +435,16 @@ export default function AdminDashboard() {
                     </Select>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Tracking ID</label>
+                    <Input
+                      type="text"
+                      value={formData.trackingId}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, trackingId: e.target.value }))}
+                      className="w-full"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Carat</label>
@@ -448,61 +459,34 @@ export default function AdminDashboard() {
 
                     <div>
                       <label className="block text-sm font-medium mb-1">Color</label>
-                      <Select
+                      <Input
+                        type="text"
                         value={formData.color}
-                        onValueChange={(value) => setFormData((prev) => ({ ...prev, color: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Color" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["D", "E", "F", "G", "H", "I", "J"].map((color) => (
-                            <SelectItem key={color} value={color}>
-                              {color}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
+                        className="w-full"
+                      />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Clarity</label>
-                      <Select
+                      <Input
+                        type="text"
                         value={formData.clarity}
-                        onValueChange={(value) => setFormData((prev) => ({ ...prev, clarity: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Clarity" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2"].map((clarity) => (
-                            <SelectItem key={clarity} value={clarity}>
-                              {clarity}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onChange={(e) => setFormData((prev) => ({ ...prev, clarity: e.target.value }))}
+                        className="w-full"
+                      />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium mb-1">Cut</label>
-                      <Select
+                      <Input
+                        type="text"
                         value={formData.cut}
-                        onValueChange={(value) => setFormData((prev) => ({ ...prev, cut: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Cut" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["Excellent", "Very Good", "Good", "Fair"].map((cut) => (
-                            <SelectItem key={cut} value={cut}>
-                              {cut}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onChange={(e) => setFormData((prev) => ({ ...prev, cut: e.target.value }))}
+                        className="w-full"
+                      />
                     </div>
                   </div>
 
@@ -648,7 +632,7 @@ export default function AdminDashboard() {
                           {entry.employee.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {entry.trackingId}
+                          {entry.trackingId || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {entry.isNoSale ? "No Sale" : entry.companyName}

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { getSession } from '@/lib/session';
 
-// Create a single PrismaClient instance and reuse it
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
@@ -51,7 +50,8 @@ export async function POST(req: Request) {
       saleDate: new Date(data.saleDate),
       totalSaleValue: data.totalSaleValue ? parseFloat(data.totalSaleValue) : null,
       totalProfit: data.totalProfit ? parseFloat(data.totalProfit) : null,
-      carat: data.carat ? parseFloat(data.carat) : null
+      carat: data.carat ? parseFloat(data.carat) : null,
+      trackingId: data.trackingId || null
     };
     console.log('Formatted data for database:', formattedData);
 
@@ -202,7 +202,8 @@ export async function PUT(req: Request) {
         saleDate: data.saleDate ? new Date(data.saleDate) : undefined,
         totalSaleValue: data.totalSaleValue ? parseFloat(data.totalSaleValue) : null,
         totalProfit: data.totalProfit ? parseFloat(data.totalProfit) : null,
-        carat: data.carat ? parseFloat(data.carat) : null
+        carat: data.carat ? parseFloat(data.carat) : null,
+        trackingId: data.trackingId || null
       }
     });
 

@@ -78,7 +78,6 @@ export default function SearchResultsContent() {
   const router = useRouter();
 
   useEffect(() => {
-    // Fetch user role
     const fetchUserRole = async () => {
       try {
         const response = await fetch('/api/auth/me');
@@ -211,8 +210,7 @@ export default function SearchResultsContent() {
     }
   };
 
-  // Add the new handler for lab click
-  const handleLabClick = (diamondId: string) => {
+  const handleRowClick = (diamondId: string) => {
     router.push(`/shop/search/results/${diamondId}`);
   };
 
@@ -282,8 +280,12 @@ export default function SearchResultsContent() {
             </TableHeader>
             <TableBody>
               {diamonds.map((diamond, index) => (
-                <TableRow key={diamond.id}>
-                  <TableCell>
+                <TableRow 
+                  key={diamond.id}
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleRowClick(diamond.id)}
+                >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedDiamonds.has(diamond.id)}
                       onChange={() => handleSelectDiamond(diamond.id)}
@@ -291,7 +293,7 @@ export default function SearchResultsContent() {
                   </TableCell>
                   <TableCell>{((pagination.currentPage - 1) * pagination.perPage) + index + 1}</TableCell>
                   <TableCell>{diamond.stockId}</TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex space-x-2">
                       {diamond.imageUrl && (
                         <Button
@@ -335,12 +337,7 @@ export default function SearchResultsContent() {
                   <TableCell>{diamond.cut}</TableCell>
                   <TableCell>{diamond.polish}</TableCell>
                   <TableCell>{diamond.sym}</TableCell>
-                  <TableCell 
-                    className="cursor-pointer hover:text-blue-600 hover:underline"
-                    onClick={() => handleLabClick(diamond.id)}
-                  >
-                    {diamond.lab}
-                  </TableCell>
+                  <TableCell>{diamond.lab}</TableCell>
                   {(userRole === 'admin' || userRole === 'employee') && (
                     <>
                       <TableCell>${diamond.pricePerCarat.toLocaleString()}</TableCell>
