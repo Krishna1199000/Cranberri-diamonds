@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Home, Search, LogOut, Package, Users, Database } from 'lucide-react';
+import { Menu, X, Home, Search, LogOut, Package, Users, Database, BarChart, TrendingUp, Box } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { DiamondSearch } from '@/components/DiamondSearch/index';
 import { UserProfileDropdown } from '@/components/UserProfileDropdown';
@@ -45,6 +45,9 @@ export default function AdminDashboard() {
     { label: 'Home', icon: Home, href: '/' },
     { label: 'Search Diamond', icon: Search, href: '/Admins' },
     { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
+    { label: 'Parcel-Goods', icon: Box, href: '/parcel-goods' },
+    { label: 'Sales', icon: BarChart, href: '/Admins/sales' },
+    { label: 'Performance', icon: TrendingUp, href: '/Admins/performance' },
     { label: 'Manage Users', icon: Users, href: '/admin/users' },
     { label: 'Sync Database', icon: Database, href: '/sync' },
   ];

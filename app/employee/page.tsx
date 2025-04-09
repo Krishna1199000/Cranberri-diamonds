@@ -1,18 +1,33 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Home, Search, LogOut, Package } from 'lucide-react';
+import { Menu, X, Home, Search, LogOut, Package, BarChart, DollarSign, Box } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { DiamondSearch } from '@/components/DiamondSearch/index';
+import { UserProfileDropdown } from '@/components/UserProfileDropdown';
 
 export default function EmployeeDashboard() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userName, setUserName] = useState('');
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const user = await response.json();
+          setUserName(user.name);
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    };
 
- 
+    fetchUser();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -30,7 +45,9 @@ export default function EmployeeDashboard() {
     { label: 'Home', icon: Home, href: '/' },
     { label: 'Search Diamond', icon: Search, href: 'employee' },
     { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
-    { label: 'Sales-Report', icon: Package, href: '/employee/sales' },
+    { label: 'Performance', icon: BarChart, href: '/employee/performance' },
+    { label: 'Sales', icon: DollarSign, href: '/employee/sales' },
+    { label: 'Parcel-Goods', icon: Box, href: '/parcel-goods' },
   ];
 
   return (
@@ -52,25 +69,26 @@ export default function EmployeeDashboard() {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-8">
+            <div className="hidden lg:flex items-center space-x-4">
               {navItems.map((item) => (
                 <motion.button
                   key={item.label}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-blue-600"
+                  className="flex items-center space-x-1 text-gray-700 hover:text-blue-600 px-2"
                   onClick={() => router.push(item.href)}
                 >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
+                  <item.icon className="h-4 w-4" />
+                  <span className="text-sm">{item.label}</span>
                 </motion.button>
               ))}
+              <UserProfileDropdown userName={userName} />
               <Button
                 variant="default"
                 className="flex items-center space-x-2"
                 onClick={handleLogout}
               >
-                <LogOut className="h-5 w-5" />
+                <LogOut className="h-4 w-4" />
                 <span>Logout</span>
               </Button>
             </div>
@@ -102,6 +120,9 @@ export default function EmployeeDashboard() {
                     <span>{item.label}</span>
                   </motion.button>
                 ))}
+                <div className="px-3 py-2">
+                  <UserProfileDropdown userName={userName} />
+                </div>
                 <Button
                   variant="default"
                   className="flex items-center space-x-2 w-full"
@@ -123,8 +144,6 @@ export default function EmployeeDashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-
-          
           
         </motion.div>
 

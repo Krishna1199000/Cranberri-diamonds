@@ -1,15 +1,33 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Home, Search, LogOut } from 'lucide-react';
+import { Menu, X, Home, Search, LogOut, Package } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { DiamondSearch } from '@/components/DiamondSearch';
+import { UserProfileDropdown } from '@/components/UserProfileDropdown';
 
 export default function CustomerDashboard() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const user = await response.json();
+          setUserName(user.name);
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -26,6 +44,7 @@ export default function CustomerDashboard() {
   const navItems = [
     { label: 'Home', icon: Home, href: '/' },
     { label: 'Search Diamond', icon: Search, href: '/Customer' },
+    { label: 'Parcel-Goods', icon: Package, href: '/parcel-goods' },
   ];
 
   return (
@@ -60,6 +79,7 @@ export default function CustomerDashboard() {
                   <span>{item.label}</span>
                 </motion.button>
               ))}
+              <UserProfileDropdown userName={userName} />
               <Button
                 variant="outline"
                 className="flex items-center space-x-2 text-red-600 hover:bg-red-50 hover:border-red-600"
@@ -97,6 +117,9 @@ export default function CustomerDashboard() {
                     <span>{item.label}</span>
                   </motion.button>
                 ))}
+                <div className="px-3 py-2">
+                  <UserProfileDropdown userName={userName} />
+                </div>
                 <Button
                   variant="outline"
                   className="flex items-center space-x-2 w-full text-red-600 hover:bg-red-50 hover:border-red-600"
@@ -113,9 +136,6 @@ export default function CustomerDashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Welcome Section */}
-
-
         {/* Diamond Search Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -1,716 +1,257 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card } from "@/components/ui/card"
-import { toast } from "sonner"
-import {
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  Area,
-  AreaChart,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
+import { Edit2, Trash2 } from "lucide-react";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]
+interface Report {
+  id: string;
+  date: string;
+  totalCalls: number;
+  totalEmails: number;
+  requirementsReceived: number;
+  memo?: string;
+  invoice?: string;
+}
 
-export default function EmployeeDashboard() {
-  const [companies, setCompanies] = useState<{ id: string; companyName: string }[]>([])
-  const [isNoSale, setIsNoSale] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export default function EmployeePerformance() {
+  const [reports, setReports] = useState<Report[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState("");
   const [formData, setFormData] = useState({
-    companyName: "",
-    trackingId: "",
-    carat: "",
-    color: "",
-    clarity: "",
-    cut: "",
-    totalSaleValue: "",
-    totalProfit: "",
-    description: "",
-    saleDate: new Date().toISOString().split("T")[0],
-    isNoSale: false,
-  })
+    totalCalls: "",
+    totalEmails: "",
+    requirementsReceived: "",
+    memo: "",
+    invoice: "",
+  });
 
-  const [salesData, setSalesData] = useState<
-    {
-      date: string
-      profit: number
-      sale: number
-      company: string
-      isNoSale: boolean
-      description: string
-      trackingId: string
-      details: {
-        carat: string | null
-        color: string | null
-        clarity: string | null
-        cut: string | null
-      }
-    }[]
-  >([])
-  const [period, setPeriod] = useState("7")
-  const [customPeriod, setCustomPeriod] = useState({ start: "", end: "" })
-  const [selectedDataPoint, setSelectedDataPoint] = useState<{
-    date: string
-    profit: number
-    sale: number
-    company: string
-    isNoSale: boolean
-    description: string
-    trackingId: string
-    details: {
-      carat: string | null
-      color: string | null
-      clarity: string | null
-      cut: string | null
-    }
-  } | null>(null)
-  const [showPieChart, setShowPieChart] = useState(false)
-
-  const timeRanges = [
-    { value: "1", label: "Last 24 Hours" },
-    { value: "7", label: "Last 7 Days" },
-    { value: "30", label: "Last 30 Days" },
-    { value: "90", label: "Last Quarter" },
-    { value: "180", label: "Last 6 Months" },
-    { value: "365", label: "Last Year" },
-    { value: "custom", label: "Custom Range" },
-  ]
-
-  const fetchCompanies = async () => {
+  const fetchReports = async () => {
     try {
-      console.log('Fetching companies...')
-      const response = await fetch("/api/companies")
-      const data = await response.json()
-      console.log('Companies response:', data)
+      const response = await fetch("/api/performance");
+      const data = await response.json();
       if (data.success) {
-        setCompanies(data.companies)
+        setReports(data.reports);
       }
     } catch (error) {
-      console.error("Error fetching companies:", error)
-      toast.error("Failed to fetch companies")
+      console.error("Error fetching reports:", error);
+      toast.error("Failed to fetch reports");
     }
-  }
+  };
 
   useEffect(() => {
-    const fetchSalesData = async () => {
-      try {
-        console.log('Fetching sales data...')
-        let url = `/api/sales?period=${period}`
-        if (period === "custom" && customPeriod.start && customPeriod.end) {
-          url = `/api/sales?start=${customPeriod.start}&end=${customPeriod.end}`
-        }
-        console.log('Fetching from URL:', url)
-  
-        const response = await fetch(url)
-        const data = await response.json()
-        console.log('Sales data response:', data)
-        
-        if (data.success) {
-          const formattedData = data.entries.map((entry) => ({
-            date: new Date(entry.saleDate).toLocaleDateString(),
-            profit: entry.totalProfit || 0,
-            sale: entry.totalSaleValue || 0,
-            company: entry.companyName || "No Sale",
-            isNoSale: entry.isNoSale,
-            description: entry.description,
-            trackingId: entry.trackingId,
-            details: {
-              carat: entry.carat,
-              color: entry.color,
-              clarity: entry.clarity,
-              cut: entry.cut,
-            },
-          }))
-          console.log('Formatted sales data:', formattedData)
-          setSalesData(formattedData)
-        }
-      } catch (error) {
-        console.error("Error fetching sales data:", error)
-        toast.error("Failed to fetch sales data")
-      }
-    }
-    fetchSalesData()
-  }, [period, customPeriod])
+    fetchReports();
+  }, []);
 
-  useEffect(() => {
-    fetchCompanies()
-  }, [])
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-  const validateForm = () => {
-    if (!isNoSale) {
-      if (!formData.companyName) {
-        toast.error("Please select a company")
-        return false
-      }
-      if (!formData.totalSaleValue) {
-        toast.error("Please enter total sale value")
-        return false
-      }
-      if (!formData.totalProfit) {
-        toast.error("Please enter total profit")
-        return false
-      }
-      if (parseFloat(formData.totalProfit) > parseFloat(formData.totalSaleValue)) {
-        toast.error("Profit cannot be greater than sale value")
-        return false
-      }
-    }
-    return true
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log('Starting form submission with data:', formData)
-
-    if (!validateForm()) {
-      return
-    }
-
-    setIsSubmitting(true)
-    
     try {
-      const formattedData = {
-        ...formData,
-        carat: formData.carat ? Number.parseFloat(formData.carat) : null,
-        totalSaleValue: formData.totalSaleValue ? Number.parseFloat(formData.totalSaleValue) : null,
-        totalProfit: formData.totalProfit ? Number.parseFloat(formData.totalProfit) : null,
-        saleDate: new Date(formData.saleDate).toISOString(),
-      }
-      
-      console.log('Sending formatted data to API:', formattedData)
-      
-      const response = await fetch("/api/sales", {
-        method: "POST",
+      const method = isEditing ? "PUT" : "POST";
+      const url = isEditing ? `/api/performance/${editingId}` : "/api/performance";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formattedData),
-      })
-      
-      console.log('Response status:', response.status)
-      const data = await response.json()
-      console.log('Response data:', data)
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
 
       if (response.ok && data.success) {
-        console.log('Successfully submitted sales entry')
-        toast.success("Sales entry submitted successfully")
+        toast.success(`Report ${isEditing ? "updated" : "submitted"} successfully`);
         setFormData({
-          companyName: "",
-          trackingId: "",
-          carat: "",
-          color: "",
-          clarity: "",
-          cut: "",
-          totalSaleValue: "",
-          totalProfit: "",
-          description: "",
-          saleDate: new Date().toISOString().split("T")[0],
-          isNoSale: false,
-        })
-        setIsNoSale(false)
-      
+          totalCalls: "",
+          totalEmails: "",
+          requirementsReceived: "",
+          memo: "",
+          invoice: "",
+        });
+        setIsEditing(false);
+        setEditingId("");
+        fetchReports();
       } else {
-        console.error('Error response:', data)
-        toast.error(data.message || "Failed to submit sales entry")
+        toast.error(data.message || `Failed to ${isEditing ? "update" : "submit"} report`);
       }
     } catch (error) {
-      console.error("Error submitting form:", error)
-      toast.error("Failed to submit sales entry")
+      console.error("Error submitting form:", error);
+      toast.error(`Failed to ${isEditing ? "update" : "submit"} report`);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  const handleNoSaleClick = () => {
-    console.log('Switching to no-sale mode')
-    setIsNoSale(true)
-    setFormData((prev) => ({
-      ...prev,
-      isNoSale: true,
-      companyName: "",
-      trackingId: "",
-      carat: "",
-      color: "",
-      clarity: "",
-      cut: "",
-      totalSaleValue: "",
-      totalProfit: "",
-    }))
-  }
+  const handleEdit = (report) => {
+    setIsEditing(true);
+    setEditingId(report.id);
+    setFormData({
+      totalCalls: report.totalCalls.toString(),
+      totalEmails: report.totalEmails.toString(),
+      requirementsReceived: report.requirementsReceived.toString(),
+      memo: report.memo || "",
+      invoice: report.invoice || "",
+    });
+  };
 
-  const handleChartClick = (data) => {
-    console.log('Chart clicked with data:', data)
-    setSelectedDataPoint(data)
-    setShowPieChart(true)
-  }
+  const handleDelete = async (id) => {
+    if (confirm("Are you sure you want to delete this report?")) {
+      try {
+        const response = await fetch(`/api/performance/${id}`, {
+          method: "DELETE",
+        });
 
-  const getPieChartData = () => {
-    if (!selectedDataPoint || selectedDataPoint.isNoSale) return []
-    return [
-      { name: "Profit", value: selectedDataPoint.profit },
-      { name: "Cost", value: selectedDataPoint.sale - selectedDataPoint.profit },
-    ]
-  }
+        if (response.ok) {
+          toast.success("Report deleted successfully");
+          fetchReports();
+        } else {
+          toast.error("Failed to delete report");
+        }
+      } catch (error) {
+        console.error("Error deleting report:", error);
+        toast.error("Failed to delete report");
+      }
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="text-2xl font-bold mb-6 text-gray-800">Today&#39;s Date: {new Date().toLocaleDateString()}</div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8">Performance Report</h1>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-8"
-        >
-          <Card className="p-6 bg-white shadow-lg rounded-xl">
-            <motion.h2
-              className="text-2xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              New Sales Entry
-            </motion.h2>
-
-            <div className="mb-4 flex gap-4">
-              <Button
-                type="button"
-                onClick={() => {
-                  setIsNoSale(false)
-                  setFormData((prev) => ({ ...prev, isNoSale: false }))
-                }}
-                className={`flex-1 ${!isNoSale ? "bg-blue-600" : "bg-gray-300"}`}
-              >
-                Regular Sale
-              </Button>
-              <Button
-                type="button"
-                onClick={handleNoSaleClick}
-                className={`flex-1 ${isNoSale ? "bg-blue-600" : "bg-gray-300"}`}
-              >
-                No Sale
-              </Button>
-            </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Report Form */}
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6">
+              {isEditing ? "Edit Report" : "New Report"}
+            </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Sale Date</label>
+                <label className="block text-sm font-medium mb-1">Total Calls</label>
                 <Input
-                  type="date"
-                  value={formData.saleDate}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, saleDate: e.target.value }))}
-                  className="w-full"
+                  type="number"
+                  value={formData.totalCalls}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, totalCalls: e.target.value }))}
+                  required
                 />
               </div>
-
-              {!isNoSale && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Company</label>
-                    <Select
-                      value={formData.companyName}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, companyName: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Company" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {companies.map((company) => (
-                          <SelectItem key={company.id} value={company.companyName}>
-                            {company.companyName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Tracking ID</label>
-                    <Input
-                      type="text"
-                      value={formData.trackingId}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, trackingId: e.target.value }))}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Carat</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.carat}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, carat: e.target.value }))}
-                        className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Color</label>
-                      <Input
-                        type="text"
-                        value={formData.color}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Clarity</label>
-                      <Input
-                        type="text"
-                        value={formData.clarity}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, clarity: e.target.value }))}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Cut</label>
-                      <Input
-                        type="text"
-                        value={formData.cut}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, cut: e.target.value }))}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Total Sale Value</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.totalSaleValue}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, totalSaleValue: e.target.value }))}
-                        className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Total Profit</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.totalProfit}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, totalProfit: e.target.value }))}
-                        className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
 
               <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                  placeholder={
-                    isNoSale ? "Explain why there were no sales today..." : "Add any additional notes about the sale..."
-                  }
-                  className="min-h-[100px]"
+                <label className="block text-sm font-medium mb-1">Total Emails</label>
+                <Input
+                  type="number"
+                  value={formData.totalEmails}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, totalEmails: e.target.value }))}
+                  required
                 />
               </div>
 
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
-                >
-                  {isSubmitting ? "Submitting..." : "Submit Entry"}
-                </Button>
-              </motion.div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Requirements Received</label>
+                <Input
+                  type="number"
+                  value={formData.requirementsReceived}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, requirementsReceived: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Memo</label>
+                <Textarea
+                  value={formData.memo}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, memo: e.target.value }))}
+                  placeholder="Add any notes about memos..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Invoice</label>
+                <Textarea
+                  value={formData.invoice}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, invoice: e.target.value }))}
+                  placeholder="Add any notes about invoices..."
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full"
+              >
+                {isSubmitting ? "Submitting..." : isEditing ? "Update Report" : "Submit Report"}
+              </Button>
             </form>
           </Card>
 
-          <div className="space-y-6">
-            <Card className="p-6 bg-white shadow-lg rounded-xl">
-              <div className="flex flex-col space-y-4">
-                <motion.h2
-                  className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+          {/* Reports List */}
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6">Your Reports</h2>
+            <div className="space-y-4">
+              {reports.map((report) => (
+                <motion.div
+                  key={report.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
+                  className="bg-white p-4 rounded-lg shadow"
                 >
-                  Sales Performance
-                </motion.h2>
-
-                <div className="flex items-center gap-4">
-                  <Select value={period} onValueChange={setPeriod}>
-                    <SelectTrigger className="min-w-[200px]">
-                      <SelectValue placeholder="Select Period" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timeRanges.map((range) => (
-                        <SelectItem key={range.value} value={range.value}>
-                          {range.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {period === "custom" && (
-                    <div className="flex gap-2">
-                      <Input
-                        type="date"
-                        value={customPeriod.start}
-                        onChange={(e) => setCustomPeriod((prev) => ({ ...prev, start: e.target.value }))}
-                        className="w-auto"
-                      />
-                      <Input
-                        type="date"
-                        value={customPeriod.end}
-                        onChange={(e) => setCustomPeriod((prev) => ({ ...prev, end: e.target.value }))}
-                        className="w-auto"
-                      />
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        {new Date(report.date).toLocaleDateString()}
+                      </p>
+                      <p>
+                        <strong>Calls:</strong> {report.totalCalls}
+                      </p>
+                      <p>
+                        <strong>Emails:</strong> {report.totalEmails}
+                      </p>
+                      <p>
+                        <strong>Requirements:</strong> {report.requirementsReceived}
+                      </p>
                     </div>
-                  )}
-                </div>
-              </div>
-
-              <motion.div
-                className="h-[300px] mt-4"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={salesData}
-                    onClick={(data) => data && data.activePayload && handleChartClick(data.activePayload[0].payload)}
-                  >
-                    <defs>
-                      <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="saleGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" stroke="#666" tick={{ fill: "#666" }} />
-                    <YAxis stroke="#666" tick={{ fill: "#666" }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "rgba(255, 255, 255, 0.9)",
-                        border: "none",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                      }}
-                    />
-                    <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="profit"
-                      stroke="#8884d8"
-                      fillOpacity={1}
-                      fill="url(#profitGradient)"
-                      strokeWidth={2}
-                      name="Profit"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="sale"
-                      stroke="#82ca9d"
-                      fillOpacity={1}
-                      fill="url(#saleGradient)"
-                      strokeWidth={2}
-                      name="Sale"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </motion.div>
-            </Card>
-
-            {showPieChart && selectedDataPoint && (
-              <Card className="p-6 bg-white shadow-lg rounded-xl">
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                  <h3 className="text-xl font-semibold">
-                    {selectedDataPoint.isNoSale ? "No Sale" : "Sale"} Details for {selectedDataPoint.date}
-                  </h3>
-
-                  {selectedDataPoint.isNoSale ? (
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-gray-700">{selectedDataPoint.description || "No description provided"}</p>
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(report)}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600"
+                        onClick={() => handleDelete(report.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-                  ) : (
-                    <>
-                      <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={getPieChartData()}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              paddingAngle={5}
-                              dataKey="value"
-                              label
-                            >
-                              {getPieChartData().map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <h4 className="font-medium text-gray-700 mb-2">Sale Information</h4>
-                          <div className="space-y-1 text-sm">
-                            <p>
-                              <span className="font-medium">Company:</span> {selectedDataPoint.company}
-                            </p>
-                            <p>
-                              <span className="font-medium">Tracking ID:</span> {selectedDataPoint.trackingId || "N/A"}
-                            </p>
-                            <p>
-                              <span className="font-medium">Total Sale:</span> ${selectedDataPoint.sale.toFixed(2)}
-                            </p>
-                            <p>
-                              <span className="font-medium">Total Profit:</span> ${selectedDataPoint.profit.toFixed(2)}
-                            </p>
-                            <p>
-                              <span className="font-medium">Profit Margin:</span>{" "}
-                              {((selectedDataPoint.profit / selectedDataPoint.sale) * 100).toFixed(2)}%
-                            </p>
-                          </div>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <h4 className="font-medium text-gray-700 mb-2">Diamond Details</h4>
-                          <div className="space-y-1 text-sm">
-                            <p>
-                              <span className="font-medium">Carat:</span> {selectedDataPoint.details.carat || "N/A"}
-                            </p>
-                            <p>
-                              <span className="font-medium">Color:</span> {selectedDataPoint.details.color || "N/A"}
-                            </p>
-                            <p>
-                              <span className="font-medium">Clarity:</span> {selectedDataPoint.details.clarity || "N/A"}
-                            </p>
-                            <p>
-                              <span className="font-medium">Cut:</span> {selectedDataPoint.details.cut || "N/A"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      {selectedDataPoint.description && (
-                        <div className="mt-4 bg-gray-50 p-3 rounded-lg">
-                          <h4 className="font-medium text-gray-700 mb-2">Description</h4>
-                          <p className="text-sm text-gray-600">{selectedDataPoint.description}</p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                  <div className="mt-4 flex justify-end">
-                    <Button onClick={() => setShowPieChart(false)} variant="outline" className="text-sm">
-                      Close Details
-                    </Button>
                   </div>
+                  {report.memo && (
+                    <p className="text-sm text-gray-600">
+                      <strong>Memo:</strong> {report.memo}
+                    </p>
+                  )}
+                  {report.invoice && (
+                    <p className="text-sm text-gray-600">
+                      <strong>Invoice:</strong> {report.invoice}
+                    </p>
+                  )}
                 </motion.div>
-              </Card>
-            )}
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-8"
-        >
-          <Card className="p-6 bg-white shadow-lg rounded-xl">
-            <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Recent Sales Summary
-            </h2>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Company
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tracking ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Details
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Sale Value
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Profit
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {salesData.slice(0, 5).map((entry, index) => (
-                    <tr key={index} className={entry.isNoSale ? "bg-gray-50" : ""}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{entry.date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {entry.isNoSale ? "No Sale" : entry.company}
-                      </td>
-                      
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.trackingId || "N/A"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.isNoSale ? (
-                          <span className="italic">N/A</span>
-                        ) : (
-                          <>
-                            {entry.details.carat && `${entry.details.carat}ct `}
-                            {entry.details.color && `${entry.details.color} `}
-                            {entry.details.clarity && `${entry.details.clarity} `}
-                            {entry.details.cut && `${entry.details.cut}`}
-                          </>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.isNoSale ? "-" : `$${entry.sale.toFixed(2)}`}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.isNoSale ? "-" : `$${entry.profit.toFixed(2)}`}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              ))}
             </div>
           </Card>
-        </motion.div>
-      </main>
+        </div>
+      </div>
     </div>
-  )
+  );
 }
