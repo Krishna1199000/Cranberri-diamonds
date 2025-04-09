@@ -80,7 +80,7 @@ export default function Beyond4Cs() {
           />
         </motion.div>
 
-        {/* Cut Section */}
+        
         <motion.section variants={fadeIn} className="space-y-8">
           <div className="flex items-center gap-3 mb-6">
             <Diamond className="w-8 h-8 text-primary" />
