@@ -45,25 +45,47 @@ export default function AdminPerformance() {
     userId: "",
   });
 
+  // Fetch current admin user
   const fetchCurrentAdmin = async () => {
     try {
       const response = await fetch("/api/auth/me");
+      if (!response.ok) {
+        throw new Error("Failed to fetch admin data");
+      }
+      
       const data = await response.json();
-      if (data.success) {
-        setCurrentAdmin(data.user);
-        setEmployees(prev => [...prev, data.user]); // Add admin to employees list
+      if (data && data.id && data.name) {
+        const admin = {
+          id: data.id,
+          name: data.name
+        };
+        setCurrentAdmin(admin);
+        
+        // Pre-select the admin as the default user for the form
+        setFormData(prev => ({
+          ...prev,
+          userId: admin.id
+        }));
       }
     } catch (error) {
       console.error("Error fetching current admin:", error);
+      toast.error("Failed to fetch your user profile");
     }
   };
 
+  // Fetch employees
   const fetchEmployees = async () => {
     try {
       const response = await fetch("/api/employees");
+      if (!response.ok) {
+        throw new Error("Failed to fetch employees");
+      }
+      
       const data = await response.json();
-      if (data.success) {
-        setEmployees(data.employees);
+      if (data.success && Array.isArray(data.employees)) {
+        // Make sure all employees have id and name properties
+        const validEmployees = data.employees.filter(emp => emp.id && emp.name);
+        setEmployees(validEmployees);
       }
     } catch (error) {
       console.error("Error fetching employees:", error);
@@ -71,43 +93,71 @@ export default function AdminPerformance() {
     }
   };
 
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        const url = selectedEmployee === "all" 
-          ? "/api/performance/admin"
-          : `/api/performance/admin?employeeId=${selectedEmployee}`;
-        
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.success) {
-          setReports(data.reports);
-        }
-      } catch (error) {
-        console.error("Error fetching reports:", error);
-        toast.error("Failed to fetch reports");
+  // Fetch reports
+  const fetchReports = async () => {
+    try {
+      const url = selectedEmployee === "all" 
+        ? "/api/performance/admin"
+        : `/api/performance/admin?employeeId=${selectedEmployee}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch reports");
       }
-    };
-  
+      
+      const data = await response.json();
+      if (data.success && Array.isArray(data.reports)) {
+        setReports(data.reports);
+      }
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      toast.error("Failed to fetch reports");
+    }
+  };
+
+  useEffect(() => {
     fetchReports();
   }, [selectedEmployee]);
 
   useEffect(() => {
-    fetchEmployees();
-    fetchCurrentAdmin();
+    // First fetch the admin user
+    fetchCurrentAdmin().then(() => {
+      // Then fetch employees
+      fetchEmployees();
+    });
   }, []);
+
+  // Ensure admin is added to employee list if not present
+  useEffect(() => {
+    if (currentAdmin && employees.length > 0) {
+      // Check if admin is already in the employees list
+      const adminExists = employees.some(emp => emp.id === currentAdmin.id);
+      
+      if (!adminExists) {
+        // Add admin to the employees list
+        setEmployees(prev => [currentAdmin, ...prev]);
+      }
+    }
+  }, [currentAdmin, employees]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      // Ensure we have a valid user ID (fallback to admin if not set)
+      if (!formData.userId && currentAdmin) {
+        setFormData(prev => ({
+          ...prev,
+          userId: currentAdmin.id
+        }));
+      }
+
       const method = isEditing ? "PUT" : "POST";
       const url = isEditing 
         ? `/api/performance/admin/${editingId}` 
         : "/api/performance/admin";
 
-      // If no user is selected, use current admin's ID
       const submitData = {
         ...formData,
         userId: formData.userId || currentAdmin?.id,
@@ -131,21 +181,14 @@ export default function AdminPerformance() {
           requirementsReceived: "",
           memo: "",
           invoice: "",
-          userId: "",
+          // Pre-select admin after form reset
+          userId: currentAdmin?.id || "",
         });
         setIsEditing(false);
         setEditingId("");
         
         // Refresh reports
-        const reportsUrl = selectedEmployee === "all" 
-          ? "/api/performance/admin"
-          : `/api/performance/admin?employeeId=${selectedEmployee}`;
-        
-        const reportsResponse = await fetch(reportsUrl);
-        const reportsData = await reportsResponse.json();
-        if (reportsData.success) {
-          setReports(reportsData.reports);
-        }
+        fetchReports();
       } else {
         toast.error(data.message || `Failed to ${isEditing ? "update" : "submit"} report`);
       }
@@ -179,17 +222,8 @@ export default function AdminPerformance() {
 
         if (response.ok) {
           toast.success("Report deleted successfully");
-          
           // Refresh reports
-          const url = selectedEmployee === "all" 
-            ? "/api/performance/admin"
-            : `/api/performance/admin?employeeId=${selectedEmployee}`;
-          
-          const reportsResponse = await fetch(url);
-          const data = await reportsResponse.json();
-          if (data.success) {
-            setReports(data.reports);
-          }
+          fetchReports();
         } else {
           toast.error("Failed to delete report");
         }
@@ -198,6 +232,12 @@ export default function AdminPerformance() {
         toast.error("Failed to delete report");
       }
     }
+  };
+
+  // Find the name of an employee by their ID
+  const getEmployeeName = (userId) => {
+    const employee = employees.find(emp => emp.id === userId);
+    return employee ? employee.name : "Unknown Employee";
   };
 
   return (
@@ -211,13 +251,20 @@ export default function AdminPerformance() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Employees</SelectItem>
-              {employees.map((employee) => (
-                <SelectItem key={employee.id} value={employee.id}>
+              {currentAdmin && (
+                <SelectItem value={currentAdmin.id}>
                   <div className="flex items-center gap-2">
-                    {employee.id === currentAdmin?.id && <User className="w-4 h-4" />}
-                    {employee.name}
+                    <User className="w-4 h-4" />
+                    {currentAdmin.name} (You)
                   </div>
                 </SelectItem>
+              )}
+              {employees
+                .filter(emp => emp.id !== currentAdmin?.id)
+                .map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -237,7 +284,7 @@ export default function AdminPerformance() {
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, userId: value }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Employee" />
+                    <SelectValue placeholder={formData.userId ? getEmployeeName(formData.userId) : "Select Employee"} />
                   </SelectTrigger>
                   <SelectContent>
                     {currentAdmin && (
@@ -254,7 +301,7 @@ export default function AdminPerformance() {
                         <SelectItem key={employee.id} value={employee.id}>
                           {employee.name}
                         </SelectItem>
-                    ))}
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -323,62 +370,70 @@ export default function AdminPerformance() {
           <Card className="p-6">
             <h2 className="text-2xl font-bold mb-6">All Reports</h2>
             <div className="space-y-4">
-              {reports.map((report) => (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="bg-white p-4 rounded-lg shadow"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {report.userId === currentAdmin?.id && <User className="w-4 h-4" />}
-                        <p className="font-medium">{report.user.name}</p>
+              {reports.length > 0 ? (
+                reports.map((report) => (
+                  <motion.div
+                    key={report.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="bg-white p-4 rounded-lg shadow"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          {report.userId === currentAdmin?.id && <User className="w-4 h-4" />}
+                          <p className="font-medium">
+                            {report.user?.name || getEmployeeName(report.userId) || "Unknown Employee"}
+                          </p>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {new Date(report.date).toLocaleDateString()}
+                        </p>
+                        <p>
+                          <strong>Calls:</strong> {report.totalCalls}
+                        </p>
+                        <p>
+                          <strong>Emails:</strong> {report.totalEmails}
+                        </p>
+                        <p>
+                          <strong>Requirements:</strong> {report.requirementsReceived}
+                        </p>
+                        {report.memo && (
+                          <p className="text-sm text-gray-600">
+                            <strong>Memo Number:</strong> {report.memo}
+                          </p>
+                        )}
+                        {report.invoice && (
+                          <p className="text-sm text-gray-600">
+                            <strong>Invoice Number:</strong> {report.invoice}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-sm text-gray-500">
-                        {new Date(report.date).toLocaleDateString()}
-                      </p>
-                      <p>
-                        <strong>Calls:</strong> {report.totalCalls}
-                      </p>
-                      <p>
-                        <strong>Emails:</strong> {report.totalEmails}
-                      </p>
-                      <p>
-                        <strong>Requirements:</strong> {report.requirementsReceived}
-                      </p>
-                      {report.memo && (
-                        <p className="text-sm text-gray-600">
-                          <strong>Memo Number:</strong> {report.memo}
-                        </p>
-                      )}
-                      {report.invoice && (
-                        <p className="text-sm text-gray-600">
-                          <strong>Invoice Number:</strong> {report.invoice}
-                        </p>
-                      )}
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(report)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600"
+                          onClick={() => handleDelete(report.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(report)}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600"
-                        onClick={() => handleDelete(report.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  No reports found
+                </div>
+              )}
             </div>
           </Card>
         </div>

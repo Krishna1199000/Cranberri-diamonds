@@ -1,31 +1,57 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
-    const { email, otp, newPassword } = await request.json();
+    const { adminEmail, otp, userId, newRole } = await request.json();
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user || user.otp !== otp) {
-      return new NextResponse('Invalid OTP', { status: 400 });
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
-      where: { email },
-      data: { 
-        password: hashedPassword,
-        otp: null, // Clear the OTP after successful verification
+    // Verify admin and OTP
+    const admin = await prisma.user.findUnique({
+      where: { 
+        email: adminEmail,
+        role: 'admin'
       },
     });
 
-    return new NextResponse('Password updated successfully', { status: 200 });
+    if (!admin || admin.otp !== otp) {
+      return new NextResponse(JSON.stringify({
+        success: false,
+        message: 'Invalid OTP or unauthorized access'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Update user role
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role: newRole },
+    });
+
+    // Clear admin's OTP
+    await prisma.user.update({
+      where: { email: adminEmail },
+      data: { otp: null },
+    });
+
+    return new NextResponse(JSON.stringify({
+      success: true,
+      message: 'Role updated successfully'
+    }), { 
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   } catch (error) {
     console.error('OTP verification error:', error);
-    return new NextResponse('Internal error', { status: 500 });
+    return new NextResponse(JSON.stringify({
+      success: false,
+      message: 'Internal server error'
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

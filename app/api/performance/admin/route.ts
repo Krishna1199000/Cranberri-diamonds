@@ -109,7 +109,15 @@ export async function POST(req: Request) {
     console.log('Report data to insert:', reportData);
     
     const report = await prisma.performanceReport.create({
-      data: reportData
+      data: reportData,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
     });
     
     console.log('Report created successfully:', report.id);
@@ -120,7 +128,6 @@ export async function POST(req: Request) {
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     console.error('Error type:', Object.prototype.toString.call(error));
     
-    // Fix the syntax error in the NextResponse.json call
     return NextResponse.json(
       { success: false, message: 'Failed to create report' },
       { status: 500 }
