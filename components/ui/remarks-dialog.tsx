@@ -28,50 +28,83 @@ export function RemarksDialog({ isOpen, onClose, shipmentId, userRole }: Remarks
   const [remarks, setRemarks] = useState<Remark[]>([]);
   const [newRemark, setNewRemark] = useState('');
   const [editingRemark, setEditingRemark] = useState<{ id: string; content: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchRemarks = useCallback(async () => {
+    if (!shipmentId) return;
+    
     try {
+      setIsLoading(true);
       const res = await fetch(`/api/remarks?shipmentId=${shipmentId}`, {
-        credentials: 'include' // Add credentials to include cookies
+        method: 'GET',
+        credentials: 'include', // Ensure cookies are sent
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to fetch remarks');
+      }
+      
       const data = await res.json();
       if (data.success) {
         setRemarks(data.remarks);
       }
     } catch (error: unknown) {
       toast.error(`Failed to fetch remarks: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
     }
   }, [shipmentId]);
   
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && shipmentId) {
       fetchRemarks();
     }
-  }, [isOpen, fetchRemarks]);
+  }, [isOpen, fetchRemarks, shipmentId]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRemark.trim()) return;
+    if (!newRemark.trim() || !shipmentId) return;
 
     try {
+      setIsLoading(true);
       const res = await fetch('/api/remarks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newRemark, shipmentId }),
-        credentials: 'include' // Add credentials to include cookies
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          content: newRemark, 
+          shipmentId 
+        }),
+        credentials: 'include', // Important: this sends the cookies with the request
       });
+
+      if (!res.ok) {
+        // Get the actual error message from the response
+        const errorData = await res.json();
+        throw new Error(errorData.message || `Error: ${res.status}`);
+      }
 
       const data = await res.json();
       if (data.success) {
         setNewRemark('');
         fetchRemarks();
         toast.success('Remark added successfully');
-      } else {
-        // Handle error response from API
-        toast.error(data.message || 'Failed to add remark');
       }
     } catch (error: unknown) {
-      toast.error(`Failed to add remark: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to add remark: ${errorMessage}`);
+      
+      // If it's an authentication error, you might want to redirect to login
+      if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+        toast.error('You need to be logged in to add remarks');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -79,23 +112,30 @@ export function RemarksDialog({ isOpen, onClose, shipmentId, userRole }: Remarks
     if (!editingRemark) return;
 
     try {
+      setIsLoading(true);
       const res = await fetch(`/api/remarks/${editingRemark.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: editingRemark.content }),
-        credentials: 'include' // Add credentials to include cookies
+        credentials: 'include', // Important: this sends the cookies with the request
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || `Error: ${res.status}`);
+      }
 
       const data = await res.json();
       if (data.success) {
         setEditingRemark(null);
         fetchRemarks();
         toast.success('Remark updated successfully');
-      } else {
-        toast.error(data.message || 'Failed to update remark');
       }
     } catch (error: unknown) {
-      toast.error(`Failed to update remark: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to update remark: ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -103,20 +143,30 @@ export function RemarksDialog({ isOpen, onClose, shipmentId, userRole }: Remarks
     if (!confirm('Are you sure you want to delete this remark?')) return;
 
     try {
+      setIsLoading(true);
       const res = await fetch(`/api/remarks/${id}`, {
         method: 'DELETE',
-        credentials: 'include' // Add credentials to include cookies
+        credentials: 'include', // Important: this sends the cookies with the request
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || `Error: ${res.status}`);
+      }
 
       const data = await res.json();
       if (data.success) {
         fetchRemarks();
         toast.success('Remark deleted successfully');
-      } else {
-        toast.error(data.message || 'Failed to delete remark');
       }
     } catch (error: unknown) {
-      toast.error(`Failed to delete remark: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to delete remark: ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -134,12 +184,19 @@ export function RemarksDialog({ isOpen, onClose, shipmentId, userRole }: Remarks
               onChange={(e) => setNewRemark(e.target.value)}
               placeholder="Add a remark..."
               className="flex-1"
+              disabled={isLoading}
             />
-            <Button type="submit">Add</Button>
+            <Button type="submit" disabled={isLoading || !newRemark.trim()}>
+              {isLoading ? 'Adding...' : 'Add'}
+            </Button>
           </form>
 
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {remarks.length > 0 ? (
+            {isLoading && remarks.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                Loading remarks...
+              </div>
+            ) : remarks.length > 0 ? (
               remarks.map((remark) => (
                 <div
                   key={remark.id}
@@ -153,11 +210,15 @@ export function RemarksDialog({ isOpen, onClose, shipmentId, userRole }: Remarks
                           setEditingRemark({ ...editingRemark, content: e.target.value })
                         }
                         className="flex-1"
+                        disabled={isLoading}
                       />
-                      <Button onClick={handleEdit}>Save</Button>
+                      <Button onClick={handleEdit} disabled={isLoading}>
+                        {isLoading ? 'Saving...' : 'Save'}
+                      </Button>
                       <Button
                         variant="outline"
                         onClick={() => setEditingRemark(null)}
+                        disabled={isLoading}
                       >
                         Cancel
                       </Button>
@@ -182,6 +243,7 @@ export function RemarksDialog({ isOpen, onClose, shipmentId, userRole }: Remarks
                                   content: remark.content,
                                 })
                               }
+                              disabled={isLoading}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -189,6 +251,7 @@ export function RemarksDialog({ isOpen, onClose, shipmentId, userRole }: Remarks
                               variant="outline"
                               size="sm"
                               onClick={() => handleDelete(remark.id)}
+                              disabled={isLoading}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
