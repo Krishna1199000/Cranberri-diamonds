@@ -1,43 +1,62 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
-    const { adminEmail, otp, userId, newRole } = await request.json();
+    const { email, otp, newPassword } = await request.json();
 
-    // Verify admin and OTP
-    const admin = await prisma.user.findUnique({
-      where: { 
-        email: adminEmail,
-        role: 'admin'
-      },
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
     });
 
-    if (!admin || admin.otp !== otp) {
+    if (!user) {
       return new NextResponse(JSON.stringify({
         success: false,
-        message: 'Invalid OTP or unauthorized access'
+        message: 'User not found'
+      }), { 
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Verify OTP
+    if (!user.otp || user.otp !== otp) {
+      return new NextResponse(JSON.stringify({
+        success: false,
+        message: 'Invalid OTP'
       }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Update user role
-    await prisma.user.update({
-      where: { id: userId },
-      data: { role: newRole },
-    });
-
-    // Clear admin's OTP
-    await prisma.user.update({
-      where: { email: adminEmail },
-      data: { otp: null },
-    });
+    // If new password is provided (for password reset)
+    if (newPassword) {
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await prisma.user.update({
+        where: { email },
+        data: {
+          password: hashedPassword,
+          otp: null, // Clear OTP after successful verification
+          verified: true
+        },
+      });
+    } else {
+      // For new user verification
+      await prisma.user.update({
+        where: { email },
+        data: {
+          otp: null, // Clear OTP after successful verification
+          verified: true
+        },
+      });
+    }
 
     return new NextResponse(JSON.stringify({
       success: true,
-      message: 'Role updated successfully'
+      message: newPassword ? 'Password reset successfully' : 'Email verified successfully'
     }), { 
       status: 200,
       headers: {

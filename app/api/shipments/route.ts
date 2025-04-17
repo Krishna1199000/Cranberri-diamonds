@@ -7,7 +7,7 @@ const db = new PrismaClient()
 export async function GET() {
   try {
     const session = await getSession()
-    
+
     if (!session) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
@@ -37,7 +37,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getSession()
-    
+
     if (!session?.userId) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
@@ -80,17 +80,16 @@ export async function POST(req: Request) {
     } = body
 
     // Validate required fields
-    if (!companyName || !addressLine1 || !country || !state || !city || 
-        !postalCode || !phoneNo || !email || !paymentTerms || !carrier ||
-        !organizationType || !businessType || !businessRegNo || !panNo ||
-        !authorizedBy || !accountManager || !partyGroup || !salesExecutive ||
-        !leadSource) {
+    // Validate required fields
+    if (!companyName || !addressLine1 || !country || !state || !city ||
+      !postalCode || !phoneNo || !email || !paymentTerms || !carrier ||
+      !authorizedBy || !accountManager || !partyGroup || !salesExecutive ||
+      !leadSource || !limit) {
       return NextResponse.json(
         { success: false, message: 'Missing required fields' },
         { status: 400 }
       )
     }
-
     // Create shipment with all fields
     const shipment = await db.shipment.create({
       data: {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { useRouter,useParams } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -85,7 +85,7 @@ export default function EditShipment() {
         router.push('/dashboard')
       }
     }
-  
+
     fetchShipment()
   }, [shipmentId, router])
 
@@ -148,7 +148,7 @@ export default function EditShipment() {
         toast.error('Error fetching sales executives')
       }
     }
-  
+
     fetchSalesExecutives()
   }, [])
 
@@ -373,7 +373,7 @@ export default function EditShipment() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Nature of Organization <span className="text-red-500">*</span>
+                    Nature of Organization
                   </label>
                   <Select
                     value={formData.organizationType}
@@ -394,7 +394,7 @@ export default function EditShipment() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Business Type <span className="text-red-500">*</span>
+                    Business Type
                   </label>
                   <Select
                     value={formData.businessType}
@@ -416,10 +416,9 @@ export default function EditShipment() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Business Registration No <span className="text-red-500">*</span>
+                  Business Registration No
                 </label>
                 <Input
-                  required
                   value={formData.businessRegNo}
                   onChange={(e) => handleChange('businessRegNo', e.target.value)}
                 />
@@ -428,10 +427,9 @@ export default function EditShipment() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    PAN No / Tax Id No <span className="text-red-500">*</span>
+                    PAN No / Tax Id No
                   </label>
                   <Input
-                    required
                     value={formData.panNo}
                     onChange={(e) => handleChange('panNo', e.target.value)}
                   />
@@ -657,6 +655,7 @@ export default function EditShipment() {
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Lead Source <span className="text-red-500">*</span>

@@ -1,13 +1,32 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
+
+const validatePassword = (password: string) => {
+  const hasUpperCase = /[A-Z]/.test(password)
+  const hasLowerCase = /[a-z]/.test(password)
+  const hasNumber = /[0-9]/.test(password)
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+  const isLongEnough = password.length >= 8
+
+  const errors: string[] = []
+  if (!hasUpperCase) errors.push("one uppercase letter")
+  if (!hasLowerCase) errors.push("one lowercase letter")
+  if (!hasNumber) errors.push("one number")
+  if (!hasSpecialChar) errors.push("one special character")
+  if (!isLongEnough) errors.push("minimum 8 characters")
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  }
+}
 
 export default function SignUp() {
   const router = useRouter()
@@ -20,9 +39,23 @@ export default function SignUp() {
     otp: "",
   })
   const [loading, setLoading] = useState(false)
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([])
+
+  const handlePasswordChange = (password: string) => {
+    const validation = validatePassword(password)
+    setPasswordErrors(validation.errors)
+    setFormData({ ...formData, password })
+  }
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    const validation = validatePassword(formData.password)
+    if (!validation.isValid) {
+      toast.error(`Password must contain ${validation.errors.join(", ")}`)
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -143,16 +176,28 @@ export default function SignUp() {
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               required
             />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required
-            />
+            <div>
+              <Input
+                type="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={(e) => handlePasswordChange(e.target.value)}
+                required
+              />
+              {passwordErrors.length > 0 && (
+                <div className="mt-2 text-sm text-red-500">
+                  Password must contain:
+                  <ul className="list-disc list-inside">
+                    {passwordErrors.map((error) => (
+                      <li key={error}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading || passwordErrors.length > 0}>
             {loading ? "Signing up..." : "Sign Up"}
           </Button>
 
@@ -169,4 +214,3 @@ export default function SignUp() {
     </div>
   )
 }
-

@@ -6,13 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Eye, Pencil, Trash2, Search, LogOut, Package, Plus, Menu, X } from 'lucide-react'
+import { Eye, Pencil, Trash2, Search, LogOut, Package, Plus, Menu, X, MessageSquare } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { RemarksDialog } from "@/components/ui/remarks-dialog"
 
 interface Shipment {
   id: string
@@ -43,10 +44,13 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isRemarksDialogOpen, setIsRemarksDialogOpen] = useState(false)
+  const [selectedShipmentId, setSelectedShipmentId] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const itemsPerPage = 10
   const [totalPages, setTotalPages] = useState(1)
+  const [userRole, setUserRole] = useState<string>('')
 
   useEffect(() => {
     fetchShipments()
@@ -85,6 +89,22 @@ export default function Dashboard() {
     }
   }
 
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const res = await fetch('/api/auth/status', {
+          credentials: 'include'
+        });
+        const data = await res.json();
+        setUserRole(data.role);
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
   const handleLogout = async () => {
     try {
       const res = await fetch('/api/auth/logout', {
@@ -113,7 +133,12 @@ export default function Dashboard() {
     setIsViewDialogOpen(true)
   }
 
-  const filteredShipments = shipments.filter(shipment => 
+  const handleViewRemarks = (shipmentId: string) => {
+    setSelectedShipmentId(shipmentId)
+    setIsRemarksDialogOpen(true)
+  }
+
+  const filteredShipments = shipments.filter(shipment =>
     shipment.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     shipment.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     shipment.phoneNo.includes(searchTerm) ||
@@ -128,8 +153,7 @@ export default function Dashboard() {
   const startIndex = (currentPage - 1) * itemsPerPage
 
   const navItems = [
-
-    { label: 'Create Shipment', icon: Plus, href: '/dashboard/create-shipment' },
+    { label: 'Create Master', icon: Plus, href: '/dashboard/create-shipment' },
   ]
 
   return (
@@ -237,14 +261,14 @@ export default function Dashboard() {
           className="flex justify-between items-center mb-6"
         >
           <h1 className="text-3xl font-bold text-gray-900">
-            Manage Shipments
+            Manage Masters
           </h1>
           <div className="flex items-center space-x-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Search shipments..."
+                placeholder="Search Master..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -313,22 +337,36 @@ export default function Dashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/dashboard/edit-shipment/${shipment.id}`)}
+                            onClick={() => handleViewRemarks(shipment.id)}
                             className="text-blue-600 hover:text-blue-900"
                           >
-                            <Pencil className="h-4 w-4" />
+                            <MessageSquare className="h-4 w-4" />
                           </Button>
                         </motion.div>
-                        <motion.div whileHover={{ scale: 1.1 }}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(shipment.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
+                        {userRole === 'admin' && (
+                          <>
+                            <motion.div whileHover={{ scale: 1.1 }}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.push(`/dashboard/edit-shipment/${shipment.id}`)}
+                                className="text-blue-600 hover:text-blue-900"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </motion.div>
+                            <motion.div whileHover={{ scale: 1.1 }}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(shipment.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </motion.div>
+                          </>
+                        )}
                       </div>
                     </td>
                   </motion.tr>
@@ -425,6 +463,14 @@ export default function Dashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Remarks Dialog */}
+      <RemarksDialog
+        isOpen={isRemarksDialogOpen}
+        onClose={() => setIsRemarksDialogOpen(false)}
+        shipmentId={selectedShipmentId}
+        userRole={userRole}
+      />
     </div>
   )
 }

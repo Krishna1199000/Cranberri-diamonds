@@ -64,23 +64,6 @@ model SyncLog {
   @@map("sync_logs")
 }
 
-model User {
-  id                 String              @id @default(uuid())
-  name               String
-  email              String              @unique
-  phone              String
-  password           String
-  otp                String?
-  verified           Boolean             @default(false)
-  role               Role                @default(customer)
-  createdAt          DateTime            @default(now()) @map("created_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
-  performanceReports PerformanceReport[]
-  salesEntries       SalesEntry[]
-  shipments          Shipment[]
-
-  @@map("users")
-}
 
 model AdminEmail {
   email     String   @id
@@ -89,6 +72,21 @@ model AdminEmail {
   @@map("admin_emails")
 }
 
+
+model Remark {
+  id          String   @id @default(uuid())
+  content     String
+  shipmentId  String
+  userId      String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id])
+  shipment    Shipment @relation(fields: [shipmentId], references: [id])
+
+  @@map("remarks")
+}
+
+// Update Shipment model to include remarks relation
 model Shipment {
   id                  String   @id @default(uuid())
   companyName         String
@@ -119,6 +117,8 @@ model Shipment {
   brokerName          String?  @map("broker_name")
   partyGroup          String   @map("party_group")
   salesExecutive      String   @map("sales_executive")
+  invoices            Invoice[]
+  remarks             Remark[] // Add this line
   leadSource          String   @map("lead_source")
   limit               Float    @default(0) @map("limit")
   lastUpdatedBy       String?  @map("last_updated_by")
@@ -128,6 +128,27 @@ model Shipment {
   createdBy           User     @relation(fields: [userId], references: [id])
 
   @@map("shipments")
+}
+
+// Update User model to include remarks relation
+model User {
+  id                 String              @id @default(uuid())
+  name               String
+  email              String              @unique
+  phone              String
+  password           String
+  otp                String?
+  verified           Boolean             @default(false)
+  role               Role                @default(customer)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  performanceReports PerformanceReport[]
+  salesEntries       SalesEntry[]
+  shipments          Shipment[]
+  invoices           Invoice[]
+  remarks            Remark[] // Add this line
+
+  @@map("users")
 }
 
 model ChatMessage {
@@ -186,6 +207,39 @@ model ParcelGoods {
 
   @@map("parcel_goods")
 }
+
+model Invoice {
+  id            String   @id @default(uuid())
+  invoiceNo     String   @unique // Format: CD-XXXXA/DDMM
+  date          DateTime @default(now())
+  paymentTerms  Int // in days
+  dueDate       DateTime
+  description   String
+  carat         Float
+  color         String
+  clarity       String
+  lab           String
+  reportNo      String
+  pricePerCarat Float
+  totalAmount   Float
+  amountInWords String
+  companyName   String
+  addressLine1  String
+  addressLine2  String?
+  country       String
+  state         String
+  city          String
+  postalCode    String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     User     @relation(fields: [userId], references: [id])
+  userId        String
+  shipmentId    String
+  shipment      Shipment @relation(fields: [shipmentId], references: [id])
+
+  @@map("invoices")
+}
+
 
 enum Role {
   admin

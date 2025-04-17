@@ -8,7 +8,8 @@ export async function GET() {
   try {
     const session = await getSession();
 
-    if (!session || session.role !== 'admin') {
+    // Allow both admin and employees to fetch employee list
+    if (!session) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }

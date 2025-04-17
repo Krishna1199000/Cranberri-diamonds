@@ -1,13 +1,13 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
+import { ForgotPasswordDialog } from "@/components/ForgotPasswordDialog"
 
 export default function SignIn() {
   const router = useRouter()
@@ -16,6 +16,7 @@ export default function SignIn() {
     password: "",
   })
   const [loading, setLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,6 +87,13 @@ export default function SignIn() {
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="text-sm text-primary hover:underline"
+            >
+              Forgot password?
+            </button>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
@@ -102,7 +110,11 @@ export default function SignIn() {
           </div>
         </form>
       </div>
+
+      <ForgotPasswordDialog
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   )
 }
-
