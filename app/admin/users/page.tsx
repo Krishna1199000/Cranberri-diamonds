@@ -23,6 +23,7 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { format } from 'date-fns';
 import { handleRoleChange } from '@/lib/roleChangeHandler';
+import PasswordVerification from '@/components/admin/password-verification';
 
 interface User {
   id: string;
@@ -40,11 +41,25 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
     fetchCurrentUser();
-    fetchUsers();
+    
+    // Only fetch users if the admin is verified
+    if (isVerified) {
+      fetchUsers();
+    } else {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    // Fetch users when verification state changes to true
+    if (isVerified) {
+      fetchUsers();
+    }
+  }, [isVerified]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -144,6 +159,14 @@ export default function UserManagement() {
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
+
+  const handleVerificationSuccess = () => {
+    setIsVerified(true);
+  };
+
+  if (!isVerified) {
+    return <PasswordVerification onSuccess={handleVerificationSuccess} />;
+  }
 
   if (loading) {
     return (
