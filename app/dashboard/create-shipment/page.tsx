@@ -167,6 +167,7 @@ export default function CreateShipment() {
   const router = useRouter()
   const [formData, setFormData] = useState({
     companyName: '',
+    ownerName: '', // Add this line
     addressLine1: '',
     addressLine2: '',
     country: '',
@@ -276,6 +277,17 @@ export default function CreateShipment() {
                   required
                   value={formData.companyName}
                   onChange={(e) => handleChange('companyName', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Owner Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  required
+                  value={formData.ownerName}
+                  onChange={(e) => handleChange('ownerName', e.target.value)}
                 />
               </div>
 

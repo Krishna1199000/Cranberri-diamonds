@@ -18,6 +18,7 @@ import { RemarksDialog } from "@/components/ui/remarks-dialog"
 interface Shipment {
   id: string
   companyName: string
+  ownerName: string
   email: string
   phoneNo: string
   lastUpdatedBy: string
@@ -428,6 +429,7 @@ export default function Dashboard() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Company Information</h3>
                 <div className="space-y-2">
                   <p><span className="font-medium">Company Name:</span> {selectedShipment.companyName}</p>
+                  <p><span className="font-medium">Owner Name:</span> {selectedShipment.ownerName}</p>
                   <p><span className="font-medium">Email:</span> {selectedShipment.email}</p>
                   <p><span className="font-medium">Phone:</span> {selectedShipment.phoneNo}</p>
                   <p><span className="font-medium">Website:</span> {selectedShipment.website || 'N/A'}</p>

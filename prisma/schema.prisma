@@ -90,6 +90,7 @@ model Remark {
 model Shipment {
   id                  String   @id @default(uuid())
   companyName         String
+  ownerName           String?  // This should be here
   addressLine1        String
   addressLine2        String?
   country             String

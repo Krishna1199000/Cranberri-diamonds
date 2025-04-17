@@ -7,14 +7,14 @@ const db = new PrismaClient()
 export async function GET() {
   try {
     const session = await getSession()
-
+    
     if (!session) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
       )
     }
-
+    
     // If user is admin, return all shipments
     // If user is employee, return only their shipments
     const shipments = await db.shipment.findMany({
@@ -23,7 +23,7 @@ export async function GET() {
       },
       orderBy: { updatedAt: 'desc' }
     })
-
+    
     return NextResponse.json({ success: true, shipments })
   } catch (error) {
     console.error('Error fetching shipments:', error)
@@ -37,17 +37,18 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getSession()
-
+    
     if (!session?.userId) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
       )
     }
-
+    
     const body = await req.json()
     const {
       companyName,
+      ownerName, // Add this line
       addressLine1,
       addressLine2,
       country,
@@ -78,10 +79,9 @@ export async function POST(req: Request) {
       leadSource,
       limit
     } = body
-
+    
     // Validate required fields
-    // Validate required fields
-    if (!companyName || !addressLine1 || !country || !state || !city ||
+    if (!companyName || !ownerName || !addressLine1 || !country || !state || !city ||
       !postalCode || !phoneNo || !email || !paymentTerms || !carrier ||
       !authorizedBy || !accountManager || !partyGroup || !salesExecutive ||
       !leadSource || !limit) {
@@ -90,10 +90,12 @@ export async function POST(req: Request) {
         { status: 400 }
       )
     }
+    
     // Create shipment with all fields
     const shipment = await db.shipment.create({
       data: {
         companyName,
+        ownerName, // Add this line
         addressLine1,
         addressLine2,
         country,
@@ -127,7 +129,7 @@ export async function POST(req: Request) {
         userId: String(session.userId)
       }
     })
-
+    
     return NextResponse.json({ success: true, shipment })
   } catch (error) {
     console.error('Error creating shipment:', error)
