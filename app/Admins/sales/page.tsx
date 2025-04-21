@@ -109,10 +109,21 @@ export default function AdminDashboard() {
     }
   }
 
-  const calculateRankings = (data: SalesEntry[]) => {
-    const stats: { [key: string]: EmployeeRanking } = {}
+  const calculateRankings = (data) => {
+    // Ensure data is valid before processing
+    if (!Array.isArray(data)) {
+      setRankings([]);
+      return;
+    }
+    
+    const stats = {};
     
     data.forEach(entry => {
+      // Check if entry and entry.employee exist before accessing properties
+      if (!entry || !entry.employee || !entry.employee.id || !entry.employee.name) {
+        return;
+      }
+      
       if (!entry.isNoSale) {
         if (!stats[entry.employee.id]) {
           stats[entry.employee.id] = {
@@ -123,15 +134,15 @@ export default function AdminDashboard() {
           }
         }
         
-        stats[entry.employee.id].salesCount++
-        stats[entry.employee.id].totalSales += entry.sale
+        stats[entry.employee.id].salesCount++;
+        stats[entry.employee.id].totalSales += parseFloat(entry.totalSaleValue || 0);
       }
-    })
+    });
     
-    const statsArray = Object.values(stats)
-    statsArray.sort((a, b) => b.totalSales - a.totalSales)
+    const statsArray = Object.values(stats) as EmployeeRanking[];
+    statsArray.sort((a, b) => b.totalSales - a.totalSales);
     
-    setRankings(statsArray)
+    setRankings(statsArray);
   }
 
   const fetchSalesData = async () => {
@@ -147,32 +158,40 @@ export default function AdminDashboard() {
       const response = await fetch(url)
       const data = await response.json()
       
-      if (data.success) {
-        const formattedData = data.entries.map((entry) => ({
-          id: entry.id,
-          date: new Date(entry.saleDate).toLocaleDateString(),
-          rawDate: new Date(entry.saleDate),
-          employeeId: entry.employee.id,
-          employeeName: entry.employee.name,
-          trackingId: entry.trackingId || "-",
-          companyName: entry.companyName || "No Sale",
-          isNoSale: entry.isNoSale,
-          sale: entry.totalSaleValue || 0,
-          shipmentCarrier: entry.shipmentCarrier || "N/A",
-          details: {
-            carat: entry.carat,
-            color: entry.color,
-            clarity: entry.clarity,
-          },
-          description: entry.description || "",
-        }))
+      if (data.success && Array.isArray(data.entries)) {
+        const formattedData = data.entries.map((entry) => {
+          // Ensure all properties exist before accessing them
+          return {
+            id: entry.id || "",
+            date: entry.saleDate ? new Date(entry.saleDate).toLocaleDateString() : "",
+            rawDate: entry.saleDate ? new Date(entry.saleDate) : new Date(),
+            employee: entry.employee || { id: "", name: "" },
+            trackingId: entry.trackingId || "-",
+            companyName: entry.companyName || "No Sale",
+            isNoSale: !!entry.isNoSale,
+            sale: parseFloat(entry.totalSaleValue || 0),
+            shipmentCarrier: entry.shipmentCarrier || "N/A",
+            details: {
+              carat: entry.carat || "",
+              color: entry.color || "",
+              clarity: entry.clarity || "",
+            },
+            description: entry.description || "",
+          };
+        });
         
-        setSalesData(formattedData)
-        calculateRankings(data.entries)
+        setSalesData(formattedData);
+        calculateRankings(data.entries);
+      } else {
+        setSalesData([]);
+        setRankings([]);
+        console.error("Invalid data format received:", data);
       }
     } catch (error) {
       console.error("Error fetching sales data:", error)
       toast.error("Failed to fetch sales data")
+      setSalesData([]);
+      setRankings([]);
     }
   }
 
@@ -186,24 +205,28 @@ export default function AdminDashboard() {
   }, [period, customPeriod, selectedEmployee])
 
   const handleEdit = (entry) => {
+    if (!entry) return;
+    
     setIsEditing(true)
-    setEditingId(entry.id)
+    setEditingId(entry.id || "")
     setFormData({
       companyName: entry.companyName || "",
       trackingId: entry.trackingId || "",
-      carat: entry.carat?.toString() || "",
-      color: entry.color || "",
-      clarity: entry.clarity || "",
+      carat: entry.details?.carat?.toString() || "",
+      color: entry.details?.color || "",
+      clarity: entry.details?.clarity || "",
       shipmentCarrier: entry.shipmentCarrier || "",
       totalSaleValue: entry.sale?.toString() || "",
       description: entry.description || "",
-      saleDate: new Date(entry.saleDate).toISOString().split("T")[0],
-      isNoSale: entry.isNoSale,
+      saleDate: entry.rawDate ? entry.rawDate.toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      isNoSale: !!entry.isNoSale,
     })
-    setIsNoSale(entry.isNoSale)
+    setIsNoSale(!!entry.isNoSale)
   }
 
   const handleDelete = async (id) => {
+    if (!id) return;
+    
     if (confirm("Are you sure you want to delete this entry?")) {
       try {
         const response = await fetch("/api/sales", {
@@ -316,21 +339,29 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {rankings.map((employee, index) => (
-                    <tr key={employee.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-lg font-bold">{index + 1}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">{employee.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        ${employee.totalSales.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">{employee.salesCount}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        ${(employee.totalSales / employee.salesCount).toFixed(2)}
+                  {rankings.length > 0 ? (
+                    rankings.map((employee, index) => (
+                      <tr key={employee.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-lg font-bold">{index + 1}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">{employee.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          ${employee.totalSales.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">{employee.salesCount}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          ${(employee.salesCount ? employee.totalSales / employee.salesCount : 0).toFixed(2)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-4 text-center">
+                        No ranking data available
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -609,42 +640,50 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {salesData.map((entry) => (
-                      <tr key={entry.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">{entry.date}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {entry.employee.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {entry.isNoSale ? "No Sale" : entry.companyName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {entry.shipmentCarrier}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {entry.isNoSale ? "-" : `$${entry.sale.toFixed(2)}`}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(entry)}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600"
-                              onClick={() => handleDelete(entry.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                    {salesData.length > 0 ? (
+                      salesData.map((entry) => (
+                        <tr key={entry.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">{entry.date}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {entry.employee?.name || "Unknown"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {entry.isNoSale ? "No Sale" : entry.companyName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {entry.shipmentCarrier}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {entry.isNoSale ? "-" : `$${entry.sale.toFixed(2)}`}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(entry)}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600"
+                                onClick={() => handleDelete(entry.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-4 text-center">
+                          No sales data available
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
