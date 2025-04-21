@@ -141,6 +141,7 @@ async function syncDiamonds() {
     });
     
     console.log(`Diamond sync completed. Synced ${processedCount} diamonds.`);
+    return { success: true, count: processedCount };
   } catch (error) {
     console.error('Error syncing diamonds:', error);
     
@@ -155,11 +156,29 @@ async function syncDiamonds() {
       });
     }
     
-    process.exit(1);
+    return { success: false, error: error.message };
   } finally {
     await prisma.$disconnect();
   }
 }
 
-// Run the sync
-syncDiamonds();
+// Export the sync function
+export { syncDiamonds };
+
+// If this script is run directly (not imported), execute the sync
+if (require.main === module) {
+  syncDiamonds()
+    .then((result) => {
+      if (result.success) {
+        console.log(`Sync completed successfully. Processed ${result.count} diamonds.`);
+        process.exit(0);
+      } else {
+        console.error(`Sync failed: ${result.error}`);
+        process.exit(1);
+      }
+    })
+    .catch((error) => {
+      console.error('Unhandled error during sync:', error);
+      process.exit(1);
+    });
+}

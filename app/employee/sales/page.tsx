@@ -18,12 +18,10 @@ import {
   Legend,
   Area,
   AreaChart,
-  PieChart,
-  Pie,
-  Cell,
+
 } from "recharts"
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]
+
 
 export default function EmployeeDashboard() {
   const [companies, setCompanies] = useState<{ id: string; companyName: string }[]>([])
@@ -31,12 +29,12 @@ export default function EmployeeDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     companyName: "",
+    trackingId: "",
     carat: "",
     color: "",
     clarity: "",
-    cut: "",
+    shipmentCarrier: "",
     totalSaleValue: "",
-    totalProfit: "",
     description: "",
     saleDate: new Date().toISOString().split("T")[0],
     isNoSale: false,
@@ -44,7 +42,6 @@ export default function EmployeeDashboard() {
   const [salesData, setSalesData] = useState<
     {
       date: string;
-      profit: number;
       sale: number;
       company: string;
       isNoSale: boolean;
@@ -53,7 +50,8 @@ export default function EmployeeDashboard() {
         carat: string | null;
         color: string | null;
         clarity: string | null;
-        cut: string | null;
+        shipmentCarrier: string | null;
+        trackingId: string | null;
       };
     }[]
   >([])
@@ -61,7 +59,6 @@ export default function EmployeeDashboard() {
   const [customPeriod, setCustomPeriod] = useState({ start: "", end: "" })
   const [selectedDataPoint, setSelectedDataPoint] = useState<{
     date: string;
-    profit: number;
     sale: number;
     company: string;
     isNoSale: boolean;
@@ -70,7 +67,8 @@ export default function EmployeeDashboard() {
       carat: string | null;
       color: string | null;
       clarity: string | null;
-      cut: string | null;
+      shipmentCarrier: string | null;
+      trackingId: string | null;
     };
   } | null>(null)
   const [showPieChart, setShowPieChart] = useState(false)
@@ -85,12 +83,19 @@ export default function EmployeeDashboard() {
     { value: "custom", label: "Custom Range" },
   ]
 
+  const shipmentCarriers = [
+    { value: "UPS", label: "UPS" },
+    { value: "FedEx", label: "FedEx" },
+    { value: "USPS", label: "USPS" },
+    { value: "DHL", label: "DHL" },
+  ]
+
   const fetchCompanies = async () => {
     try {
-      console.log('Fetching companies...');
+      console.log('Fetching companies...')
       const response = await fetch("/api/companies")
       const data = await response.json()
-      console.log('Companies response:', data);
+      console.log('Companies response:', data)
       if (data.success) {
         setCompanies(data.companies)
       }
@@ -99,24 +104,24 @@ export default function EmployeeDashboard() {
       toast.error("Failed to fetch companies")
     }
   }
-  useEffect(()=>{
+  
+  useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        console.log('Fetching sales data...');
+        console.log('Fetching sales data...')
         let url = `/api/sales?period=${period}`
         if (period === "custom" && customPeriod.start && customPeriod.end) {
           url = `/api/sales?start=${customPeriod.start}&end=${customPeriod.end}`
         }
-        console.log('Fetching from URL:', url);
+        console.log('Fetching from URL:', url)
   
         const response = await fetch(url)
         const data = await response.json()
-        console.log('Sales data response:', data);
+        console.log('Sales data response:', data)
         
         if (data.success) {
           const formattedData = data.entries.map((entry) => ({
             date: new Date(entry.saleDate).toLocaleDateString(),
-            profit: entry.totalProfit || 0,
             sale: entry.totalSaleValue || 0,
             company: entry.companyName || "No Sale",
             isNoSale: entry.isNoSale,
@@ -125,10 +130,11 @@ export default function EmployeeDashboard() {
               carat: entry.carat,
               color: entry.color,
               clarity: entry.clarity,
-              cut: entry.cut,
+              shipmentCarrier: entry.shipmentCarrier,
+              trackingId: entry.trackingId,
             },
           }))
-          console.log('Formatted sales data:', formattedData);
+          console.log('Formatted sales data:', formattedData)
           setSalesData(formattedData)
         }
       } catch (error) {
@@ -137,14 +143,11 @@ export default function EmployeeDashboard() {
       }
     }
     fetchSalesData()
-  },[period, customPeriod])
+  }, [period, customPeriod])
   
-
   useEffect(() => {
     fetchCompanies()
   }, [])
-
-
 
   const validateForm = () => {
     if (!isNoSale) {
@@ -156,12 +159,12 @@ export default function EmployeeDashboard() {
         toast.error("Please enter total sale value")
         return false
       }
-      if (!formData.totalProfit) {
-        toast.error("Please enter total profit")
+      if (!formData.shipmentCarrier) {
+        toast.error("Please select a shipment carrier")
         return false
       }
-      if (parseFloat(formData.totalProfit) > parseFloat(formData.totalSaleValue)) {
-        toast.error("Profit cannot be greater than sale value")
+      if (!formData.trackingId) {
+        toast.error("Please enter a tracking ID")
         return false
       }
     }
@@ -170,7 +173,7 @@ export default function EmployeeDashboard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Starting form submission with data:', formData);
+    console.log('Starting form submission with data:', formData)
 
     if (!validateForm()) {
       return
@@ -183,11 +186,10 @@ export default function EmployeeDashboard() {
         ...formData,
         carat: formData.carat ? Number.parseFloat(formData.carat) : null,
         totalSaleValue: formData.totalSaleValue ? Number.parseFloat(formData.totalSaleValue) : null,
-        totalProfit: formData.totalProfit ? Number.parseFloat(formData.totalProfit) : null,
         saleDate: new Date(formData.saleDate).toISOString(),
       }
       
-      console.log('Sending formatted data to API:', formattedData);
+      console.log('Sending formatted data to API:', formattedData)
       
       const response = await fetch("/api/sales", {
         method: "POST",
@@ -197,21 +199,21 @@ export default function EmployeeDashboard() {
         body: JSON.stringify(formattedData),
       })
       
-      console.log('Response status:', response.status);
-      const data = await response.json();
-      console.log('Response data:', data);
+      console.log('Response status:', response.status)
+      const data = await response.json()
+      console.log('Response data:', data)
 
       if (response.ok && data.success) {
-        console.log('Successfully submitted sales entry');
+        console.log('Successfully submitted sales entry')
         toast.success("Sales entry submitted successfully")
         setFormData({
           companyName: "",
+          trackingId: "",
           carat: "",
           color: "",
           clarity: "",
-          cut: "",
+          shipmentCarrier: "",
           totalSaleValue: "",
-          totalProfit: "",
           description: "",
           saleDate: new Date().toISOString().split("T")[0],
           isNoSale: false,
@@ -219,7 +221,7 @@ export default function EmployeeDashboard() {
         setIsNoSale(false)
       
       } else {
-        console.error('Error response:', data);
+        console.error('Error response:', data)
         toast.error(data.message || "Failed to submit sales entry")
       }
     } catch (error) {
@@ -231,33 +233,25 @@ export default function EmployeeDashboard() {
   }
 
   const handleNoSaleClick = () => {
-    console.log('Switching to no-sale mode');
+    console.log('Switching to no-sale mode')
     setIsNoSale(true)
     setFormData((prev) => ({
       ...prev,
       isNoSale: true,
       companyName: "",
+      trackingId: "",
       carat: "",
       color: "",
       clarity: "",
-      cut: "",
+      shipmentCarrier: "",
       totalSaleValue: "",
-      totalProfit: "",
     }))
   }
 
   const handleChartClick = (data) => {
-    console.log('Chart clicked with data:', data);
+    console.log('Chart clicked with data:', data)
     setSelectedDataPoint(data)
     setShowPieChart(true)
-  }
-
-  const getPieChartData = () => {
-    if (!selectedDataPoint || selectedDataPoint.isNoSale) return []
-    return [
-      { name: "Profit", value: selectedDataPoint.profit },
-      { name: "Cost", value: selectedDataPoint.sale - selectedDataPoint.profit },
-    ]
   }
 
   return (
@@ -333,6 +327,36 @@ export default function EmployeeDashboard() {
                     </Select>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Select Shipment</label>
+                    <Select
+                      value={formData.shipmentCarrier}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, shipmentCarrier: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Carrier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shipmentCarriers.map((carrier) => (
+                          <SelectItem key={carrier.value} value={carrier.value}>
+                            {carrier.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Tracking ID</label>
+                    <Input
+                      type="text"
+                      value={formData.trackingId}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, trackingId: e.target.value }))}
+                      placeholder="Enter shipment tracking ID"
+                      className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Carat</label>
@@ -347,86 +371,34 @@ export default function EmployeeDashboard() {
 
                     <div>
                       <label className="block text-sm font-medium mb-1">Color</label>
-                      <Select
+                      <Input
+                        type="text"
                         value={formData.color}
-                        onValueChange={(value) => setFormData((prev) => ({ ...prev, color: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Color" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["D", "E", "F", "G", "H", "I", "J"].map((color) => (
-                            <SelectItem key={color} value={color}>
-                              {color}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Clarity</label>
-                      <Select
-                        value={formData.clarity}
-                        onValueChange={(value) => setFormData((prev) => ({ ...prev, clarity: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Clarity" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2"].map((clarity) => (
-                            <SelectItem key={clarity} value={clarity}>
-                              {clarity}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Cut</label>
-                      <Select
-                        value={formData.cut}
-                        onValueChange={(value) => setFormData((prev) => ({ ...prev, cut: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Cut" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["Excellent", "Very Good", "Good", "Fair"].map((cut) => (
-                            <SelectItem key={cut} value={cut}>
-                              {cut}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Total Sale Value</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.totalSaleValue}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, totalSaleValue: e.target.value }))}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
                         className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Total Profit</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.totalProfit}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, totalProfit: e.target.value }))}
-                        className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Clarity</label>
+                    <Input
+                      type="text"
+                      value={formData.clarity}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, clarity: e.target.value }))}
+                      className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Total Sale Value</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.totalSaleValue}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, totalSaleValue: e.target.value }))}
+                      className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
                 </>
               )}
@@ -512,10 +484,6 @@ export default function EmployeeDashboard() {
                     onClick={(data) => data && data.activePayload && handleChartClick(data.activePayload[0].payload)}
                   >
                     <defs>
-                      <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
-                      </linearGradient>
                       <linearGradient id="saleGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8} />
                         <stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
@@ -533,15 +501,6 @@ export default function EmployeeDashboard() {
                       }}
                     />
                     <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="profit"
-                      stroke="#8884d8"
-                      fillOpacity={1}
-                      fill="url(#profitGradient)"
-                      strokeWidth={2}
-                      name="Profit"
-                    />
                     <Area
                       type="monotone"
                       dataKey="sale"
@@ -569,29 +528,6 @@ export default function EmployeeDashboard() {
                     </div>
                   ) : (
                     <>
-                      <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={getPieChartData()}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              paddingAngle={5}
-                              dataKey="value"
-                              label
-                            >
-                              {getPieChartData().map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
                       <div className="mt-4 grid grid-cols-2 gap-4">
                         <div className="bg-gray-50 p-3 rounded-lg">
                           <h4 className="font-medium text-gray-700 mb-2">Sale Information</h4>
@@ -603,11 +539,10 @@ export default function EmployeeDashboard() {
                               <span className="font-medium">Total Sale:</span> ${selectedDataPoint.sale.toFixed(2)}
                             </p>
                             <p>
-                              <span className="font-medium">Total Profit:</span> ${selectedDataPoint.profit.toFixed(2)}
+                              <span className="font-medium">Shipment:</span> {selectedDataPoint.details.shipmentCarrier || "N/A"}
                             </p>
                             <p>
-                              <span className="font-medium">Profit Margin:</span>{" "}
-                              {((selectedDataPoint.profit / selectedDataPoint.sale) * 100).toFixed(2)}%
+                              <span className="font-medium">Tracking ID:</span> {selectedDataPoint.details.trackingId || "N/A"}
                             </p>
                           </div>
                         </div>
@@ -622,9 +557,6 @@ export default function EmployeeDashboard() {
                             </p>
                             <p>
                               <span className="font-medium">Clarity:</span> {selectedDataPoint.details.clarity || "N/A"}
-                            </p>
-                            <p>
-                              <span className="font-medium">Cut:</span> {selectedDataPoint.details.cut || "N/A"}
                             </p>
                           </div>
                         </div>
@@ -673,10 +605,13 @@ export default function EmployeeDashboard() {
                       Details
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Sale Value
+                      Tracking
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Profit
+                      Shipment
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sale Value
                     </th>
                   </tr>
                 </thead>
@@ -694,16 +629,18 @@ export default function EmployeeDashboard() {
                           <>
                             {entry.details.carat && `${entry.details.carat}ct `}
                             {entry.details.color && `${entry.details.color} `}
-                            {entry.details.clarity && `${entry.details.clarity} `}
-                            {entry.details.cut && `${entry.details.cut}`}
+                            {entry.details.clarity && `${entry.details.clarity}`}
                           </>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.isNoSale ? "-" : `$${entry.sale.toFixed(2)}`}
+                        {entry.isNoSale ? "-" : (entry.details.trackingId || "N/A")}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.isNoSale ? "-" : `$${entry.profit.toFixed(2)}`}
+                        {entry.isNoSale ? "-" : (entry.details.shipmentCarrier || "N/A")}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {entry.isNoSale ? "-" : `$${entry.sale.toFixed(2)}`}
                       </td>
                     </tr>
                   ))}

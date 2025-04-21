@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Diamond, CheckCircle, AlertCircle, Clock } from "lucide-react"
+import { Diamond, CheckCircle, AlertCircle, Clock, RefreshCw } from "lucide-react"
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner" // Assuming you use sonner for toast notifications
 
 interface SyncLog {
   id: string
@@ -15,23 +17,59 @@ interface SyncLog {
   createdAt: string
 }
 
+interface SyncResponse {
+  latestSync: SyncLog
+  stats: {
+    totalDiamonds: number
+  }
+}
+
 export default function AdminPage() {
   const [syncStatus, setSyncStatus] = useState<SyncLog | null>(null)
+  const [diamondCount, setDiamondCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchSyncStatus = async () => {
     try {
+      setError(null)
       const response = await fetch('/api/sync')
       if (!response.ok) {
         throw new Error('Failed to fetch sync status')
       }
-      const data = await response.json()
+      const data: SyncResponse = await response.json()
       setSyncStatus(data.latestSync)
+      setDiamondCount(data.stats.totalDiamonds)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const triggerManualSync = async () => {
+    try {
+      setIsSyncing(true)
+      const response = await fetch('/api/admin/async', {
+        method: 'POST',
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to start sync')
+      }
+      
+      const data = await response.json()
+      if (data.started) {
+        toast.success('Diamond sync process started')
+        // Fetch the latest status after a short delay to show the STARTED status
+        setTimeout(fetchSyncStatus, 2000)
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to start sync')
+    } finally {
+      setIsSyncing(false)
     }
   }
 
@@ -58,7 +96,7 @@ export default function AdminPage() {
   const getNextSyncTime = () => {
     if (!syncStatus?.createdAt) return null
     const lastSync = new Date(syncStatus.createdAt)
-    const nextSync = new Date(lastSync.getTime() + (2 * 60 * 60 * 1000)) // 2 hours
+    const nextSync = new Date(lastSync.getTime() + (4 * 60 * 60 * 1000)) // 4 hours
     return formatDistanceToNow(nextSync, { addSuffix: true })
   }
 
@@ -75,6 +113,16 @@ export default function AdminPage() {
             Diamond Sync Status
           </span>
         </h1>
+        
+        <Button 
+          variant="outline" 
+          onClick={triggerManualSync} 
+          disabled={isSyncing || syncStatus?.status === 'STARTED'}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          {isSyncing ? 'Syncing...' : 'Sync Now'}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -82,7 +130,7 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle>Latest Sync Status</CardTitle>
             <CardDescription>
-              Diamonds are automatically synced every 2 hours
+              Diamonds are automatically synced every 4 hours
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -148,7 +196,7 @@ export default function AdminPage() {
               <div>
                 <span className="font-medium">Total Diamonds:</span>
                 <span className="ml-2">
-                  {syncStatus?.count || 0}
+                  {diamondCount}
                 </span>
               </div>
               
@@ -156,7 +204,7 @@ export default function AdminPage() {
               
               <div>
                 <p className="text-muted-foreground">
-                  The database is automatically updated every 2 hours to ensure you have the latest diamond data.
+                  The database is automatically updated every 4 hours to ensure you have the latest diamond data.
                 </p>
               </div>
             </div>

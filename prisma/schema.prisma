@@ -64,7 +64,6 @@ model SyncLog {
   @@map("sync_logs")
 }
 
-
 model AdminEmail {
   email     String   @id
   createdAt DateTime @default(now()) @map("created_at")
@@ -72,25 +71,22 @@ model AdminEmail {
   @@map("admin_emails")
 }
 
-
 model Remark {
-  id          String   @id @default(uuid())
-  content     String
-  shipmentId  String
-  userId      String
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  user        User     @relation(fields: [userId], references: [id])
-  shipment    Shipment @relation(fields: [shipmentId], references: [id])
+  id         String   @id @default(uuid())
+  content    String
+  shipmentId String
+  userId     String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 
   @@map("remarks")
 }
 
-// Update Shipment model to include remarks relation
 model Shipment {
-  id                  String   @id @default(uuid())
+  id                  String    @id @default(uuid())
   companyName         String
-  ownerName           String?  // This should be here
   addressLine1        String
   addressLine2        String?
   country             String
@@ -103,35 +99,35 @@ model Shipment {
   website             String?
   paymentTerms        String
   carrier             String
-  organizationType    String   @map("organization_type")
-  businessType        String   @map("business_type")
-  businessRegNo       String   @map("business_reg_no")
-  panNo               String   @map("pan_no")
-  sellerPermitNo      String?  @map("seller_permit_no")
-  cstTinNo            String?  @map("cst_tin_no")
-  tradeBodyMembership String[] @map("trade_body_membership")
-  referenceType       String   @map("reference_type")
-  referenceNotes      String?  @map("reference_notes")
-  references          Json[]   @map("references")
-  authorizedBy        String   @map("authorized_by")
-  accountManager      String   @map("account_manager")
-  brokerName          String?  @map("broker_name")
-  partyGroup          String   @map("party_group")
-  salesExecutive      String   @map("sales_executive")
-  invoices            Invoice[]
-  remarks             Remark[] // Add this line
-  leadSource          String   @map("lead_source")
-  limit               Float    @default(0) @map("limit")
-  lastUpdatedBy       String?  @map("last_updated_by")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  organizationType    String    @map("organization_type")
+  businessType        String    @map("business_type")
+  businessRegNo       String    @map("business_reg_no")
+  panNo               String    @map("pan_no")
+  sellerPermitNo      String?   @map("seller_permit_no")
+  cstTinNo            String?   @map("cst_tin_no")
+  tradeBodyMembership String[]  @map("trade_body_membership")
+  referenceType       String    @map("reference_type")
+  referenceNotes      String?   @map("reference_notes")
+  references          Json[]    @map("references")
+  authorizedBy        String    @map("authorized_by")
+  accountManager      String    @map("account_manager")
+  brokerName          String?   @map("broker_name")
+  partyGroup          String    @map("party_group")
+  salesExecutive      String    @map("sales_executive")
+  leadSource          String    @map("lead_source")
+  limit               Float     @default(0) @map("limit")
+  lastUpdatedBy       String?   @map("last_updated_by")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
   userId              String
-  createdBy           User     @relation(fields: [userId], references: [id])
+  ownerName           String?
+  invoices            Invoice[]
+  remarks             Remark[]
+  createdBy           User      @relation(fields: [userId], references: [id])
 
   @@map("shipments")
 }
 
-// Update User model to include remarks relation
 model User {
   id                 String              @id @default(uuid())
   name               String
@@ -143,11 +139,11 @@ model User {
   role               Role                @default(customer)
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
+  invoices           Invoice[]
   performanceReports PerformanceReport[]
+  remarks            Remark[]
   salesEntries       SalesEntry[]
   shipments          Shipment[]
-  invoices           Invoice[]
-  remarks            Remark[] // Add this line
 
   @@map("users")
 }
@@ -164,21 +160,23 @@ model ChatMessage {
 }
 
 model SalesEntry {
-  id             String   @id @default(uuid())
-  employeeId     String
-  carat          Float?
-  color          String?
-  clarity        String?
-  cut            String?
-  totalSaleValue Float?
-  totalProfit    Float?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  companyName    String?
-  description    String?
-  isNoSale       Boolean  @default(false)
-  saleDate       DateTime @default(now())
-  employee       User     @relation(fields: [employeeId], references: [id])
+  id               String   @id @default(uuid())
+  employeeId       String
+  trackingId       String?
+  shipmentCarrier  String?
+  carat            Float?
+  color            String?
+  clarity          String?
+  cut              String?
+  totalSaleValue   Float?
+  totalProfit      Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  companyName      String?
+  description      String?
+  isNoSale         Boolean  @default(false)
+  saleDate         DateTime @default(now())
+  employee         User     @relation(fields: [employeeId], references: [id])
 
   @@map("sales_entries")
 }
@@ -211,9 +209,9 @@ model ParcelGoods {
 
 model Invoice {
   id            String   @id @default(uuid())
-  invoiceNo     String   @unique // Format: CD-XXXXA/DDMM
+  invoiceNo     String   @unique
   date          DateTime @default(now())
-  paymentTerms  Int // in days
+  paymentTerms  Int
   dueDate       DateTime
   description   String
   carat         Float
@@ -233,14 +231,13 @@ model Invoice {
   postalCode    String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  createdBy     User     @relation(fields: [userId], references: [id])
   userId        String
   shipmentId    String
   shipment      Shipment @relation(fields: [shipmentId], references: [id])
+  createdBy     User     @relation(fields: [userId], references: [id])
 
   @@map("invoices")
 }
-
 
 enum Role {
   admin

@@ -30,11 +30,10 @@ export async function POST(req: Request) {
     // Validate required fields for non-no-sale entries
     if (!data.isNoSale) {
       console.log('Validating required fields for regular sale');
-      if (!data.companyName || !data.totalSaleValue || !data.totalProfit) {
+      if (!data.companyName || !data.totalSaleValue) {
         console.log('Missing required fields:', {
           hasCompanyName: !!data.companyName,
           hasTotalSaleValue: !!data.totalSaleValue,
-          hasTotalProfit: !!data.totalProfit
         });
         return NextResponse.json(
           { success: false, message: 'Missing required fields' },
@@ -49,9 +48,9 @@ export async function POST(req: Request) {
       employeeId: session.userId,
       saleDate: new Date(data.saleDate),
       totalSaleValue: data.totalSaleValue ? parseFloat(data.totalSaleValue) : null,
-      totalProfit: data.totalProfit ? parseFloat(data.totalProfit) : null,
       carat: data.carat ? parseFloat(data.carat) : null,
-      trackingId: data.trackingId || null
+      trackingId: data.trackingId || null,
+      shipmentCarrier: data.shipmentCarrier || null
     };
     console.log('Formatted data for database:', formattedData);
 
@@ -117,7 +116,7 @@ export async function GET(req: Request) {
     const where = {
       saleDate: dateFilter,
       ...(session.role === 'employee' ? { employeeId: session.userId as string } : {}),
-      ...(employeeId ? { employeeId: employeeId as string } : {})
+      ...(employeeId && employeeId !== 'all' ? { employeeId: employeeId as string } : {})
     };
 
     const entries = await prisma.salesEntry.findMany({
@@ -201,9 +200,9 @@ export async function PUT(req: Request) {
         ...data,
         saleDate: data.saleDate ? new Date(data.saleDate) : undefined,
         totalSaleValue: data.totalSaleValue ? parseFloat(data.totalSaleValue) : null,
-        totalProfit: data.totalProfit ? parseFloat(data.totalProfit) : null,
         carat: data.carat ? parseFloat(data.carat) : null,
-        trackingId: data.trackingId || null
+        trackingId: data.trackingId || null,
+        shipmentCarrier: data.shipmentCarrier || null
       }
     });
 

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Edit2, Trash2, User } from "lucide-react";
+import { Edit2, Trash2, User, Filter } from "lucide-react";
 
 export default function AdminPerformance() {
   interface Employee {
@@ -32,6 +32,7 @@ export default function AdminPerformance() {
   const [reports, setReports] = useState<Report[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState("all");
+  const [selectedTimeFilter, setSelectedTimeFilter] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState("");
@@ -44,6 +45,28 @@ export default function AdminPerformance() {
     invoice: "",
     userId: "",
   });
+
+  // Time filter options
+  const timeFilters = [
+    { value: "all", label: "All Time" },
+    { value: "24hours", label: "Last 24 Hours" },
+    { value: "7days", label: "Last 7 Days" },
+    { value: "monthly", label: "This Month" },
+    { value: "yearly", label: "This Year" }
+  ];
+
+  // Find the name of an employee by their ID
+  const getEmployeeName = (userId) => {
+    if (!userId) return "Select Employee";
+    
+    // Special case for current admin
+    if (currentAdmin && currentAdmin.id === userId) {
+      return `${currentAdmin.name} (You)`;
+    }
+    
+    const employee = employees.find(emp => emp.id === userId);
+    return employee ? employee.name : "Unknown Employee";
+  };
 
   // Fetch current admin user
   const fetchCurrentAdmin = async () => {
@@ -96,9 +119,23 @@ export default function AdminPerformance() {
   // Fetch reports
   const fetchReports = async () => {
     try {
-      const url = selectedEmployee === "all" 
-        ? "/api/performance/admin"
-        : `/api/performance/admin?employeeId=${selectedEmployee}`;
+      // Build the URL with filters
+      let url = "/api/performance/admin?";
+      
+      // Add employee filter if specific employee is selected
+      if (selectedEmployee !== "all") {
+        url += `employeeId=${selectedEmployee}&`;
+      }
+      
+      // Add time filter if specific time period is selected
+      if (selectedTimeFilter !== "all") {
+        url += `timeFilter=${selectedTimeFilter}&`;
+      }
+      
+      // Remove trailing '&' if exists
+      if (url.endsWith('&')) {
+        url = url.slice(0, -1);
+      }
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -117,12 +154,11 @@ export default function AdminPerformance() {
 
   useEffect(() => {
     fetchReports();
-  }, [selectedEmployee]);
+  }, [selectedEmployee, selectedTimeFilter]);
 
   useEffect(() => {
-    // First fetch the admin user
+    // First fetch the admin user, then fetch employees
     fetchCurrentAdmin().then(() => {
-      // Then fetch employees
       fetchEmployees();
     });
   }, []);
@@ -234,40 +270,57 @@ export default function AdminPerformance() {
     }
   };
 
-  // Find the name of an employee by their ID
-  const getEmployeeName = (userId) => {
-    const employee = employees.find(emp => emp.id === userId);
-    return employee ? employee.name : "Unknown Employee";
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <h1 className="text-3xl font-bold">Performance Reports</h1>
-          <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select Employee" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Employees</SelectItem>
-              {currentAdmin && (
-                <SelectItem value={currentAdmin.id}>
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    {currentAdmin.name} (You)
-                  </div>
-                </SelectItem>
-              )}
-              {employees
-                .filter(emp => emp.id !== currentAdmin?.id)
-                .map((employee) => (
-                  <SelectItem key={employee.id} value={employee.id}>
-                    {employee.name}
+          
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            {/* Time Period Filter */}
+            <Select value={selectedTimeFilter} onValueChange={setSelectedTimeFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder={timeFilters.find(tf => tf.value === selectedTimeFilter)?.label || "All Time"} />
+              </SelectTrigger>
+              <SelectContent>
+                {timeFilters.map((filter) => (
+                  <SelectItem key={filter.value} value={filter.value}>
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-4 h-4" />
+                      {filter.label}
+                    </div>
                   </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Employee Filter */}
+            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder={selectedEmployee === "all" 
+                  ? "All Employees" 
+                  : getEmployeeName(selectedEmployee)} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Employees</SelectItem>
+                {currentAdmin && (
+                  <SelectItem value={currentAdmin.id}>
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      {currentAdmin.name} (You)
+                    </div>
+                  </SelectItem>
+                )}
+                {employees
+                  .filter(emp => emp.id !== currentAdmin?.id)
+                  .map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.name}
+                    </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -284,7 +337,7 @@ export default function AdminPerformance() {
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, userId: value }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={formData.userId ? getEmployeeName(formData.userId) : "Select Employee"} />
+                    <SelectValue placeholder={getEmployeeName(formData.userId)} />
                   </SelectTrigger>
                   <SelectContent>
                     {currentAdmin && (

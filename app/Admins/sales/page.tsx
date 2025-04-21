@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
+
 import { toast } from "sonner"
 import {
   XAxis,
@@ -32,9 +32,8 @@ export default function AdminDashboard() {
     carat: "",
     color: "",
     clarity: "",
-    cut: "",
+    shipmentCarrier: "",
     totalSaleValue: "",
-    totalProfit: "",
     description: "",
     saleDate: new Date().toISOString().split("T")[0],
     isNoSale: false,
@@ -48,10 +47,8 @@ export default function AdminDashboard() {
     companyName: string
     isNoSale: boolean
     sale: number
-    profit: number
-    totalSaleValue: number
-    totalProfit: number
     saleDate: string
+    shipmentCarrier: string
   }
 
   const [salesData, setSalesData] = useState<SalesEntry[]>([])
@@ -63,9 +60,7 @@ export default function AdminDashboard() {
     id: string
     name: string
     totalSales: number
-    totalProfit: number
     salesCount: number
-    avgProfit: number
   }
 
   const [rankings, setRankings] = useState<EmployeeRanking[]>([])
@@ -79,6 +74,13 @@ export default function AdminDashboard() {
     { value: "180", label: "Last 6 Months" },
     { value: "365", label: "Last Year" },
     { value: "custom", label: "Custom Range" },
+  ]
+
+  const shipmentCarriers = [
+    { value: "UPS", label: "UPS" },
+    { value: "FedEx", label: "FedEx" },
+    { value: "USPS", label: "USPS" },
+    { value: "DHL", label: "DHL" },
   ]
 
   const fetchEmployees = async () => {
@@ -107,44 +109,29 @@ export default function AdminDashboard() {
     }
   }
 
-  interface EmployeeStats {
-    name: string
-    totalSales: number
-    totalProfit: number
-    salesCount: number
-  }
-
   const calculateRankings = (data: SalesEntry[]) => {
-    const employeeStats: Record<string, EmployeeStats> = {}
+    const stats: { [key: string]: EmployeeRanking } = {}
     
-    data.forEach((entry) => {
+    data.forEach(entry => {
       if (!entry.isNoSale) {
-        const employeeId = entry.employee.id
-        if (!employeeStats[employeeId]) {
-          employeeStats[employeeId] = {
+        if (!stats[entry.employee.id]) {
+          stats[entry.employee.id] = {
+            id: entry.employee.id,
             name: entry.employee.name,
-            totalSales: 0,
-            totalProfit: 0,
             salesCount: 0,
+            totalSales: 0,
           }
         }
-        employeeStats[employeeId].totalSales += entry.totalSaleValue || 0
-        employeeStats[employeeId].totalProfit += entry.totalProfit || 0
-        employeeStats[employeeId].salesCount += 1
+        
+        stats[entry.employee.id].salesCount++
+        stats[entry.employee.id].totalSales += entry.sale
       }
     })
-
-    const rankings = Object.entries(employeeStats).map(([id, stats]) => ({
-      id,
-      name: stats.name,
-      totalSales: stats.totalSales,
-      totalProfit: stats.totalProfit,
-      salesCount: stats.salesCount,
-      avgProfit: stats.totalProfit / stats.salesCount,
-    }))
-
-    rankings.sort((a, b) => b.totalProfit - a.totalProfit)
-    setRankings(rankings)
+    
+    const statsArray = Object.values(stats)
+    statsArray.sort((a, b) => b.totalSales - a.totalSales)
+    
+    setRankings(statsArray)
   }
 
   const fetchSalesData = async () => {
@@ -162,12 +149,24 @@ export default function AdminDashboard() {
       
       if (data.success) {
         const formattedData = data.entries.map((entry) => ({
-          ...entry,
+          id: entry.id,
           date: new Date(entry.saleDate).toLocaleDateString(),
-          profit: entry.totalProfit || 0,
+          rawDate: new Date(entry.saleDate),
+          employeeId: entry.employee.id,
+          employeeName: entry.employee.name,
+          trackingId: entry.trackingId || "-",
+          companyName: entry.companyName || "No Sale",
+          isNoSale: entry.isNoSale,
           sale: entry.totalSaleValue || 0,
-          trackingId: entry.trackingId,
+          shipmentCarrier: entry.shipmentCarrier || "N/A",
+          details: {
+            carat: entry.carat,
+            color: entry.color,
+            clarity: entry.clarity,
+          },
+          description: entry.description || "",
         }))
+        
         setSalesData(formattedData)
         calculateRankings(data.entries)
       }
@@ -182,6 +181,10 @@ export default function AdminDashboard() {
     fetchCompanies()
   }, [])
 
+  useEffect(() => {
+    fetchSalesData()
+  }, [period, customPeriod, selectedEmployee])
+
   const handleEdit = (entry) => {
     setIsEditing(true)
     setEditingId(entry.id)
@@ -191,9 +194,8 @@ export default function AdminDashboard() {
       carat: entry.carat?.toString() || "",
       color: entry.color || "",
       clarity: entry.clarity || "",
-      cut: entry.cut || "",
-      totalSaleValue: entry.totalSaleValue?.toString() || "",
-      totalProfit: entry.totalProfit?.toString() || "",
+      shipmentCarrier: entry.shipmentCarrier || "",
+      totalSaleValue: entry.sale?.toString() || "",
       description: entry.description || "",
       saleDate: new Date(entry.saleDate).toISOString().split("T")[0],
       isNoSale: entry.isNoSale,
@@ -254,9 +256,8 @@ export default function AdminDashboard() {
           carat: "",
           color: "",
           clarity: "",
-          cut: "",
+          shipmentCarrier: "",
           totalSaleValue: "",
-          totalProfit: "",
           description: "",
           saleDate: new Date().toISOString().split("T")[0],
           isNoSale: false,
@@ -307,13 +308,10 @@ export default function AdminDashboard() {
                       Total Sales
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Profit
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Sales Count
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Avg. Profit
+                      Avg. Sale Value
                     </th>
                   </tr>
                 </thead>
@@ -327,12 +325,9 @@ export default function AdminDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         ${employee.totalSales.toFixed(2)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        ${employee.totalProfit.toFixed(2)}
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">{employee.salesCount}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        ${employee.avgProfit.toFixed(2)}
+                        ${(employee.totalSales / employee.salesCount).toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -393,9 +388,8 @@ export default function AdminDashboard() {
                       carat: "",
                       color: "",
                       clarity: "",
-                      cut: "",
+                      shipmentCarrier: "",
                       totalSaleValue: "",
-                      totalProfit: "",
                     }))
                   }}
                   className={`flex-1 ${isNoSale ? "bg-blue-600" : "bg-gray-300"}`}
@@ -436,6 +430,25 @@ export default function AdminDashboard() {
                   </div>
 
                   <div>
+                    <label className="block text-sm font-medium mb-1">Select Shipment</label>
+                    <Select
+                      value={formData.shipmentCarrier}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, shipmentCarrier: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Carrier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shipmentCarriers.map((carrier) => (
+                          <SelectItem key={carrier.value} value={carrier.value}>
+                            {carrier.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
                     <label className="block text-sm font-medium mb-1">Tracking ID</label>
                     <Input
                       type="text"
@@ -468,63 +481,38 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Clarity</label>
-                      <Input
-                        type="text"
-                        value={formData.clarity}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, clarity: e.target.value }))}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Cut</label>
-                      <Input
-                        type="text"
-                        value={formData.cut}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, cut: e.target.value }))}
-                        className="w-full"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Clarity</label>
+                    <Input
+                      type="text"
+                      value={formData.clarity}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, clarity: e.target.value }))}
+                      className="w-full"
+                    />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Total Sale Value</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.totalSaleValue}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, totalSaleValue: e.target.value }))}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Total Profit</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.totalProfit}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, totalProfit: e.target.value }))}
-                        className="w-full"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Total Sale Value</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.totalSaleValue}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, totalSaleValue: e.target.value }))}
+                      className="w-full"
+                    />
                   </div>
                 </>
               )}
 
               <div>
                 <label className="block text-sm font-medium mb-1">Description</label>
-                <Textarea
+                <textarea
                   value={formData.description}
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                   placeholder={
                     isNoSale ? "Explain why there were no sales today..." : "Add any additional notes about the sale..."
                   }
-                  className="min-h-[100px]"
+                  className="min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
@@ -588,7 +576,6 @@ export default function AdminDashboard() {
                     <Tooltip />
                     <Legend />
                     <Bar dataKey="sale" name="Sales" fill="#8884d8" />
-                    <Bar dataKey="profit" name="Profit" fill="#82ca9d" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -608,16 +595,13 @@ export default function AdminDashboard() {
                         Employee
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Tracking ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Company
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Sale Value
+                        Shipment
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Profit
+                        Sale Value
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
@@ -632,16 +616,13 @@ export default function AdminDashboard() {
                           {entry.employee.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {entry.trackingId || "-"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
                           {entry.isNoSale ? "No Sale" : entry.companyName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {entry.isNoSale ? "-" : `$${entry.sale.toFixed(2)}`}
+                          {entry.shipmentCarrier}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {entry.isNoSale ? "-" : `$${entry.profit.toFixed(2)}`}
+                          {entry.isNoSale ? "-" : `$${entry.sale.toFixed(2)}`}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex space-x-2">

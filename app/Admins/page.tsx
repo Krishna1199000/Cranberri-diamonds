@@ -47,6 +47,7 @@ export default function AdminDashboard() {
     { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
     { label: 'Parcel-Goods', icon: Box, href: '/parcel-goods' },
     { label: 'Sales', icon: BarChart, href: '/Admins/sales' },
+    { label: 'Sales-Report', icon: BarChart, href: '/Admins/sales-report' },
     { label: 'Performance', icon: TrendingUp, href: '/Admins/performance' },
     { label: 'Manage Users', icon: Users, href: '/admin/users' },
     { label: 'Sync Database', icon: Database, href: '/sync' },

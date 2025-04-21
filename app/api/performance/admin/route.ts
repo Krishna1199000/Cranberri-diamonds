@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { getSession } from '@/lib/session';
 
 const prisma = new PrismaClient();
@@ -21,9 +21,50 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const employeeId = searchParams.get('employeeId');
-    console.log('Query params - employeeId:', employeeId);
+    const timeFilter = searchParams.get('timeFilter');
+    
+    console.log('Query params - employeeId:', employeeId, 'timeFilter:', timeFilter);
 
-    const where = employeeId ? { userId: employeeId } : {};
+    // Base where clause
+    const where: Prisma.PerformanceReportWhereInput = {};
+    
+    // Add employee filter if provided
+    if (employeeId) {
+      where.userId = employeeId;
+    }
+    
+    // Add time-based filters
+    if (timeFilter) {
+      const now = new Date();
+      
+      switch(timeFilter) {
+        case '24hours':
+          // Last 24 hours
+          where.date = {
+            gte: new Date(now.getTime() - 24 * 60 * 60 * 1000)
+          };
+          break;
+        case '7days':
+          // Last 7 days
+          where.date = {
+            gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          };
+          break;
+        case 'monthly':
+          // Current month
+          where.date = {
+            gte: new Date(now.getFullYear(), now.getMonth(), 1)
+          };
+          break;
+        case 'yearly':
+          // Current year
+          where.date = {
+            gte: new Date(now.getFullYear(), 0, 1)
+          };
+          break;
+      }
+    }
+    
     console.log('Where clause:', where);
 
     const reports = await prisma.performanceReport.findMany({
