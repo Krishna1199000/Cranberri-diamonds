@@ -1,13 +1,11 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
+
 import { toast } from "sonner"
 import {
   XAxis,
@@ -16,17 +14,17 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  Area,
-  AreaChart,
-
+  BarChart,
+  Bar,
 } from "recharts"
 
 
-
-export default function EmployeeDashboard() {
+export default function AdminDashboard() {
   const [companies, setCompanies] = useState<{ id: string; companyName: string }[]>([])
   const [isNoSale, setIsNoSale] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingId, setEditingId] = useState("")
   const [formData, setFormData] = useState({
     companyName: "",
     trackingId: "",
@@ -39,39 +37,26 @@ export default function EmployeeDashboard() {
     saleDate: new Date().toISOString().split("T")[0],
     isNoSale: false,
   })
-  const [salesData, setSalesData] = useState<
-    {
-      date: string;
-      sale: number;
-      company: string;
-      isNoSale: boolean;
-      description: string;
-      details: {
-        carat: string | null;
-        color: string | null;
-        clarity: string | null;
-        shipmentCarrier: string | null;
-        trackingId: string | null;
-      };
-    }[]
-  >([])
+
+  interface SalesEntry {
+    id: string
+    date: string
+    employee: { id: string; name: string }
+    trackingId: string
+    companyName: string
+    isNoSale: boolean
+    sale: number
+    saleDate: string
+    shipmentCarrier: string
+  }
+
+  const [salesData, setSalesData] = useState<SalesEntry[]>([])
   const [period, setPeriod] = useState("7")
   const [customPeriod, setCustomPeriod] = useState({ start: "", end: "" })
-  const [selectedDataPoint, setSelectedDataPoint] = useState<{
-    date: string;
-    sale: number;
-    company: string;
-    isNoSale: boolean;
-    description: string;
-    details: {
-      carat: string | null;
-      color: string | null;
-      clarity: string | null;
-      shipmentCarrier: string | null;
-      trackingId: string | null;
-    };
-  } | null>(null)
-  const [showPieChart, setShowPieChart] = useState(false)
+  const [selectedEmployee] = useState("all")
+
+ 
+
 
   const timeRanges = [
     { value: "1", label: "Last 24 Hours" },
@@ -90,12 +75,23 @@ export default function EmployeeDashboard() {
     { value: "DHL", label: "DHL" },
   ]
 
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch("/api/employees")
+      const data = await response.json()
+      if (data.success) {
+        
+      }
+    } catch (error) {
+      console.error("Error fetching employees:", error)
+      toast.error("Failed to fetch employees")
+    }
+  }
+
   const fetchCompanies = async () => {
     try {
-      console.log('Fetching companies...')
       const response = await fetch("/api/companies")
       const data = await response.json()
-      console.log('Companies response:', data)
       if (data.success) {
         setCompanies(data.companies)
       }
@@ -104,108 +100,94 @@ export default function EmployeeDashboard() {
       toast.error("Failed to fetch companies")
     }
   }
-  
-  useEffect(() => {
-    const fetchSalesData = async () => {
-      try {
-        console.log('Fetching sales data...')
-        let url = `/api/sales?period=${period}`
-        if (period === "custom" && customPeriod.start && customPeriod.end) {
-          url = `/api/sales?start=${customPeriod.start}&end=${customPeriod.end}`
-        }
-        console.log('Fetching from URL:', url)
-  
-        const response = await fetch(url)
-        const data = await response.json()
-        console.log('Sales data response:', data)
-        
-        if (data.success) {
-          const formattedData = data.entries.map((entry) => ({
-            date: new Date(entry.saleDate).toLocaleDateString(),
-            sale: entry.totalSaleValue || 0,
-            company: entry.companyName || "No Sale",
-            isNoSale: entry.isNoSale,
-            description: entry.description,
-            details: {
-              carat: entry.carat,
-              color: entry.color,
-              clarity: entry.clarity,
-              shipmentCarrier: entry.shipmentCarrier,
-              trackingId: entry.trackingId,
-            },
-          }))
-          console.log('Formatted sales data:', formattedData)
-          setSalesData(formattedData)
-        }
-      } catch (error) {
-        console.error("Error fetching sales data:", error)
-        toast.error("Failed to fetch sales data")
+
+
+
+  const fetchSalesData = async () => {
+    try {
+      let url = `/api/sales?period=${period}`
+      if (period === "custom" && customPeriod.start && customPeriod.end) {
+        url = `/api/sales?start=${customPeriod.start}&end=${customPeriod.end}`
       }
+      if (selectedEmployee && selectedEmployee !== "all") {
+        url += `&employeeId=${selectedEmployee}`
+      }
+
+      const response = await fetch(url)
+      const data = await response.json()
+      
+      if (data.success && Array.isArray(data.entries)) {
+        const formattedData = data.entries.map((entry) => {
+          // Ensure all properties exist before accessing them
+          return {
+            id: entry.id || "",
+            date: entry.saleDate ? new Date(entry.saleDate).toLocaleDateString() : "",
+            rawDate: entry.saleDate ? new Date(entry.saleDate) : new Date(),
+            employee: entry.employee || { id: "", name: "" },
+            trackingId: entry.trackingId || "-",
+            companyName: entry.companyName || "No Sale",
+            isNoSale: !!entry.isNoSale,
+            sale: parseFloat(entry.totalSaleValue || 0),
+            shipmentCarrier: entry.shipmentCarrier || "N/A",
+            details: {
+              carat: entry.carat || "",
+              color: entry.color || "",
+              clarity: entry.clarity || "",
+            },
+            description: entry.description || "",
+          };
+        });
+        
+        setSalesData(formattedData);
+   
+      } else {
+        setSalesData([]);
+    
+        console.error("Invalid data format received:", data);
+      }
+    } catch (error) {
+      console.error("Error fetching sales data:", error)
+      toast.error("Failed to fetch sales data")
+      setSalesData([]);
+     
     }
-    fetchSalesData()
-  }, [period, customPeriod])
-  
+  }
+
   useEffect(() => {
+    fetchEmployees()
     fetchCompanies()
   }, [])
 
-  const validateForm = () => {
-    if (!isNoSale) {
-      if (!formData.companyName) {
-        toast.error("Please select a company")
-        return false
-      }
-      if (!formData.totalSaleValue) {
-        toast.error("Please enter total sale value")
-        return false
-      }
-      if (!formData.shipmentCarrier) {
-        toast.error("Please select a shipment carrier")
-        return false
-      }
-      if (!formData.trackingId) {
-        toast.error("Please enter a tracking ID")
-        return false
-      }
-    }
-    return true
-  }
+  useEffect(() => {
+    fetchSalesData()
+  }, [period, customPeriod, selectedEmployee])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  
+ 
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log('Starting form submission with data:', formData)
-
-    if (!validateForm()) {
-      return
-    }
-
     setIsSubmitting(true)
-    
+
     try {
+      const method = isEditing ? "PUT" : "POST"
       const formattedData = {
         ...formData,
-        carat: formData.carat ? Number.parseFloat(formData.carat) : null,
-        totalSaleValue: formData.totalSaleValue ? Number.parseFloat(formData.totalSaleValue) : null,
-        saleDate: new Date(formData.saleDate).toISOString(),
+        ...(isEditing && { id: editingId }),
       }
-      
-      console.log('Sending formatted data to API:', formattedData)
-      
+
       const response = await fetch("/api/sales", {
-        method: "POST",
+        method,
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formattedData),
       })
-      
-      console.log('Response status:', response.status)
+
       const data = await response.json()
-      console.log('Response data:', data)
 
       if (response.ok && data.success) {
-        console.log('Successfully submitted sales entry')
-        toast.success("Sales entry submitted successfully")
+        toast.success(`Sales entry ${isEditing ? "updated" : "submitted"} successfully`)
         setFormData({
           companyName: "",
           trackingId: "",
@@ -219,83 +201,71 @@ export default function EmployeeDashboard() {
           isNoSale: false,
         })
         setIsNoSale(false)
-      
+        setIsEditing(false)
+        setEditingId("")
+        fetchSalesData()
       } else {
-        console.error('Error response:', data)
-        toast.error(data.message || "Failed to submit sales entry")
+        toast.error(data.message || `Failed to ${isEditing ? "update" : "submit"} sales entry`)
       }
     } catch (error) {
       console.error("Error submitting form:", error)
-      toast.error("Failed to submit sales entry")
+      toast.error(`Failed to ${isEditing ? "update" : "submit"} sales entry`)
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleNoSaleClick = () => {
-    console.log('Switching to no-sale mode')
-    setIsNoSale(true)
-    setFormData((prev) => ({
-      ...prev,
-      isNoSale: true,
-      companyName: "",
-      trackingId: "",
-      carat: "",
-      color: "",
-      clarity: "",
-      shipmentCarrier: "",
-      totalSaleValue: "",
-    }))
-  }
-
-  const handleChartClick = (data) => {
-    console.log('Chart clicked with data:', data)
-    setSelectedDataPoint(data)
-    setShowPieChart(true)
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="text-2xl font-bold mb-6 text-gray-800">Today&#39;s Date: {new Date().toLocaleDateString()}</div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Employee Sales Dashboard</h1>
+        </div>
+          
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-8"
-        >
-          <Card className="p-6 bg-white shadow-lg rounded-xl">
-            <motion.h2
-              className="text-2xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              New Sales Entry
-            </motion.h2>
-
-            <div className="mb-4 flex gap-4">
-              <Button
-                type="button"
-                onClick={() => {
-                  setIsNoSale(false)
-                  setFormData((prev) => ({ ...prev, isNoSale: false }))
-                }}
-                className={`flex-1 ${!isNoSale ? "bg-blue-600" : "bg-gray-300"}`}
-              >
-                Regular Sale
-              </Button>
-              <Button
-                type="button"
-                onClick={handleNoSaleClick}
-                className={`flex-1 ${isNoSale ? "bg-blue-600" : "bg-gray-300"}`}
-              >
-                No Sale
-              </Button>
-            </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Sales Entry Form */}
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6">
+              {isEditing ? "Edit Sales Entry" : "New Sales Entry"}
+            </h2>
+            
             <form onSubmit={handleSubmit} className="space-y-4">
+              
+              
+              <div className="mb-4 flex gap-4">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setIsNoSale(false)
+                    setFormData((prev) => ({ ...prev, isNoSale: false }))
+                  }}
+                  className={`flex-1 ${!isNoSale ? "bg-blue-600" : "bg-gray-300"}`}
+                >
+                  Regular Sale
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setIsNoSale(true)
+                    setFormData((prev) => ({
+                      ...prev,
+                      isNoSale: true,
+                      companyName: "",
+                      trackingId: "",
+                      carat: "",
+                      color: "",
+                      clarity: "",
+                      shipmentCarrier: "",
+                      totalSaleValue: "",
+                    }))
+                  }}
+                  className={`flex-1 ${isNoSale ? "bg-blue-600" : "bg-gray-300"}`}
+                >
+                  No Sale
+                </Button>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Sale Date</label>
                 <Input
@@ -352,8 +322,7 @@ export default function EmployeeDashboard() {
                       type="text"
                       value={formData.trackingId}
                       onChange={(e) => setFormData((prev) => ({ ...prev, trackingId: e.target.value }))}
-                      placeholder="Enter shipment tracking ID"
-                      className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                      className="w-full"
                     />
                   </div>
 
@@ -365,7 +334,7 @@ export default function EmployeeDashboard() {
                         step="0.01"
                         value={formData.carat}
                         onChange={(e) => setFormData((prev) => ({ ...prev, carat: e.target.value }))}
-                        className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                        className="w-full"
                       />
                     </div>
 
@@ -375,7 +344,7 @@ export default function EmployeeDashboard() {
                         type="text"
                         value={formData.color}
                         onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
-                        className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                        className="w-full"
                       />
                     </div>
                   </div>
@@ -386,7 +355,7 @@ export default function EmployeeDashboard() {
                       type="text"
                       value={formData.clarity}
                       onChange={(e) => setFormData((prev) => ({ ...prev, clarity: e.target.value }))}
-                      className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                      className="w-full"
                     />
                   </div>
 
@@ -397,7 +366,7 @@ export default function EmployeeDashboard() {
                       step="0.01"
                       value={formData.totalSaleValue}
                       onChange={(e) => setFormData((prev) => ({ ...prev, totalSaleValue: e.target.value }))}
-                      className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+                      className="w-full"
                     />
                   </div>
                 </>
@@ -405,251 +374,144 @@ export default function EmployeeDashboard() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">Description</label>
-                <Textarea
+                <textarea
                   value={formData.description}
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                   placeholder={
                     isNoSale ? "Explain why there were no sales today..." : "Add any additional notes about the sale..."
                   }
-                  className="min-h-[100px]"
+                  className="min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
-                >
-                  {isSubmitting ? "Submitting..." : "Submit Entry"}
-                </Button>
-              </motion.div>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              >
+                {isSubmitting ? "Submitting..." : isEditing ? "Update Entry" : "Submit Entry"}
+              </Button>
             </form>
           </Card>
 
+          {/* Sales Analytics */}
           <div className="space-y-6">
-            <Card className="p-6 bg-white shadow-lg rounded-xl">
-              <div className="flex flex-col space-y-4">
-                <motion.h2
-                  className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  Sales Performance
-                </motion.h2>
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold mb-4">Sales Analytics</h2>
+              
+              {/* Time period selection */}
+              <div className="flex items-center gap-4 mb-4">
+                <Select value={period} onValueChange={setPeriod}>
+                  <SelectTrigger className="min-w-[200px]">
+                    <SelectValue placeholder="Select Period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeRanges.map((range) => (
+                      <SelectItem key={range.value} value={range.value}>
+                        {range.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-                <div className="flex items-center gap-4">
-                  <Select value={period} onValueChange={setPeriod}>
-                    <SelectTrigger className="min-w-[200px]">
-                      <SelectValue placeholder="Select Period" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timeRanges.map((range) => (
-                        <SelectItem key={range.value} value={range.value}>
-                          {range.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {period === "custom" && (
-                    <div className="flex gap-2">
-                      <Input
-                        type="date"
-                        value={customPeriod.start}
-                        onChange={(e) => setCustomPeriod((prev) => ({ ...prev, start: e.target.value }))}
-                        className="w-auto"
-                      />
-                      <Input
-                        type="date"
-                        value={customPeriod.end}
-                        onChange={(e) => setCustomPeriod((prev) => ({ ...prev, end: e.target.value }))}
-                        className="w-auto"
-                      />
-                    </div>
-                  )}
-                </div>
+                {period === "custom" && (
+                  <div className="flex gap-2">
+                    <Input
+                      type="date"
+                      value={customPeriod.start}
+                      onChange={(e) =>
+                        setCustomPeriod((prev) => ({ ...prev, start: e.target.value }))
+                      }
+                    />
+                    <Input
+                      type="date"
+                      value={customPeriod.end}
+                      onChange={(e) =>
+                        setCustomPeriod((prev) => ({ ...prev, end: e.target.value }))
+                      }
+                    />
+                  </div>
+                )}
               </div>
 
-              <motion.div
-                className="h-[300px] mt-4"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-              >
+              {/* Sales Chart */}
+              <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={salesData}
-                    onClick={(data) => data && data.activePayload && handleChartClick(data.activePayload[0].payload)}
-                  >
-                    <defs>
-                      <linearGradient id="saleGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" stroke="#666" tick={{ fill: "#666" }} />
-                    <YAxis stroke="#666" tick={{ fill: "#666" }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "rgba(255, 255, 255, 0.9)",
-                        border: "none",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                      }}
-                    />
+                  <BarChart data={salesData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
                     <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="sale"
-                      stroke="#82ca9d"
-                      fillOpacity={1}
-                      fill="url(#saleGradient)"
-                      strokeWidth={2}
-                      name="Sale"
-                    />
-                  </AreaChart>
+                    <Bar dataKey="sale" name="Sales" fill="#8884d8" />
+                  </BarChart>
                 </ResponsiveContainer>
-              </motion.div>
+              </div>
             </Card>
 
-            {showPieChart && selectedDataPoint && (
-              <Card className="p-6 bg-white shadow-lg rounded-xl">
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                  <h3 className="text-xl font-semibold">
-                    {selectedDataPoint.isNoSale ? "No Sale" : "Sale"} Details for {selectedDataPoint.date}
-                  </h3>
-
-                  {selectedDataPoint.isNoSale ? (
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-gray-700">{selectedDataPoint.description || "No description provided"}</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <h4 className="font-medium text-gray-700 mb-2">Sale Information</h4>
-                          <div className="space-y-1 text-sm">
-                            <p>
-                              <span className="font-medium">Company:</span> {selectedDataPoint.company}
-                            </p>
-                            <p>
-                              <span className="font-medium">Total Sale:</span> ${selectedDataPoint.sale.toFixed(2)}
-                            </p>
-                            <p>
-                              <span className="font-medium">Shipment:</span> {selectedDataPoint.details.shipmentCarrier || "N/A"}
-                            </p>
-                            <p>
-                              <span className="font-medium">Tracking ID:</span> {selectedDataPoint.details.trackingId || "N/A"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <h4 className="font-medium text-gray-700 mb-2">Diamond Details</h4>
-                          <div className="space-y-1 text-sm">
-                            <p>
-                              <span className="font-medium">Carat:</span> {selectedDataPoint.details.carat || "N/A"}
-                            </p>
-                            <p>
-                              <span className="font-medium">Color:</span> {selectedDataPoint.details.color || "N/A"}
-                            </p>
-                            <p>
-                              <span className="font-medium">Clarity:</span> {selectedDataPoint.details.clarity || "N/A"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      {selectedDataPoint.description && (
-                        <div className="mt-4 bg-gray-50 p-3 rounded-lg">
-                          <h4 className="font-medium text-gray-700 mb-2">Description</h4>
-                          <p className="text-sm text-gray-600">{selectedDataPoint.description}</p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                  <div className="mt-4 flex justify-end">
-                    <Button onClick={() => setShowPieChart(false)} variant="outline" className="text-sm">
-                      Close Details
-                    </Button>
-                  </div>
-                </motion.div>
-              </Card>
-            )}
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-8"
-        >
-          <Card className="p-6 bg-white shadow-lg rounded-xl">
-            <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Recent Sales Summary
-            </h2>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Company
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Details
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tracking
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Shipment
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Sale Value
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {salesData.slice(0, 5).map((entry, index) => (
-                    <tr key={index} className={entry.isNoSale ? "bg-gray-50" : ""}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{entry.date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {entry.isNoSale ? "No Sale" : entry.company}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.isNoSale ? (
-                          <span className="italic">N/A</span>
-                        ) : (
-                          <>
-                            {entry.details.carat && `${entry.details.carat}ct `}
-                            {entry.details.color && `${entry.details.color} `}
-                            {entry.details.clarity && `${entry.details.clarity}`}
-                          </>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.isNoSale ? "-" : (entry.details.trackingId || "N/A")}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.isNoSale ? "-" : (entry.details.shipmentCarrier || "N/A")}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.isNoSale ? "-" : `$${entry.sale.toFixed(2)}`}
-                      </td>
+            {/* Sales Table */}
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold mb-4">Sales Entries</h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead>
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Employee
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Company
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Shipment
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Sale Value
+                      </th>
+                      
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </motion.div>
-      </main>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {salesData.length > 0 ? (
+                      salesData.map((entry) => (
+                        <tr key={entry.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">{entry.date}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {entry.employee?.name || "Unknown"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {entry.isNoSale ? "No Sale" : entry.companyName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {entry.shipmentCarrier}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {entry.isNoSale ? "-" : `$${entry.sale.toFixed(2)}`}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex space-x-2">
+                            
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-4 text-center">
+                          No sales data available
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
