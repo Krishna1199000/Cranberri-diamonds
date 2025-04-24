@@ -169,6 +169,9 @@ model SalesEntry {
   clarity          String?
   cut              String?
   totalSaleValue   Float?
+  purchaseValue    Float?   // Add this field
+  profit           Float?   // Add this field
+  profitMargin     Float?   // Add this field
   totalProfit      Float?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -207,12 +210,36 @@ model ParcelGoods {
   @@map("parcel_goods")
 }
 
+// prisma/schema.prisma
+// This file should be updated with the following model definitions
+
 model Invoice {
+  id             String        @id @default(uuid())
+  invoiceNo      String        @unique
+  date           DateTime
+  dueDate        DateTime
+  paymentTerms   Int
+  companyName    String
+  addressLine1   String
+  addressLine2   String?
+  city           String
+  state          String
+  country        String
+  postalCode     String
+  description    String?
+  totalAmount    Float
+  amountInWords  String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  items          InvoiceItem[]  // Relation to invoice items
+  userId         String        // FK to User if applicable
+  shipmentId     String?       // FK to Shipment if applicable
+  user           User          @relation(fields: [userId], references: [id])
+  shipment       Shipment?     @relation(fields: [shipmentId], references: [id])
+}
+
+model InvoiceItem {
   id            String   @id @default(uuid())
-  invoiceNo     String   @unique
-  date          DateTime @default(now())
-  paymentTerms  Int
-  dueDate       DateTime
   description   String
   carat         Float
   color         String
@@ -220,25 +247,10 @@ model Invoice {
   lab           String
   reportNo      String
   pricePerCarat Float
-  totalAmount   Float
-  amountInWords String
-  companyName   String
-  addressLine1  String
-  addressLine2  String?
-  country       String
-  state         String
-  city          String
-  postalCode    String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  userId        String
-  shipmentId    String
-  shipment      Shipment @relation(fields: [shipmentId], references: [id])
-  createdBy     User     @relation(fields: [userId], references: [id])
-
-  @@map("invoices")
+  total         Float
+  invoiceId     String   // FK to Invoice
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
 }
-
 enum Role {
   admin
   employee

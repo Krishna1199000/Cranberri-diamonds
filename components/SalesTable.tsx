@@ -55,13 +55,16 @@ export default function SalesTable({
     }
   }
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value === null || value === undefined) {
+      return "$0.00";
+    }
     return value.toLocaleString('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    })
+    });
   }
 
   return (
@@ -180,7 +183,7 @@ export default function SalesTable({
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Margin: {entry.profitMargin !== undefined ? `${entry.profitMargin.toFixed(2)}%` : 'N/A'}</p>
+                      <p>Margin: {entry.profitMargin != null ? `${entry.profitMargin.toFixed(2)}%` : 'N/A'}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

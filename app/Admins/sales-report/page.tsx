@@ -27,47 +27,49 @@ import ProfitMetrics from "@/components/ProfitMetrics"
 
 export default function AdminSalesReport() {
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([])
+  
   // Update the getProfitMetricsData function to match the expected SaleEntry type
-// First, add the correct interface definition for SaleEntry that matches what the ProfitMetrics component expects
-interface SaleEntry {
-  id: string;
-  date: string;
-  rawDate: Date;
-  employeeId: string;
-  employeeName: string;
-  trackingId: string;
-  companyName: string;
-  isNoSale: boolean;
-  saleValue: number;
-  purchaseValue: number;
-  profit: number;  // Note: This is required, not optional
-  profitMargin: number;  // Note: This is required, not optional
-  shipmentCarrier: string;
-  details: {
-    carat?: string;
-    color?: string;
-    clarity?: string;
-  };
-  description: string;
-}
+  // First, add the correct interface definition for SaleEntry that matches what the ProfitMetrics component expects
+  interface SaleEntry {
+    id: string;
+    date: string;
+    rawDate: Date;
+    employeeId: string;
+    employeeName: string;
+    trackingId: string;
+    companyName: string;
+    isNoSale: boolean;
+    saleValue: number;
+    purchaseValue: number;
+    profit: number;  // Note: This is required, not optional
+    profitMargin: number;  // Note: This is required, not optional
+    shipmentCarrier: string;
+    details: {
+      carat?: string;
+      color?: string;
+      clarity?: string;
+    };
+    description: string;
+  }
 
-const getProfitMetricsData = (): SaleEntry[] => {
-  return salesData
-    .filter(
-      (entry): entry is SaleEntry & { profit: number; purchaseValue: number; profitMargin: number } =>
-        !entry.isNoSale &&
-        typeof entry.profit === 'number' && 
-        typeof entry.purchaseValue === 'number' &&
-        entry.purchaseValue !== null &&
-        typeof entry.profitMargin === 'number'
-    )
-    .map(entry => ({
-      ...entry,
-      purchaseValue: entry.purchaseValue as number,
-      profit: entry.profit as number,
-      profitMargin: entry.profitMargin as number
-    }));
-}
+  const getProfitMetricsData = (): SaleEntry[] => {
+    return salesData
+      .filter(
+        (entry): entry is SaleEntry & { profit: number; purchaseValue: number; profitMargin: number } =>
+          !entry.isNoSale &&
+          typeof entry.profit === 'number' && 
+          typeof entry.purchaseValue === 'number' &&
+          entry.purchaseValue !== null &&
+          typeof entry.profitMargin === 'number'
+      )
+      .map(entry => ({
+        ...entry,
+        purchaseValue: entry.purchaseValue as number,
+        profit: entry.profit as number,
+        profitMargin: entry.profitMargin as number
+      }));
+  }
+  
   const [salesData, setSalesData] = useState<SaleEntry[]>([])
   const [filteredData, setFilteredData] = useState<SaleEntry[]>([])
   const [period, setPeriod] = useState("30")
@@ -150,6 +152,33 @@ const getProfitMetricsData = (): SaleEntry[] => {
     } catch (error) {
       console.error("Error fetching sales data:", error)
       toast.error("Failed to fetch sales data")
+    }
+  }
+
+  // New function to save purchase value to the backend
+  const savePurchaseValue = async (id, value) => {
+    try {
+      const response = await fetch(`/api/sales/${id}/purchase-value`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ purchaseValue: value }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success("Purchase value saved successfully");
+        return true;
+      } else {
+        toast.error(data.message || "Failed to save purchase value");
+        return false;
+      }
+    } catch (error) {
+      console.error("Error saving purchase value:", error);
+      toast.error("Failed to save purchase value");
+      return false;
     }
   }
 
@@ -236,7 +265,9 @@ const getProfitMetricsData = (): SaleEntry[] => {
     setShowProfitAnalysis(true)
   }
 
-  const updateEntryPurchaseValue = (id, value) => {
+  // Modified to save the purchase value to backend
+  const updateEntryPurchaseValue = async (id, value) => {
+    // First update local state for immediate UI feedback
     setSalesData(prevData => 
       prevData.map(entry => 
         entry.id === id 
@@ -244,29 +275,65 @@ const getProfitMetricsData = (): SaleEntry[] => {
           : entry
       )
     )
-  }
-
-  const calculateEntryProfit = (id) => {
-    setSalesData(prevData => 
-      prevData.map(entry => {
-        if (entry.id === id && entry.purchaseValue !== null) {
-          const profit = entry.saleValue - entry.purchaseValue
-          const profitMargin = (profit / entry.saleValue) * 100
-          
-          return { 
-            ...entry, 
-            profit, 
-            profitMargin 
-          }
-        }
-        return entry
-      })
-    )
     
-    toast.success("Profit calculated for this entry")
+    // Then save to backend
+    const parsedValue = parseFloat(value);
+    if (!isNaN(parsedValue)) {
+      await savePurchaseValue(id, parsedValue);
+    }
   }
 
-  const calculateAllEntryProfits = () => {
+  // Modified to also save profit calculation to backend
+  const calculateEntryProfit = async (id) => {
+    // First find the entry
+    const entry = salesData.find(e => e.id === id);
+    
+    if (entry && entry.purchaseValue !== null) {
+      const profit = entry.saleValue - entry.purchaseValue;
+      const profitMargin = (profit / entry.saleValue) * 100;
+      
+      // Update local state
+      setSalesData(prevData => 
+        prevData.map(entry => {
+          if (entry.id === id && entry.purchaseValue !== null) {
+            return { 
+              ...entry, 
+              profit, 
+              profitMargin 
+            }
+          }
+          return entry
+        })
+      )
+      
+      // Save profit calculation to backend
+      try {
+        const response = await fetch(`/api/sales/${id}/profit`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ profit, profitMargin }),
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          toast.success("Profit calculated and saved for this entry");
+        } else {
+          toast.error(data.message || "Failed to save profit calculation");
+        }
+      } catch (error) {
+        console.error("Error saving profit calculation:", error);
+        toast.error("Failed to save profit calculation");
+      }
+    } else {
+      toast.error("Entry must have a purchase value to calculate profit");
+    }
+  }
+
+  // Modified to save all profit calculations to backend
+  const calculateAllEntryProfits = async () => {
     const entriesWithPurchaseValue = salesData.filter(
       entry => !entry.isNoSale && entry.purchaseValue !== null
     )
@@ -292,6 +359,32 @@ const getProfitMetricsData = (): SaleEntry[] => {
     
     setSalesData(updatedData)
     
+    // Save all profit calculations to backend
+    try {
+      const profitData = entriesWithPurchaseValue.map(entry => ({
+        id: entry.id,
+        profit: entry.saleValue - entry.purchaseValue,
+        profitMargin: ((entry.saleValue - entry.purchaseValue) / entry.saleValue) * 100
+      }));
+      
+      const response = await fetch('/api/sales/bulk-profit', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ entries: profitData }),
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        toast.error(data.message || "Some profit calculations could not be saved");
+      }
+    } catch (error) {
+      console.error("Error saving bulk profit calculations:", error);
+      toast.error("Failed to save some profit calculations");
+    }
+    
     // Calculate overall profit metrics
     const validEntries = updatedData.filter(
       entry => !entry.isNoSale && entry.profit !== undefined
@@ -314,7 +407,7 @@ const getProfitMetricsData = (): SaleEntry[] => {
       
       setShowProfitAnalysis(true)
       
-      toast.success(`Profit calculated for ${validEntries.length} entries`)
+      toast.success(`Profit calculated for ${validEntries.length} entries`);
     }
   }
 
@@ -415,10 +508,6 @@ const getProfitMetricsData = (): SaleEntry[] => {
     link.click()
     document.body.removeChild(link)
   }
-
-  // Get properly typed data for ProfitMetrics component
- 
-  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6">
@@ -559,7 +648,6 @@ const getProfitMetricsData = (): SaleEntry[] => {
           </Card>
         </div>
 
-        {/* Fixed ProfitMetrics component with properly typed data */}
         <ProfitMetrics 
           salesData={getProfitMetricsData()} 
           showProfitAnalysis={showProfitAnalysis} 
