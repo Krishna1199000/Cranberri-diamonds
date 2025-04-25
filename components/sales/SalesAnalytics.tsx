@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -13,6 +14,12 @@ import {
   BarChart,
   Bar,
 } from "recharts"
+
+interface Employee {
+  id: string
+  name: string
+  email?: string
+}
 
 interface SaleEntry {
   saleDate: string
@@ -42,13 +49,44 @@ export function SalesAnalytics({
   selectedEmployee,
   setSelectedEmployee
 }: SalesAnalyticsProps) {
-  const employees = [
-    { id: "all", name: "All Employees" },
-    // This would normally be populated from an API call
-    // We'll use dummy data for now as it will be replaced with real data
-    { id: "emp1", name: "John Doe" },
-    { id: "emp2", name: "Jane Smith" }
-  ]
+  const [employees, setEmployees] = useState<Employee[]>([
+    { id: "all", name: "All Employees" }
+  ])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch employees from API
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/employees')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch employees')
+        }
+        
+        const data = await response.json()
+        
+        if (data.success && data.employees) {
+          // Add "All Employees" option along with fetched employees
+          setEmployees([
+            { id: "all", name: "All Employees" },
+            ...data.employees
+          ])
+        } else {
+          throw new Error(data.message || 'Failed to fetch employees')
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred')
+        console.error('Error fetching employees:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchEmployees()
+  }, [])
 
   const timeRanges = [
     { value: "1", label: "Last 24 Hours" },
@@ -94,9 +132,13 @@ export function SalesAnalytics({
         
         <div>
           <label className="block text-sm font-medium mb-1">Filter by Employee</label>
-          <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+          <Select 
+            value={selectedEmployee} 
+            onValueChange={setSelectedEmployee}
+            disabled={isLoading}
+          >
             <SelectTrigger>
-              <SelectValue placeholder="Select employee" />
+              <SelectValue placeholder={isLoading ? "Loading employees..." : "Select employee"} />
             </SelectTrigger>
             <SelectContent>
               {employees.map((employee) => (
@@ -106,6 +148,7 @@ export function SalesAnalytics({
               ))}
             </SelectContent>
           </Select>
+          {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
         </div>
       </div>
 
