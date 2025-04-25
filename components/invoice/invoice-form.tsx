@@ -16,45 +16,67 @@ import { format } from "date-fns";
 import { InvoiceFormValues, invoiceFormSchema } from "@/lib/validators/invoice";
 import { toast } from "sonner";
 import { InvoicePreview } from "./invoice-preview";
+import { SubmitHandler } from "react-hook-form";
 
 export function InvoiceForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [previewData, setPreviewData] = useState<InvoiceFormValues | null>(null);
+    const [previewData, setPreviewData] = useState<(InvoiceFormValues & { id?: string }) | null>(null);
     const [showPreview, setShowPreview] = useState(false);
-    const [lastInvoiceId, setLastInvoiceId] = useState(0);
+    const [lastInvoiceNo, setLastInvoiceNo] = useState<string | null>(null);
+    const [invoiceNoLoading, setInvoiceNoLoading] = useState(true);
 
     useEffect(() => {
-        // Fetch the latest invoice ID for generating the next invoice number
-        fetch("/api/invoices/latest")
+        // Fetch the latest invoice *number* string
+        setInvoiceNoLoading(true);
+        fetch("/api/invoices/latest-number")
             .then((res) => res.json())
             .then((data) => {
-                if (data.lastId) {
-                    setLastInvoiceId(data.lastId);
+                if (data.lastInvoiceNo) {
+                    setLastInvoiceNo(data.lastInvoiceNo);
+                } else {
+                    setLastInvoiceNo(null);
                 }
             })
             .catch((error) => {
-                console.error("Failed to fetch latest invoice ID:", error);
+                console.error("Failed to fetch latest invoice number:", error);
+                toast.error("Could not fetch latest invoice number.");
+                setLastInvoiceNo(null);
+            })
+            .finally(() => {
+                setInvoiceNoLoading(false);
             });
     }, []);
 
-    const form = useForm<InvoiceFormValues>({
+    const form = useForm<InvoiceFormValues, unknown, InvoiceFormValues>({
         resolver: zodResolver(invoiceFormSchema),
         defaultValues: {
+            invoiceNo: "",
             date: new Date(),
-            dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
-            paymentTerms: 30,
+            dueDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+            paymentTerms: 7,
+            companyName: "",
+            addressLine1: "",
+            addressLine2: "",
+            city: "",
+            state: "",
+            country: "",
+            postalCode: "",
+            description: "",
+            shipmentCost: 0,
+            discount: 0,
+            crPayment: 0,
             items: [
                 {
                     description: "",
-                    carat: 0,
+                    carat: 0.01,
                     color: "",
                     clarity: "",
                     lab: "",
                     reportNo: "",
-                    pricePerCarat: 0,
+                    pricePerCarat: 0.01,
                 },
             ],
-        },
+        }
     });
 
     const { fields, append, remove } = useFieldArray({
@@ -62,32 +84,40 @@ export function InvoiceForm() {
         name: "items",
     });
 
+    // Generate and set invoice number when lastInvoiceNo is loaded and date changes
     useEffect(() => {
-        if (lastInvoiceId > 0) {
-            const invoiceNo = generateInvoiceNumber(lastInvoiceId);
-            form.setValue("invoiceNo", invoiceNo);
+        const currentInvoiceDate = form.getValues("date");
+        if (!invoiceNoLoading && currentInvoiceDate) {
+            const newInvoiceNo = generateInvoiceNumber(lastInvoiceNo, currentInvoiceDate);
+            form.setValue("invoiceNo", newInvoiceNo);
         }
-    }, [lastInvoiceId, form]);
+    }, [lastInvoiceNo, invoiceNoLoading, form.watch("date"), form]);
 
-    // Update this part of your InvoiceForm component
-
-    // Updated onSubmit function in your InvoiceForm component
-    const onSubmit = async (data: InvoiceFormValues) => {
+    const onSubmit: SubmitHandler<InvoiceFormValues> = async (data) => {
         try {
             setIsSubmitting(true);
 
-            // Make sure the invoiceNo is included in the submitted data
+            // The invoiceNo should be set by the useEffect hook
             if (!data.invoiceNo) {
-                data.invoiceNo = generateInvoiceNumber(lastInvoiceId);
+                 toast.error("Invoice number could not be generated.");
+                 setIsSubmitting(false);
+                 return;
             }
 
-            // Ensure all the required fields are present
+            // Ensure numeric fields are numbers, default to 0 if empty/NaN
+            const submissionData = {
+                ...data,
+                shipmentCost: Number(data.shipmentCost) || 0,
+                discount: Number(data.discount) || 0,
+                crPayment: Number(data.crPayment) || 0
+            };
+
             const response = await fetch("/api/invoices", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify(submissionData),
             });
 
             if (!response.ok) {
@@ -96,11 +126,18 @@ export function InvoiceForm() {
             }
 
             const result = await response.json();
-            toast.success("Invoice created successfully");
-
-            // Set the data for preview
-            setPreviewData(data);
+            if (!result.invoice || !result.invoice.id) { 
+                throw new Error("API response did not include the created invoice ID.");
+            }
+            
+            toast.success("Invoice created successfully: " + result.invoice.invoiceNo);
+            setLastInvoiceNo(result.invoice.invoiceNo);
+            setPreviewData({ 
+                ...submissionData, 
+                id: result.invoice.id
+            });
             setShowPreview(true);
+
         } catch (error) {
             console.error("Error creating invoice:", error);
             toast.error(error instanceof Error ? error.message : 'Failed to create invoice');
@@ -108,27 +145,35 @@ export function InvoiceForm() {
             setIsSubmitting(false);
         }
     };
+
     const calculateItemTotal = (carat: number, pricePerCarat: number) => {
         return calculateTotal(carat, pricePerCarat);
     };
 
-    const calculateGrandTotal = () => {
+    // Calculate subtotal - just the item totals
+    const calculateSubtotal = () => {
         const values = form.getValues();
         return values.items.reduce((total, item) => {
             return total + calculateItemTotal(Number(item.carat) || 0, Number(item.pricePerCarat) || 0);
         }, 0);
     };
 
+    // Calculate Grand Total with all adjustments
+    const calculateGrandTotal = () => {
+        const values = form.getValues();
+        const subtotal = calculateSubtotal();
+        const discount = Number(values.discount) || 0;
+        const crPayment = Number(values.crPayment) || 0;
+        const shipmentCost = Number(values.shipmentCost) || 0;
+        
+        // Correct calculation: Subtotal - Discount - CR/Payment + Shipping
+        return subtotal - discount - crPayment + shipmentCost;
+    };
+
     if (showPreview && previewData) {
         return (
             <div className="space-y-4">
-                <div className="flex justify-between">
-                    <Button variant="outline" onClick={() => setShowPreview(false)}>
-                        Back to Edit
-                    </Button>
-                    <Button onClick={() => window.print()}>Print Invoice</Button>
-                </div>
-                <InvoicePreview invoice={previewData} />
+                <InvoicePreview invoice={previewData} /> 
             </div>
         );
     }
@@ -137,6 +182,7 @@ export function InvoiceForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Card>
                 <CardContent className="pt-6">
+                    {/* Invoice header information */}
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
@@ -145,8 +191,11 @@ export function InvoiceForm() {
                                     id="invoiceNo"
                                     readOnly
                                     {...form.register("invoiceNo")}
-                                    defaultValue={lastInvoiceId > 0 ? generateInvoiceNumber(lastInvoiceId) : "Generating..."}
+                                    value={invoiceNoLoading ? "Generating..." : form.watch("invoiceNo")}
                                 />
+                                {form.formState.errors.invoiceNo && (
+                                    <p className="text-sm text-red-500">{form.formState.errors.invoiceNo.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -172,7 +221,17 @@ export function InvoiceForm() {
                                                 <Calendar
                                                     mode="single"
                                                     selected={field.value}
-                                                    onSelect={field.onChange}
+                                                    onSelect={(date) => {
+                                                        if (date) {
+                                                            field.onChange(date);
+                                                            const terms = form.getValues("paymentTerms");
+                                                            if (terms) {
+                                                                const newDueDate = new Date(date);
+                                                                newDueDate.setDate(date.getDate() + Number(terms));
+                                                                form.setValue("dueDate", newDueDate);
+                                                            }
+                                                        }
+                                                    }}
                                                     initialFocus
                                                 />
                                             </PopoverContent>
@@ -207,7 +266,11 @@ export function InvoiceForm() {
                                                 <Calendar
                                                     mode="single"
                                                     selected={field.value}
-                                                    onSelect={field.onChange}
+                                                    onSelect={(date) => {
+                                                        if (date) {
+                                                            field.onChange(date);
+                                                        }
+                                                    }}
                                                     initialFocus
                                                 />
                                             </PopoverContent>
@@ -220,18 +283,33 @@ export function InvoiceForm() {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="paymentTerms">Payment Terms (Days)</Label>
-                            <Input
-                                id="paymentTerms"
-                                type="number"
-                                {...form.register("paymentTerms", { valueAsNumber: true })}
-                            />
-                            {form.formState.errors.paymentTerms && (
-                                <p className="text-sm text-red-500">{form.formState.errors.paymentTerms.message}</p>
-                            )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="paymentTerms">Payment Terms (Days)</Label>
+                                <Input
+                                    id="paymentTerms"
+                                    type="number"
+                                    min="1"
+                                    {...form.register("paymentTerms", {
+                                         valueAsNumber: true,
+                                         onChange: (e) => {
+                                             const terms = parseInt(e.target.value);
+                                             const currentInvoiceDate = form.getValues("date");
+                                             if (currentInvoiceDate && !isNaN(terms) && terms > 0) {
+                                                const newDueDate = new Date(currentInvoiceDate);
+                                                newDueDate.setDate(currentInvoiceDate.getDate() + terms);
+                                                form.setValue("dueDate", newDueDate);
+                                             }
+                                         }
+                                    })}
+                                />
+                                {form.formState.errors.paymentTerms && (
+                                    <p className="text-sm text-red-500">{form.formState.errors.paymentTerms.message}</p>
+                                )}
+                            </div>
                         </div>
 
+                        {/* Company and Address information */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="companyName">Company Name</Label>
@@ -313,6 +391,7 @@ export function InvoiceForm() {
                             <Textarea
                                 id="description"
                                 {...form.register("description")}
+                                placeholder="Optional notes or description..."
                             />
                         </div>
                     </div>
@@ -324,13 +403,14 @@ export function InvoiceForm() {
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Diamond Items</h3>
 
+                        {/* Diamond items section */}
                         {fields.map((field, index) => (
                             <div key={field.id} className="border rounded-lg p-4 space-y-4">
                                 <div className="flex justify-between items-center">
                                     <h4 className="font-medium">Item #{index + 1}</h4>
                                     <Button
                                         type="button"
-                                        variant="ghost"
+                                        variant="outline"
                                         size="icon"
                                         onClick={() => {
                                             if (fields.length > 1) {
@@ -364,7 +444,11 @@ export function InvoiceForm() {
                                             id={`items.${index}.carat`}
                                             type="number"
                                             step="0.01"
-                                            {...form.register(`items.${index}.carat`, { valueAsNumber: true })}
+                                            min="0.01"
+                                            {...form.register(`items.${index}.carat`, { 
+                                                valueAsNumber: true,
+                                                setValueAs: v => Number(v) || 0.01
+                                            })}
                                         />
                                         {form.formState.errors.items?.[index]?.carat && (
                                             <p className="text-sm text-red-500">
@@ -431,7 +515,11 @@ export function InvoiceForm() {
                                             id={`items.${index}.pricePerCarat`}
                                             type="number"
                                             step="0.01"
-                                            {...form.register(`items.${index}.pricePerCarat`, { valueAsNumber: true })}
+                                            min="0.01"
+                                            {...form.register(`items.${index}.pricePerCarat`, { 
+                                                valueAsNumber: true,
+                                                setValueAs: v => Number(v) || 0.01
+                                            })}
                                         />
                                         {form.formState.errors.items?.[index]?.pricePerCarat && (
                                             <p className="text-sm text-red-500">
@@ -461,38 +549,108 @@ export function InvoiceForm() {
                             onClick={() =>
                                 append({
                                     description: "",
-                                    carat: 0,
+                                    carat: 0.01,
                                     color: "",
                                     clarity: "",
                                     lab: "",
                                     reportNo: "",
-                                    pricePerCarat: 0,
+                                    pricePerCarat: 0.01,
                                 })
                             }
                         >
                             Add Item
                         </Button>
-
-                        <div className="border-t pt-4 flex justify-between items-center">
-                            <h4 className="font-medium">Grand Total</h4>
-                            <div className="text-xl font-bold">
-                                {formatCurrency(calculateGrandTotal())}
-                            </div>
-                        </div>
                     </div>
                 </CardContent>
             </Card>
 
-            <div className="flex justify-end space-x-4">
+            {/* Totals Section */}
+            <Card>
+                <CardContent className="pt-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                        {/* Subtotal (calculated) */}
+                        <div className="text-right font-medium">Subtotal:</div>
+                        <div className="text-right">{formatCurrency(calculateSubtotal())}</div>
+
+                        {/* Discount Input */}
+                        <Label htmlFor="discount" className="text-right self-center">Discount:</Label>
+                        <Input
+                            id="discount"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="text-right"
+                            {...form.register("discount", {
+                                valueAsNumber: true,
+                                setValueAs: v => Number(v) || 0
+                            })}
+                            placeholder="0.00"
+                        />
+                        {form.formState.errors.discount && (
+                            <p className="col-span-2 text-right text-sm text-red-500">{form.formState.errors.discount.message}</p>
+                        )}
+
+                        {/* CR/Payment Input */}
+                        <Label htmlFor="crPayment" className="text-right self-center">CR/Payment:</Label>
+                        <Input
+                            id="crPayment"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="text-right"
+                            {...form.register("crPayment", {
+                                valueAsNumber: true,
+                                setValueAs: v => Number(v) || 0
+                            })}
+                            placeholder="0.00"
+                        />
+                        {form.formState.errors.crPayment && (
+                            <p className="col-span-2 text-right text-sm text-red-500">{form.formState.errors.crPayment.message}</p>
+                        )}
+
+                        {/* Shipping Input */}
+                        <Label htmlFor="shipmentCost" className="text-right self-center">Shipping:</Label>
+                        <Input
+                            id="shipmentCost"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="text-right"
+                            {...form.register("shipmentCost", {
+                                valueAsNumber: true,
+                                setValueAs: v => Number(v) || 0
+                            })}
+                            placeholder="0.00"
+                        />
+                        {form.formState.errors.shipmentCost && (
+                            <p className="col-span-2 text-right text-sm text-red-500">{form.formState.errors.shipmentCost.message}</p>
+                        )}
+
+                        {/* Separator */}
+                        <div className="col-span-2 border-t my-2"></div>
+
+                        {/* Total Due (Grand Total) */}
+                        <div className="text-right font-bold text-lg">Total Due:</div>
+                        <div className="text-right font-bold text-lg">{formatCurrency(calculateGrandTotal())}</div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="flex justify-end space-x-4 print:hidden">
                 <Button type="button" variant="outline" onClick={() => form.reset()}>
                     Reset
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting || invoiceNoLoading}>
                     {isSubmitting ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Processing
                         </>
+                    ) : invoiceNoLoading ? (
+                         <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Loading...
+                         </>
                     ) : (
                         "Generate Invoice"
                     )}

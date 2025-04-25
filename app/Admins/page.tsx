@@ -51,6 +51,7 @@ export default function AdminDashboard() {
     { label: 'Performance', icon: TrendingUp, href: '/Admins/performance' },
     { label: 'Manage Users', icon: Users, href: '/admin/users' },
     { label: 'Sync Database', icon: Database, href: '/sync' },
+    { label: 'Invoice', icon: Database, href: '/invoices' },
   ];
 
   return (

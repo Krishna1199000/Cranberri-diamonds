@@ -30,10 +30,12 @@ export async function POST(req: Request) {
     // Validate required fields for non-no-sale entries
     if (!data.isNoSale) {
       console.log('Validating required fields for regular sale');
-      if (!data.companyName || !data.totalSaleValue) {
+      if (!data.companyName || !data.totalSaleValue || !data.saleItems || data.saleItems.length === 0) {
         console.log('Missing required fields:', {
           hasCompanyName: !!data.companyName,
           hasTotalSaleValue: !!data.totalSaleValue,
+          hasSaleItems: !!data.saleItems,
+          saleItemsLength: data.saleItems?.length || 0
         });
         return NextResponse.json(
           { success: false, message: 'Missing required fields' },
@@ -44,20 +46,38 @@ export async function POST(req: Request) {
 
     // Format the data before creating the entry
     const formattedData = {
-      ...data,
-      employeeId: session.userId,
+      employeeId: typeof session.userId === 'string' ? session.userId : String(session.userId),
       saleDate: new Date(data.saleDate),
-      totalSaleValue: data.totalSaleValue ? parseFloat(data.totalSaleValue) : null,
-      carat: data.carat ? parseFloat(data.carat) : null,
+      isNoSale: data.isNoSale || false,
+      companyName: data.companyName || null,
       trackingId: data.trackingId || null,
-      shipmentCarrier: data.shipmentCarrier || null
+      shipmentCarrier: data.shipmentCarrier || null,
+      totalSaleValue: data.totalSaleValue ? parseFloat(data.totalSaleValue) : null,
+      description: data.description || null
     };
+
     console.log('Formatted data for database:', formattedData);
 
-    console.log('Attempting to create sales entry in database');
+    // Create the sales entry with related sale items
     const entry = await prisma.salesEntry.create({
-      data: formattedData
+      data: {
+        ...formattedData,
+        saleItems: data.isNoSale ? undefined : {
+          create: data.saleItems.map(item => ({
+            carat: item.carat ? parseFloat(item.carat) : null,
+            color: item.color || null,
+            clarity: item.clarity || null,
+            certificateNo: item.certificateNo || null,
+            pricePerCarat: item.pricePerCarat ? parseFloat(item.pricePerCarat) : null,
+            totalValue: item.totalValue ? parseFloat(item.totalValue) : null
+          }))
+        }
+      },
+      include: {
+        saleItems: true
+      }
     });
+
     console.log('Successfully created sales entry:', entry);
 
     return NextResponse.json({ success: true, entry });
@@ -127,7 +147,8 @@ export async function GET(req: Request) {
             id: true,
             name: true
           }
-        }
+        },
+        saleItems: true
       },
       orderBy: {
         saleDate: 'desc'
@@ -192,17 +213,36 @@ export async function PUT(req: Request) {
       );
     }
 
-    const { id, ...data } = await req.json();
+    const { id, saleItems, ...data } = await req.json();
+
+    // First, delete all existing sale items
+    await prisma.saleItem.deleteMany({
+      where: { salesEntryId: id }
+    });
     
+    // Then update the sales entry with new data and create new sale items
     const entry = await prisma.salesEntry.update({
       where: { id },
       data: {
         ...data,
         saleDate: data.saleDate ? new Date(data.saleDate) : undefined,
         totalSaleValue: data.totalSaleValue ? parseFloat(data.totalSaleValue) : null,
-        carat: data.carat ? parseFloat(data.carat) : null,
         trackingId: data.trackingId || null,
-        shipmentCarrier: data.shipmentCarrier || null
+        shipmentCarrier: data.shipmentCarrier || null,
+        companyName: data.companyName || null,
+        saleItems: data.isNoSale ? undefined : {
+          create: saleItems.map(item => ({
+            carat: item.carat ? parseFloat(item.carat) : null,
+            color: item.color || null,
+            clarity: item.clarity || null,
+            certificateNo: item.certificateNo || null,
+            pricePerCarat: item.pricePerCarat ? parseFloat(item.pricePerCarat) : null,
+            totalValue: item.totalValue ? parseFloat(item.totalValue) : null
+          }))
+        }
+      },
+      include: {
+        saleItems: true
       }
     });
 

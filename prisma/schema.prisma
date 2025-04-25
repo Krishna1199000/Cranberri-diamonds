@@ -160,30 +160,36 @@ model ChatMessage {
 }
 
 model SalesEntry {
-  id               String   @id @default(uuid())
+  id               String            @id @default(uuid())
   employeeId       String
   trackingId       String?
   shipmentCarrier  String?
-  carat            Float?
-  color            String?
-  clarity          String?
-  cut              String?
-  totalSaleValue   Float?
-  purchaseValue    Float?   // Add this field
-  profit           Float?   // Add this field
-  profitMargin     Float?   // Add this field
-  totalProfit      Float?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
   companyName      String?
   description      String?
-  isNoSale         Boolean  @default(false)
-  saleDate         DateTime @default(now())
-  employee         User     @relation(fields: [employeeId], references: [id])
-
-  @@map("sales_entries")
+  isNoSale         Boolean           @default(false)
+  saleDate         DateTime          @default(now())
+  totalSaleValue   Float?
+  purchaseValue    Float?            // Add this field
+  profit           Float?            // Add this field
+  profitMargin     Float?            // Add this field
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  employee         User              @relation(fields: [employeeId], references: [id])
+  saleItems        SaleItem[]
 }
 
+// New model for individual diamond sales within an entry
+model SaleItem {
+  id                String    @id @default(uuid())
+  salesEntryId      String
+  carat             Float?
+  color             String?
+  clarity           String?
+  certificateNo     String?   // Added certificate number
+  pricePerCarat     Float?    // Added price per carat
+  totalValue        Float?    // Total value: pricePerCarat * carat
+  salesEntry        SalesEntry @relation(fields: [salesEntryId], references: [id], onDelete: Cascade)
+}
 model PerformanceReport {
   id                   String   @id @default(uuid())
   userId               String
@@ -227,7 +233,14 @@ model Invoice {
   country        String
   postalCode     String
   description    String?
-  totalAmount    Float
+
+  // New fields for calculation breakdown
+  subtotal       Float         @default(0)
+  discount       Float         @default(0)
+  crPayment      Float         @default(0) @map("cr_payment") // CR/Payment
+  shipmentCost   Float         @default(0) @map("shipment_cost") // Shipping cost
+
+  totalAmount    Float         @default(0) @map("total_amount") // Represents the final Total Due
   amountInWords  String
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -248,6 +261,7 @@ model InvoiceItem {
   reportNo      String
   pricePerCarat Float
   total         Float
+  
   invoiceId     String   // FK to Invoice
   invoice       Invoice  @relation(fields: [invoiceId], references: [id])
 }

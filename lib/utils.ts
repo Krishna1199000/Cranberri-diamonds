@@ -7,113 +7,168 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number): string {
+  // Format without currency symbol, will be added in PDF/UI manually
   return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
     minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
-export function formatDate(date: Date): string {
-  return format(date, 'dd/MM/yyyy');
+// New date formatter
+export function formatDateWithSuffix(date: Date): string {
+  const day = format(date, 'd');
+  const month = format(date, 'MMM');
+  const year = format(date, 'yyyy');
+
+  let suffix = 'th';
+  if (day === '1' || day === '21' || day === '31') {
+    suffix = 'st';
+  } else if (day === '2' || day === '22') {
+    suffix = 'nd';
+  } else if (day === '3' || day === '23') {
+    suffix = 'rd';
+  }
+
+  return `${day}${suffix} ${month}' ${year}`;
 }
 
 export function calculateTotal(carat: number, pricePerCarat: number): number {
   return carat * pricePerCarat;
 }
 
+// Modified numberToWords function for the specific format
 export function numberToWords(num: number): string {
   const units = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
   const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
   const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-  
-  const convertLessThanOneThousand = (num: number): string => {
-    if (num === 0) {
-      return '';
+
+  const convertLessThanOneThousand = (n: number): string => {
+    if (n === 0) return '';
+    let words = '';
+    if (n >= 100) {
+      words += units[Math.floor(n / 100)] + ' Hundred';
+      n %= 100;
+      if (n > 0) words += ' ';
     }
-    
-    let result = '';
-    
-    if (num >= 100) {
-      result += units[Math.floor(num / 100)] + ' Hundred ';
-      num %= 100;
+    if (n >= 10 && n < 20) {
+      words += teens[n - 10];
+    } else if (n >= 20) {
+      words += tens[Math.floor(n / 10)];
+      n %= 10;
+      if (n > 0) words += ' ' + units[n];
+    } else if (n > 0) {
+      words += units[n];
     }
-    
-    if (num >= 10 && num < 20) {
-      result += teens[num - 10];
-      return result;
-    }
-    
-    if (num >= 20) {
-      result += tens[Math.floor(num / 10)];
-      num %= 10;
-      
-      if (num > 0) {
-        result += ' ' + units[num];
-      }
-    } else if (num > 0) {
-      result += units[num];
-    }
-    
-    return result;
+    return words;
   };
-  
-  if (num === 0) {
-    return 'Zero';
-  }
-  
-  // Handle negative numbers
+
+  const convert = (n: number): string => {
+    if (n === 0) return 'Zero';
+    let words = '';
+    if (n >= 1e9) {
+      words += convertLessThanOneThousand(Math.floor(n / 1e9)) + ' Billion';
+      n %= 1e9;
+      if (n > 0) words += ' ';
+    }
+    if (n >= 1e6) {
+      words += convertLessThanOneThousand(Math.floor(n / 1e6)) + ' Million';
+      n %= 1e6;
+      if (n > 0) words += ' ';
+    }
+    if (n >= 1e3) {
+      words += convertLessThanOneThousand(Math.floor(n / 1e3)) + ' Thousand';
+      n %= 1e3;
+      if (n > 0) words += ' ';
+    }
+    words += convertLessThanOneThousand(n);
+    return words.trim();
+  };
+
+  if (num === 0) return '(US Dollar Zero and Cent Zero)';
+  if (typeof num !== 'number') return ''; // Handle potential invalid input
+
   const isNegative = num < 0;
   num = Math.abs(num);
-  
-  // Split into whole and decimal parts
+
   const decimalStr = num.toFixed(2);
   const parts = decimalStr.split('.');
-  const wholePart = parseInt(parts[0]);
-  const decimalPart = parseInt(parts[1]);
-  
-  // Convert whole part
-  let result = '';
-  
-  if (wholePart >= 1e12) {
-    result += convertLessThanOneThousand(Math.floor(wholePart / 1e12)) + ' Trillion ';
-    num %= 1e12;
+  const dollarPart = parseInt(parts[0], 10);
+  const centPart = parseInt(parts[1], 10);
+
+  const dollarWords = convert(dollarPart);
+  const centWords = centPart === 0 ? 'Zero' : convert(centPart);
+
+  let result = `(US Dollar ${dollarWords} and Cent ${centWords})`;
+
+  if (isNegative) {
+    result = `Negative ${result}`; // Consider how to handle negative if needed
   }
-  
-  if (wholePart >= 1e9) {
-    result += convertLessThanOneThousand(Math.floor(wholePart / 1e9)) + ' Billion ';
-    num %= 1e9;
-  }
-  
-  if (wholePart >= 1e6) {
-    result += convertLessThanOneThousand(Math.floor(wholePart / 1e6)) + ' Million ';
-    num %= 1e6;
-  }
-  
-  if (wholePart >= 1e3) {
-    result += convertLessThanOneThousand(Math.floor(wholePart / 1e3)) + ' Thousand ';
-    num %= 1e3;
-  }
-  
-  result += convertLessThanOneThousand(wholePart % 1000);
-  
-  // Add dollars
-  result = result.trim() + ' Dollars';
-  
-  // Add cents
-  if (decimalPart > 0) {
-    result += ' and ' + convertLessThanOneThousand(decimalPart) + ' Cents';
-  }
-  
-  // Add 'Only' at the end and handle negative numbers
-  return (isNegative ? 'Negative ' : '') + result + ' Only';
+
+  return result;
 }
 
-export function generateInvoiceNumber(lastInvoiceId: number): string {
-  const nextId = lastInvoiceId + 1;
-  const paddedId = nextId.toString().padStart(4, '0');
-  const today = new Date();
-  const datePart = format(today, 'ddMM');
-  
-  return `CD-${paddedId}A/${datePart.substring(0, 2)}${datePart.substring(2, 4)}`;
+// Updated invoice number generation logic
+export function generateInvoiceNumber(lastInvoiceNo: string | null | undefined, invoiceDate: Date): string {
+  console.log(`[generateInvoiceNumber] Received lastInvoiceNo: ${lastInvoiceNo}, invoiceDate: ${invoiceDate.toISOString()}`); // Log inputs
+
+  const prefix = 'CD-';
+  const datePart = format(invoiceDate, 'ddMM');
+  let nextNum = 1;
+  let nextLetterCode = 'A'.charCodeAt(0);
+
+  if (lastInvoiceNo && lastInvoiceNo.startsWith(prefix)) {
+    const parts = lastInvoiceNo.substring(prefix.length).split('/');
+    console.log(`[generateInvoiceNumber] Parsed parts: ${JSON.stringify(parts)}`); // Log parts
+
+    if (parts.length > 0) {
+        const numericAlphaPart = parts[0];
+        if (numericAlphaPart && numericAlphaPart.length > 1) { 
+            const numStr = numericAlphaPart.substring(0, numericAlphaPart.length - 1);
+            const letter = numericAlphaPart.substring(numericAlphaPart.length - 1);
+            console.log(`[generateInvoiceNumber] Parsed numStr: ${numStr}, letter: ${letter}`); // Log parsed num/letter
+
+            const currentNum = parseInt(numStr, 10);
+            const currentLetterCode = letter.charCodeAt(0);
+
+            if (!isNaN(currentNum) && !isNaN(currentLetterCode) && currentLetterCode >= 'A'.charCodeAt(0) && currentLetterCode <= 'Z'.charCodeAt(0) ) {
+                if (currentNum === 9999) {
+                    nextNum = 1;
+                    nextLetterCode = currentLetterCode + 1;
+                    console.log(`[generateInvoiceNumber] Rollover detected. nextNum: ${nextNum}, nextLetterCode: ${nextLetterCode}`);
+                } else {
+                    nextNum = currentNum + 1;
+                    nextLetterCode = currentLetterCode;
+                    console.log(`[generateInvoiceNumber] Incremented number. nextNum: ${nextNum}, nextLetterCode: ${nextLetterCode}`);
+                }
+            } else {
+                 console.error(`[generateInvoiceNumber] Failed to parse numeric/alpha part: '${numericAlphaPart}'. Defaulting.`);
+                 nextNum = 1;
+                 nextLetterCode = 'A'.charCodeAt(0);
+            }
+        } else {
+             console.error(`[generateInvoiceNumber] Invalid numericAlphaPart: '${numericAlphaPart}'. Defaulting.`);
+             nextNum = 1;
+             nextLetterCode = 'A'.charCodeAt(0);
+        }
+    } else {
+         console.error(`[generateInvoiceNumber] Failed to split lastInvoiceNo by '/'. Defaulting.`);
+         nextNum = 1;
+         nextLetterCode = 'A'.charCodeAt(0);
+    }
+  } else {
+       console.log(`[generateInvoiceNumber] No valid lastInvoiceNo provided or prefix mismatch. Starting new sequence.`);
+       nextNum = 1;
+       nextLetterCode = 'A'.charCodeAt(0);
+  }
+
+  if (nextLetterCode > 'Z'.charCodeAt(0)) {
+      console.error("[generateInvoiceNumber] Invoice letter sequence exceeded 'Z'. Resetting to A.");
+      nextLetterCode = 'A'.charCodeAt(0);
+  }
+
+  const nextLetter = String.fromCharCode(nextLetterCode);
+  const paddedNum = nextNum.toString().padStart(4, '0');
+  const result = `${prefix}${paddedNum}${nextLetter}/${datePart}`;
+  console.log(`[generateInvoiceNumber] Generated result: ${result}`); // Log final result
+  return result;
 }

@@ -15,8 +15,8 @@ export type DiamondItem = z.infer<typeof diamondItemSchema>;
 
 export const invoiceFormSchema = z.object({
   invoiceNo: z.string().optional(),
-  date: z.date(),
-  dueDate: z.date(),
+  date: z.coerce.date({ errorMap: () => ({ message: 'Invalid date format' }) }),
+  dueDate: z.coerce.date({ errorMap: () => ({ message: 'Invalid due date format' }) }),
   paymentTerms: z.coerce.number().min(1, "Payment terms are required"),
   companyName: z.string().min(1, "Company name is required"),
   addressLine1: z.string().min(1, "Address is required"),
@@ -26,7 +26,11 @@ export const invoiceFormSchema = z.object({
   country: z.string().min(1, "Country is required"),
   postalCode: z.string().min(1, "Postal code is required"),
   description: z.string().optional(),
+  shipmentCost: z.number(), // Make required
+  discount: z.number(),     // Make required
+  crPayment: z.number(),    // Make required
   items: z.array(diamondItemSchema).min(1, "At least one item is required"),
 });
 
 export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
+

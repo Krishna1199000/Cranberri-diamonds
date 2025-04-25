@@ -7,9 +7,13 @@ const prisma = new PrismaClient();
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
   try {
+    // Properly access the id from context params
+    const id = resolvedParams.id;
+    
     const session = await getSession();
     
     if (!session || (session.role !== 'admin' && session.role !== 'employee')) {
@@ -30,7 +34,7 @@ export async function PUT(
     }
     
     const entry = await prisma.salesEntry.update({
-      where: { id: params.id },
+      where: { id },
       data: { 
         profit: profit,
         profitMargin: profitMargin,
