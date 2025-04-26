@@ -421,21 +421,9 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
             {loading ? 'Searching...' : 'Search Diamonds'}
           </motion.button>
 
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-8 py-3 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-          >
-            Advanced Search
-          </motion.button>
+          
 
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-8 py-3 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-          >
-            Post Your Demand
-          </motion.button>
+          
         </section>
       </div>
     </motion.div>

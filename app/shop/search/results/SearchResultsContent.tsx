@@ -219,7 +219,7 @@ export default function SearchResultsContent() {
     searchParams.forEach((value, key) => {
       currentParams.set(key, value);
     });
-    router.push(`/search?${currentParams.toString()}`);
+    router.push('/Admins');
   };
 
   if (loading) {

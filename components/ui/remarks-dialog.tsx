@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./dialog";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Pencil, Trash2 } from 'lucide-react';
@@ -21,10 +21,10 @@ interface RemarksDialogProps {
   isOpen: boolean;
   onClose: () => void;
   shipmentId: string;
-  userRole: string;
+  isAdmin: boolean;
 }
 
-export function RemarksDialog({ isOpen, onClose, shipmentId, userRole }: RemarksDialogProps) {
+export function RemarksDialog({ isOpen, onClose, shipmentId, isAdmin }: RemarksDialogProps) {
   const [remarks, setRemarks] = useState<Remark[]>([]);
   const [newRemark, setNewRemark] = useState('');
   const [editingRemark, setEditingRemark] = useState<{ id: string; content: string } | null>(null);
@@ -175,9 +175,10 @@ export function RemarksDialog({ isOpen, onClose, shipmentId, userRole }: Remarks
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Remarks</DialogTitle>
+          <DialogDescription>Add, view, edit, or delete remarks for this master.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4">
           <form onSubmit={handleSubmit} className="flex gap-2">
             <Input
               value={newRemark}
@@ -232,7 +233,7 @@ export function RemarksDialog({ isOpen, onClose, shipmentId, userRole }: Remarks
                           <span className="mx-2">•</span>
                           <span>{new Date(remark.createdAt).toLocaleString()}</span>
                         </div>
-                        {(userRole === 'admin' || remark.user.role === userRole) && (
+                        {(isAdmin || remark.user.role === 'admin') && (
                           <div className="flex gap-2">
                             <Button
                               variant="outline"

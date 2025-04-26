@@ -1,11 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Trash2, FileText } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { AdminLayout } from "@/components/layout/AdminLayout";
 
 interface Invoice {
   id: string;
@@ -20,9 +22,11 @@ interface Invoice {
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchInvoices = async () => {
+      setLoading(true);
       try {
         const response = await fetch("/api/invoices");
         const data = await response.json();
@@ -32,6 +36,7 @@ export default function InvoicesPage() {
         }
       } catch (error) {
         console.error("Failed to fetch invoices:", error);
+        toast.error("Failed to load invoices.");
       } finally {
         setLoading(false);
       }
@@ -40,13 +45,43 @@ export default function InvoicesPage() {
     fetchInvoices();
   }, []);
 
+  const handleDelete = async (invoiceId: string) => {
+    if (!window.confirm("Are you sure you want to delete this invoice? This action cannot be undone.")) {
+        return;
+    }
+    
+    setDeletingId(invoiceId);
+    
+    try {
+        const response = await fetch(`/api/invoices/${invoiceId}`, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete invoice');
+        }
+
+        setInvoices(currentInvoices => 
+            currentInvoices.filter(invoice => invoice.id !== invoiceId)
+        );
+        toast.success("Invoice deleted successfully");
+
+    } catch (error) {
+        console.error("Error deleting invoice:", error);
+        toast.error(error instanceof Error ? error.message : 'Failed to delete invoice');
+    } finally {
+        setDeletingId(null);
+    }
+  };
+
   return (
-    <div className="container py-10">
+    <AdminLayout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Invoices</h1>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Invoices</h1>
         <Link href="/invoices/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
             Create New Invoice
           </Button>
         </Link>
@@ -57,46 +92,59 @@ export default function InvoicesPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : invoices.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center h-64">
-            <p className="text-muted-foreground mb-4">No invoices found</p>
+        <Card className="text-center">
+          <CardHeader>
+              <CardTitle>No Invoices Yet</CardTitle>
+              <CardDescription>Ready to create your first invoice?</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center pt-2 pb-6">
+            <FileText className="w-16 h-16 text-muted-foreground mb-4"/>
             <Link href="/invoices/new">
-              <Button>Create your first invoice</Button>
+              <Button>Create Invoice</Button>
             </Link>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           {invoices.map((invoice) => (
-            <Card key={invoice.id}>
-              <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row justify-between">
-                  <div>
-                    <h3 className="font-semibold text-lg">{invoice.invoiceNo}</h3>
-                    <p className="text-muted-foreground">{invoice.companyName}</p>
-                  </div>
-                  <div className="mt-4 md:mt-0 text-right">
-                    <p className="font-medium">{formatCurrency(invoice.totalAmount)}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Created: {new Date(invoice.createdAt).toLocaleDateString()}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Due: {new Date(invoice.dueDate).toLocaleDateString()}
-                    </p>
-                  </div>
+            <Card key={invoice.id} className="hover:shadow-lg transition-shadow duration-200">
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-semibold text-lg text-primary">{invoice.invoiceNo}</h3>
+                      <span className="text-lg font-medium">{formatCurrency(invoice.totalAmount)}</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{invoice.companyName}</p>
+                    <div className="text-xs text-muted-foreground">
+                         <p>Created: {new Date(invoice.createdAt).toLocaleDateString()}</p>
+                         <p>Due: {new Date(invoice.dueDate).toLocaleDateString()}</p>
+                    </div>
                 </div>
-                <div className="mt-4 flex justify-end space-x-2">
+                
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2">
                   <Link href={`/invoices/${invoice.id}`}>
-                    <Button variant="outline" size="sm">
-                      View
-                    </Button>
+                    <Button variant="outline" size="sm">View</Button>
                   </Link>
+                  <Button
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleDelete(invoice.id)}
+                    disabled={deletingId === invoice.id}
+                    className="flex items-center gap-1"
+                  >
+                    {deletingId === invoice.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <Trash2 className="h-4 w-4" />
+                    )}
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

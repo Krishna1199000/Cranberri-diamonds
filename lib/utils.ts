@@ -113,8 +113,8 @@ export function generateInvoiceNumber(lastInvoiceNo: string | null | undefined, 
 
   const prefix = 'CD-';
   const datePart = format(invoiceDate, 'ddMM');
-  let nextNum = 1;
-  let nextLetterCode = 'A'.charCodeAt(0);
+  let nextNum = 1; // Default starting number
+  let nextLetterCode = 'A'.charCodeAt(0); // Default starting letter
 
   if (lastInvoiceNo && lastInvoiceNo.startsWith(prefix)) {
     const parts = lastInvoiceNo.substring(prefix.length).split('/');
@@ -142,22 +142,22 @@ export function generateInvoiceNumber(lastInvoiceNo: string | null | undefined, 
                 }
             } else {
                  console.error(`[generateInvoiceNumber] Failed to parse numeric/alpha part: '${numericAlphaPart}'. Defaulting.`);
-                 nextNum = 1;
+                 nextNum = 54; // << CHANGE: Start at 54 if parsing fails
                  nextLetterCode = 'A'.charCodeAt(0);
             }
         } else {
              console.error(`[generateInvoiceNumber] Invalid numericAlphaPart: '${numericAlphaPart}'. Defaulting.`);
-             nextNum = 1;
+             nextNum = 54; // << CHANGE: Start at 54 if parsing fails
              nextLetterCode = 'A'.charCodeAt(0);
         }
     } else {
          console.error(`[generateInvoiceNumber] Failed to split lastInvoiceNo by '/'. Defaulting.`);
-         nextNum = 1;
+         nextNum = 54; // << CHANGE: Start at 54 if parsing fails
          nextLetterCode = 'A'.charCodeAt(0);
     }
   } else {
        console.log(`[generateInvoiceNumber] No valid lastInvoiceNo provided or prefix mismatch. Starting new sequence.`);
-       nextNum = 1;
+       nextNum = 54; // << CHANGE: Start at 54 for the very first invoice
        nextLetterCode = 'A'.charCodeAt(0);
   }
 

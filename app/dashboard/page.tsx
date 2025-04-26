@@ -1,19 +1,39 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect, useMemo, useCallback } from "react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Search, Plus, Eye, FileText, Edit, Trash2, ChevronDown } from "lucide-react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { toast } from "sonner"
-import { Eye, Pencil, Trash2, Search, LogOut, Package, Plus, Menu, X, MessageSquare } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog"
-import { RemarksDialog } from "@/components/ui/remarks-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import { EmployeeLayout } from "@/components/layout/EmployeeLayout";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { RemarksDialog } from '@/components/ui/remarks-dialog'
+import { CranberriLoader } from "@/components/ui/CranberriLoader";
 
 interface Shipment {
   id: string
@@ -42,437 +62,367 @@ interface Shipment {
 export default function Dashboard() {
   const router = useRouter()
   const [shipments, setShipments] = useState<Shipment[]>([])
+  const [filteredShipments, setFilteredShipments] = useState<Shipment[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [isRemarksDialogOpen, setIsRemarksDialogOpen] = useState(false)
-  const [selectedShipmentId, setSelectedShipmentId] = useState<string>('')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const itemsPerPage = 10
-  const [totalPages, setTotalPages] = useState(1)
-  const [userRole, setUserRole] = useState<string>('')
+  const [selectedShipmentId, setSelectedShipmentId] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [shipmentToDelete, setShipmentToDelete] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchShipments()
-  }, [currentPage])
-
-  const fetchShipments = async () => {
+  const fetchShipments = useCallback(async () => {
+    setLoading(true)
     try {
       const res = await fetch('/api/shipments')
       const data = await res.json()
       if (data.success) {
         setShipments(data.shipments)
-        setTotalPages(Math.ceil(data.shipments.length / itemsPerPage))
-      }
-    } catch {
-      toast.error('Failed to fetch shipments')
-    }
-  }
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this shipment?')) return
-
-    try {
-      const res = await fetch(`/api/shipments/${id}`, {
-        method: 'DELETE',
-      })
-      const data = await res.json()
-
-      if (data.success) {
-        toast.success('Shipment deleted successfully')
-        fetchShipments()
+        setFilteredShipments(data.shipments)
       } else {
-        toast.error(data.message || 'Failed to delete shipment')
+        toast.error(data.message || "Failed to fetch shipments")
       }
     } catch {
-      toast.error('Something went wrong')
+      toast.error("Something went wrong while fetching shipments")
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    const fetchUserRole = async () => {
+    const checkRoleAndFetch = async () => {
+      setLoading(true);
       try {
-        const res = await fetch('/api/auth/status', {
-          credentials: 'include'
-        });
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (!res.ok) {
+          toast.error("Session expired or invalid. Please sign in.");
+          router.push('/auth/signin');
+          return;
+        }
         const data = await res.json();
         setUserRole(data.role);
+
+        if (data.role === 'admin' || data.role === 'employee') {
+            await fetchShipments();
+        } else {
+             toast.error("Access Denied: You don't have permission to view this page.");
+            router.push('/auth/signin');
+        }
       } catch (error) {
         console.error('Error fetching user role:', error);
+        toast.error("Could not verify user session.");
+        setLoading(false);
+        router.push('/auth/signin');
       }
     };
+    checkRoleAndFetch();
+  }, [fetchShipments, router]);
 
-    fetchUserRole();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        toast.success('Logged out successfully')
-        router.push('/auth/signin')
-      } else {
-        toast.error('Failed to logout')
-      }
-    } catch {
-      toast.error('Something went wrong')
-    }
-  }
+  useEffect(() => {
+    const lowerCaseSearchTerm = searchTerm.toLowerCase()
+    const filtered = shipments.filter(shipment =>
+      (shipment.companyName?.toLowerCase() || '').includes(lowerCaseSearchTerm) ||
+      (shipment.email?.toLowerCase() || '').includes(lowerCaseSearchTerm) ||
+      (shipment.phoneNo || '').includes(searchTerm) ||
+      (shipment.salesExecutive?.toLowerCase() || '').includes(lowerCaseSearchTerm)
+    )
+    setFilteredShipments(filtered)
+    setCurrentPage(1)
+  }, [searchTerm, shipments])
 
   const handleView = (shipment: Shipment) => {
     setSelectedShipment(shipment)
     setIsViewDialogOpen(true)
   }
+  
+   const handleEdit = (shipmentId: string) => {
+        router.push(`/dashboard/edit-shipment/${shipmentId}`);
+    };
 
   const handleViewRemarks = (shipmentId: string) => {
     setSelectedShipmentId(shipmentId)
     setIsRemarksDialogOpen(true)
   }
 
-  const filteredShipments = shipments.filter(shipment =>
-    shipment.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    shipment.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    shipment.phoneNo.includes(searchTerm) ||
-    shipment.salesExecutive.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const handleDelete = async (shipmentId: string) => {
+     if (userRole !== 'admin') {
+         toast.error("Unauthorized: Only admins can delete.");
+         return;
+     }
+      if (!window.confirm('Are you sure you want to delete this master? This action cannot be undone.')) {
+          return;
+      }
+      try {
+          const response = await fetch(`/api/shipments/${shipmentId}`, {
+              method: 'DELETE',
+              credentials: 'include'
+          });
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || 'Failed to delete master');
+          }
+          toast.success('Master deleted successfully');
+          fetchShipments();
+      } catch (error) {
+          console.error('Delete error:', error);
+          toast.error(error instanceof Error ? error.message : 'Failed to delete master');
+      }
+      setShipmentToDelete(null);
+      setShowDeleteConfirm(false);
+  };
 
-  const paginatedShipments = filteredShipments.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  const paginatedShipments = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    return filteredShipments.slice(startIndex, startIndex + itemsPerPage)
+  }, [filteredShipments, currentPage, itemsPerPage])
 
-  const startIndex = (currentPage - 1) * itemsPerPage
+  const totalPages = Math.ceil(filteredShipments.length / itemsPerPage)
 
-  const navItems = [
-    { label: 'Create Master', icon: Plus, href: '/dashboard/create-shipment' },
-  ]
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages))
+  }
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1))
+  }
+
+  if (loading) {
+      return <CranberriLoader />;
+  }
+
+  const LayoutComponent = userRole === 'admin' ? AdminLayout : userRole === 'employee' ? EmployeeLayout : null;
+
+  if (!LayoutComponent) {
+       return <div className="flex justify-center items-center min-h-screen">Error: Invalid user role or session.</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
-      <nav className="bg-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="lg:hidden"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-              >
-                {isMenuOpen ? <X /> : <Menu />}
-              </motion.button>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center ml-4"
-              >
-                <Package className="h-8 w-8 text-blue-600" />
-                <span className="ml-2 text-xl font-bold">Master</span>
-              </motion.div>
-            </div>
+    <LayoutComponent>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Manage Masters</h1>
+        {(userRole === 'admin' || userRole === 'employee') && (
+             <Link href="/dashboard/create-shipment">
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" /> Create Master
+              </Button>
+            </Link>
+        )}
+      </div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-8">
-              {navItems.map((item) => (
-                <motion.button
-                  key={item.label}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-blue-600"
-                  onClick={() => router.push(item.href)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </motion.button>
-              ))}
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  variant="default"
-                  className="flex items-center space-x-2"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-5 w-5" />
-                  <span>Logout</span>
-                </Button>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Navigation */}
-        <AnimatePresence>
-          {isMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden"
-            >
-              <div className="px-2 pt-2 pb-3 space-y-1">
-                {navItems.map((item) => (
-                  <motion.button
-                    key={item.label}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center space-x-2 w-full px-3 py-2 rounded-md text-gray-700 hover:text-blue-600 hover:bg-gray-100"
-                    onClick={() => {
-                      router.push(item.href);
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span>{item.label}</span>
-                  </motion.button>
-                ))}
-                <Button
-                  variant="default"
-                  className="flex items-center space-x-2 w-full"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-5 w-5" />
-                  <span>Logout</span>
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
-
-      {/* Main Content */}
-      <motion.main
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-7xl mx-auto px-4 py-8"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-center mb-6"
-        >
-          <h1 className="text-3xl font-bold text-gray-900">
-            Manage Masters
-          </h1>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+      <Card>
+        <CardHeader>
+            <div className="mb-4 relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <Input
                 type="text"
-                placeholder="Search Master..."
+                placeholder="Search Masters..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 w-full"
               />
             </div>
-          </div>
-        </motion.div>
+        </CardHeader>
+        <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">Sr No</TableHead>
+                    <TableHead>Company Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Salesman</TableHead>
+                    <TableHead>Last Updated</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center h-24">
+                        Loading...
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedShipments.length > 0 ? (
+                    paginatedShipments.map((shipment, index) => (
+                      <TableRow key={shipment.id}>
+                        <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
+                        <TableCell className="font-medium">{shipment.companyName}</TableCell>
+                        <TableCell>{shipment.email}</TableCell>
+                        <TableCell>{shipment.phoneNo}</TableCell>
+                        <TableCell>{shipment.salesExecutive}</TableCell>
+                        <TableCell>
+                          {new Date(shipment.updatedAt).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                           <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  Actions <ChevronDown className="ml-1 h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleView(shipment)}>
+                                  <Eye className="mr-2 h-4 w-4" /> View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleViewRemarks(shipment.id)}>
+                                  <FileText className="mr-2 h-4 w-4" /> View Remarks
+                                </DropdownMenuItem>
+                                 {(userRole === 'admin' || userRole === 'employee') && (
+                                     <DropdownMenuItem onClick={() => handleEdit(shipment.id)}>
+                                         <Edit className="mr-2 h-4 w-4" /> Edit
+                                     </DropdownMenuItem>
+                                 )}
+                                {userRole === 'admin' && (
+                                  <DropdownMenuItem 
+                                    onClick={() => {
+                                      setShipmentToDelete(shipment.id);
+                                      setShowDeleteConfirm(true);
+                                    }}
+                                    className="text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-900/20"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center h-24">
+                        No masters found {searchTerm ? `matching "${searchTerm}"` : ""}.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-lg shadow-lg overflow-hidden"
-        >
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {["Sr No", "Company Name", "Email", "Phone", "Salesman", "Last Updated", "Actions"].map((header) => (
-                    <th key={header} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedShipments.map((shipment, index) => (
-                  <motion.tr
-                    key={shipment.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="hover:bg-gray-50"
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center mt-4">
+                <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {startIndex + index + 1}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {shipment.companyName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {shipment.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {shipment.phoneNo}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {shipment.salesExecutive}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(shipment.updatedAt).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
-                        <motion.div whileHover={{ scale: 1.1 }}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleView(shipment)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
-                        <motion.div whileHover={{ scale: 1.1 }}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewRemarks(shipment.id)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
-                        {userRole === 'admin' && (
-                          <>
-                            <motion.div whileHover={{ scale: 1.1 }}>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push(`/dashboard/edit-shipment/${shipment.id}`)}
-                                className="text-blue-600 hover:text-blue-900"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </motion.div>
-                            <motion.div whileHover={{ scale: 1.1 }}>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(shipment.id)}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </motion.div>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+        </CardContent>
+      </Card>
 
-        {/* Pagination */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="flex justify-center space-x-2 mt-6"
-        >
-          <Button
-            variant="outline"
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </Button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <motion.div key={page} whileHover={{ scale: 1.1 }}>
-              <Button
-                variant={currentPage === page ? "default" : "outline"}
-                onClick={() => setCurrentPage(page)}
-              >
-                {page}
-              </Button>
-            </motion.div>
-          ))}
-          <Button
-            variant="outline"
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </Button>
-        </motion.div>
-      </motion.main>
-
-      {/* View Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-gray-900">
-              Shipment Details
-            </DialogTitle>
+            <DialogTitle>Master Details</DialogTitle>
+            <DialogDescription>
+              Detailed information for {selectedShipment?.companyName}.
+            </DialogDescription>
           </DialogHeader>
           {selectedShipment && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-2 gap-6 mt-4"
-            >
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Company Information</h3>
-                <div className="space-y-2">
-                  <p><span className="font-medium">Company Name:</span> {selectedShipment.companyName}</p>
-                  <p><span className="font-medium">Owner Name:</span> {selectedShipment.ownerName}</p>
-                  <p><span className="font-medium">Email:</span> {selectedShipment.email}</p>
-                  <p><span className="font-medium">Phone:</span> {selectedShipment.phoneNo}</p>
-                  <p><span className="font-medium">Website:</span> {selectedShipment.website || 'N/A'}</p>
+            <div className="grid gap-4 py-4 text-sm">
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="text-right font-medium col-span-1">Company:</span>
+                    <span className="col-span-3">{selectedShipment.companyName}</span>
                 </div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Address</h3>
-                <div className="space-y-2">
-                  <p>{selectedShipment.addressLine1}</p>
-                  {selectedShipment.addressLine2 && <p>{selectedShipment.addressLine2}</p>}
-                  <p>{`${selectedShipment.city}, ${selectedShipment.state}`}</p>
-                  <p>{`${selectedShipment.country} - ${selectedShipment.postalCode}`}</p>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="text-right font-medium col-span-1">Email:</span>
+                    <span className="col-span-3">{selectedShipment.email}</span>
                 </div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Business Details</h3>
-                <div className="space-y-2">
-                  <p><span className="font-medium">Organization Type:</span> {selectedShipment.organizationType}</p>
-                  <p><span className="font-medium">Business Type:</span> {selectedShipment.businessType}</p>
-                  <p><span className="font-medium">Business Reg No:</span> {selectedShipment.businessRegNo}</p>
-                  <p><span className="font-medium">PAN No:</span> {selectedShipment.panNo}</p>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="text-right font-medium col-span-1">Phone:</span>
+                    <span className="col-span-3">{selectedShipment.phoneNo}</span>
                 </div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Shipping Details</h3>
-                <div className="space-y-2">
-                  <p><span className="font-medium">Payment Terms:</span> {selectedShipment.paymentTerms}</p>
-                  <p><span className="font-medium">Carrier:</span> {selectedShipment.carrier}</p>
-                  <p><span className="font-medium">Sales Executive:</span> {selectedShipment.salesExecutive}</p>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="text-right font-medium col-span-1">Address 1:</span>
+                    <span className="col-span-3">{selectedShipment.addressLine1}</span>
                 </div>
-              </div>
-            </motion.div>
+                {selectedShipment.addressLine2 && (
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <span className="text-right font-medium col-span-1">Address 2:</span>
+                        <span className="col-span-3">{selectedShipment.addressLine2}</span>
+                    </div>
+                )}
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="text-right font-medium col-span-1">City:</span>
+                    <span className="col-span-3">{selectedShipment.city}</span>
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="text-right font-medium col-span-1">State:</span>
+                    <span className="col-span-3">{selectedShipment.state}</span>
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="text-right font-medium col-span-1">Postal Code:</span>
+                    <span className="col-span-3">{selectedShipment.postalCode}</span>
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="text-right font-medium col-span-1">Country:</span>
+                    <span className="col-span-3">{selectedShipment.country}</span>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="text-right font-medium col-span-1">Salesman:</span>
+                    <span className="col-span-3">{selectedShipment.salesExecutive}</span>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="text-right font-medium col-span-1">Updated At:</span>
+                    <span className="col-span-3">{new Date(selectedShipment.updatedAt).toLocaleString()}</span>
+                </div>
+            </div>
           )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Remarks Dialog */}
-      <RemarksDialog
-        isOpen={isRemarksDialogOpen}
-        onClose={() => setIsRemarksDialogOpen(false)}
-        shipmentId={selectedShipmentId}
-        userRole={userRole}
-      />
-    </div>
+      {selectedShipmentId && (
+        <RemarksDialog
+          isOpen={isRemarksDialogOpen}
+          onClose={() => {
+            setIsRemarksDialogOpen(false)
+            setSelectedShipmentId(null)
+          }}
+          shipmentId={selectedShipmentId}
+          isAdmin={userRole === 'admin'}
+        />
+      )}
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this master? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => handleDelete(shipmentToDelete as string)}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+    </LayoutComponent>
   )
 }

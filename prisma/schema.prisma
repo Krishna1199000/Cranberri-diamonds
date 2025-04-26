@@ -140,9 +140,9 @@ model User {
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
   invoices           Invoice[]
+  salesEntries       SalesEntry[]
   performanceReports PerformanceReport[]
   remarks            Remark[]
-  salesEntries       SalesEntry[]
   shipments          Shipment[]
 
   @@map("users")
@@ -160,36 +160,36 @@ model ChatMessage {
 }
 
 model SalesEntry {
-  id               String            @id @default(uuid())
-  employeeId       String
-  trackingId       String?
-  shipmentCarrier  String?
-  companyName      String?
-  description      String?
-  isNoSale         Boolean           @default(false)
-  saleDate         DateTime          @default(now())
-  totalSaleValue   Float?
-  purchaseValue    Float?            // Add this field
-  profit           Float?            // Add this field
-  profitMargin     Float?            // Add this field
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  employee         User              @relation(fields: [employeeId], references: [id])
-  saleItems        SaleItem[]
+  id              String     @id @default(uuid())
+  employeeId      String
+  trackingId      String?
+  shipmentCarrier String?
+  companyName     String?
+  description     String?
+  isNoSale        Boolean    @default(false)
+  saleDate        DateTime   @default(now())
+  totalSaleValue  Float?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  profit          Float?
+  profitMargin    Float?
+  purchaseValue   Float?
+  saleItems       SaleItem[]
+  employee        User       @relation(fields: [employeeId], references: [id])
 }
 
-// New model for individual diamond sales within an entry
 model SaleItem {
-  id                String    @id @default(uuid())
-  salesEntryId      String
-  carat             Float?
-  color             String?
-  clarity           String?
-  certificateNo     String?   // Added certificate number
-  pricePerCarat     Float?    // Added price per carat
-  totalValue        Float?    // Total value: pricePerCarat * carat
-  salesEntry        SalesEntry @relation(fields: [salesEntryId], references: [id], onDelete: Cascade)
+  id            String     @id @default(uuid())
+  salesEntryId  String
+  carat         Float?
+  color         String?
+  clarity       String?
+  certificateNo String?
+  pricePerCarat Float?
+  totalValue    Float?
+  salesEntry    SalesEntry @relation(fields: [salesEntryId], references: [id], onDelete: Cascade)
 }
+
 model PerformanceReport {
   id                   String   @id @default(uuid())
   userId               String
@@ -216,43 +216,37 @@ model ParcelGoods {
   @@map("parcel_goods")
 }
 
-// prisma/schema.prisma
-// This file should be updated with the following model definitions
-
 model Invoice {
-  id             String        @id @default(uuid())
-  invoiceNo      String        @unique
-  date           DateTime
-  dueDate        DateTime
-  paymentTerms   Int
-  companyName    String
-  addressLine1   String
-  addressLine2   String?
-  city           String
-  state          String
-  country        String
-  postalCode     String
-  description    String?
-
-  // New fields for calculation breakdown
-  subtotal       Float         @default(0)
-  discount       Float         @default(0)
-  crPayment      Float         @default(0) @map("cr_payment") // CR/Payment
-  shipmentCost   Float         @default(0) @map("shipment_cost") // Shipping cost
-
-  totalAmount    Float         @default(0) @map("total_amount") // Represents the final Total Due
-  amountInWords  String
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  items          InvoiceItem[]  // Relation to invoice items
-  userId         String        // FK to User if applicable
-  shipmentId     String?       // FK to Shipment if applicable
-  user           User          @relation(fields: [userId], references: [id])
-  shipment       Shipment?     @relation(fields: [shipmentId], references: [id])
+  id            String        @id @default(uuid())
+  invoiceNo     String        @unique
+  date          DateTime
+  dueDate       DateTime
+  paymentTerms  Int
+  companyName   String
+  addressLine1  String
+  addressLine2  String?
+  city          String
+  state         String
+  country       String
+  postalCode    String
+  description   String?
+  amountInWords String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  userId        String
+  shipmentId    String?
+  crPayment     Float         @default(0) @map("cr_payment")
+  discount      Float         @default(0)
+  shipmentCost  Float         @default(0) @map("shipment_cost")
+  subtotal      Float         @default(0)
+  totalAmount   Float         @default(0) @map("total_amount")
+  shipment      Shipment?     @relation(fields: [shipmentId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+  items         InvoiceItem[]
 }
 
 model InvoiceItem {
-  id            String   @id @default(uuid())
+  id            String  @id @default(uuid())
   description   String
   carat         Float
   color         String
@@ -261,10 +255,10 @@ model InvoiceItem {
   reportNo      String
   pricePerCarat Float
   total         Float
-  
-  invoiceId     String   // FK to Invoice
-  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
+  invoiceId     String
+  invoice       Invoice @relation(fields: [invoiceId], references: [id])
 }
+
 enum Role {
   admin
   employee

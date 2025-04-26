@@ -1,6 +1,9 @@
 import prisma from '@/lib/db';
 
 
+// Define a batch size for periodic updates and stop checks
+const BATCH_SIZE = 10;
+
 export async function syncDiamonds() {
   let syncLog: { id: string; status: string; createdAt: Date; message: string | null; count?: number } | null = null;
   try {
@@ -8,9 +11,10 @@ export async function syncDiamonds() {
     syncLog = await prisma.syncLog.create({
       data: {
         status: 'STARTED',
-        message: 'Diamond sync process started',
+        message: 'Diamond sync process initializing...',
       },
     });
+    console.log(`Sync started with log ID: ${syncLog.id}`);
 
     // Your external API endpoint
     const apiUrl = process.env.DIAMOND_API_URL;
@@ -18,13 +22,18 @@ export async function syncDiamonds() {
       throw new Error('DIAMOND_API_URL is not defined in environment variables');
     }
     
-    // Prepare authentication data
+    // Prepare authentication data (Consider moving to env vars)
     const authData = {
       USERNAME: 'CRANBERRI',
       PASSWORD: 'CRADIA@123'
     };
     
-    // Fetch diamonds from external API with authentication
+    await prisma.syncLog.update({ // Update status after setup
+        where: { id: syncLog.id },
+        data: { message: 'Fetching data from external API...' },
+    });
+
+    // Fetch diamonds from external API
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -43,8 +52,7 @@ export async function syncDiamonds() {
       throw new Error('Invalid or empty API response');
     }
     
-
-    // Extract diamonds array from response
+    // Extract diamonds array
     const diamonds = Array.isArray(rawData) ? rawData : 
                     rawData.data ? rawData.data : 
                     rawData.diamonds ? rawData.diamonds : 
@@ -53,19 +61,59 @@ export async function syncDiamonds() {
     if (!diamonds || !Array.isArray(diamonds)) {
       throw new Error('API response does not contain an array of diamonds');
     }
+
+    await prisma.syncLog.update({ // Update status before processing
+        where: { id: syncLog.id },
+        data: { message: `Processing ${diamonds.length} diamonds...` },
+    });
     
     // Process each diamond
     let count = 0;
+    let processedInBatch = 0;
     const errors: string[] = [];
 
     for (const diamond of diamonds) {
+      // --- Check for Stop Request --- 
+      if (processedInBatch >= BATCH_SIZE) {
+        // Added detailed logging for status check
+        console.log(`[Sync ${syncLog.id}] Checking status (processed batch: ${processedInBatch})...`);
+        const currentSyncLog = await prisma.syncLog.findUnique({ 
+          where: { id: syncLog.id },
+          select: { status: true }
+        });
+        
+        // Log the status found
+        console.log(`[Sync ${syncLog.id}] Current DB status: ${currentSyncLog?.status}`);
+
+        if (currentSyncLog?.status === 'STOPPING') {
+          console.log(`[Sync ${syncLog.id}] Stop request detected. Cancelling.`); // Updated log
+          await prisma.syncLog.update({
+            where: { id: syncLog.id },
+            data: {
+              status: 'CANCELLED',
+              message: `Sync cancelled by user after processing ${count} diamonds.`,
+              count: count, // Log the count processed before stopping
+            },
+          });
+          return { success: false, message: 'Sync cancelled by user', count }; 
+        }
+        // Update progress if not stopping
+        console.log(`[Sync ${syncLog.id}] Status is not STOPPING. Updating progress.`); // Added log
+        await prisma.syncLog.update({ 
+            where: { id: syncLog.id },
+            data: { count: count, message: `Processing ${count}/${diamonds.length}...` }
+        });
+        processedInBatch = 0; // Reset batch counter
+      }
+      // --- End Check for Stop Request ---
+
       if (!diamond.StockID) {
         console.warn('Skipping diamond without StockID:', diamond);
         continue;
       }
 
       try {
-        // Transform the data to match your database schema
+        // Transform the data
         const transformedDiamond = {
           stockId: diamond.StockID,
           certificateNo: diamond['Certificate No'] || '',
@@ -114,29 +162,34 @@ export async function syncDiamonds() {
           create: transformedDiamond,
         });
         count++;
+        processedInBatch++;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         errors.push(`Failed to process diamond ${diamond.StockID}: ${errorMessage}`);
+        console.error(`Error processing diamond ${diamond.StockID}:`, error);
       }
     }
     
-    // Update sync log with results
-    const message = errors.length > 0 
-      ? `Synced ${count} diamonds with ${errors.length} errors: ${errors.join('; ')}`
+    // Final update sync log with results
+    const finalStatus = errors.length > 0 ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED';
+    const finalMessage = errors.length > 0 
+      ? `Synced ${count} diamonds with ${errors.length} errors. See logs for details.`
       : `Successfully synced ${count} diamonds`;
 
     await prisma.syncLog.update({
       where: { id: syncLog.id },
       data: {
-        status: errors.length > 0 ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED',
-        message,
-        count,
+        status: finalStatus,
+        message: finalMessage,
+        count: count, // Final count
       },
     });
+    console.log(`Sync finished for log ID: ${syncLog.id}. Status: ${finalStatus}, Count: ${count}`);
+    return { success: true, status: finalStatus, message: finalMessage, count };
     
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    console.error('Diamond sync failed:', errorMessage);
+    console.error(`Diamond sync failed for log ID ${syncLog?.id}:`, errorMessage);
     
     // Update sync log with error
     if (syncLog) {
@@ -145,10 +198,12 @@ export async function syncDiamonds() {
         data: {
           status: 'FAILED',
           message: errorMessage,
+          count: 0, // Reset count on failure
         },
       });
     }
-    
-    throw error;
+    // Return failure indication instead of throwing
+    return { success: false, message: errorMessage, error: error }; 
+    // throw error; // Avoid throwing to prevent unhandled rejection in the background task
   }
 }

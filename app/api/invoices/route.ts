@@ -31,13 +31,14 @@ export async function POST(request: NextRequest) {
     try {
       const body = await request.json();
       
-      // Validate the incoming data
+      // Validate using the updated schema (expects shipmentId, not address)
       const validation = invoiceFormSchema.safeParse(body);
       if (!validation.success) {
-        console.error("Invoice validation failed:", JSON.stringify(validation.error.errors, null, 2)); 
-        return NextResponse.json({ error: 'Invalid input data', details: validation.error.errors }, { status: 400 });
+        console.error("Invoice validation failed:", JSON.stringify(validation.error.errors, null, 2));
+        const errorMessage = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return NextResponse.json({ error: `Invalid input: ${errorMessage}`, details: validation.error.errors }, { status: 400 });
       }
-      const validatedData = validation.data;
+      const validatedData = validation.data; // Contains shipmentId now
       
       // Get session
       const session = await getSession();
@@ -48,16 +49,26 @@ export async function POST(request: NextRequest) {
       
       // --- Transaction for fetching latest invoice number and creating new one ---
       const createdInvoice = await prisma.$transaction(async (tx) => {
-        // 1. Fetch the actual latest invoice number string (by creation date) within the transaction
+        // 1. Fetch the selected shipment using shipmentId
+        const selectedShipment = await tx.shipment.findUnique({
+            where: { id: validatedData.shipmentId },
+        });
+
+        // Handle if shipment not found
+        if (!selectedShipment) {
+            throw new Error(`Selected company (Shipment ID: ${validatedData.shipmentId}) not found.`);
+        }
+
+        // 2. Fetch latest invoice number
         const latestInvoice = await tx.invoice.findFirst({
           orderBy: { createdAt: 'desc' },
           select: { invoiceNo: true }
         });
         
-        // 2. Generate the new invoice number
+        // 3. Generate the new invoice number
         const newInvoiceNo = generateInvoiceNumber(latestInvoice?.invoiceNo, validatedData.date);
         
-        // 3. Calculate item totals as subtotal
+        // 4. Calculate item totals as subtotal
         let subtotal = 0;
         validatedData.items.forEach((item) => {
           const itemTotal = (Number(item.carat) || 0) * (Number(item.pricePerCarat) || 0);
@@ -73,10 +84,10 @@ export async function POST(request: NextRequest) {
         // Formula: Subtotal - Discount - CR/Payment + Shipping
         const grandTotal = Number((subtotal - discount - crPayment + shipmentCost).toFixed(2));
         
-        // 4. Convert grand total to words
+        // 5. Convert grand total to words
         const amountInWords = numberToWords(grandTotal);
         
-        // 5. Create the invoice record
+        // 6. Create the invoice record
         const invoice = await tx.invoice.create({
           data: {
             invoiceNo: newInvoiceNo,
@@ -96,16 +107,16 @@ export async function POST(request: NextRequest) {
             amountInWords: amountInWords,
             
             // Address fields
-            companyName: validatedData.companyName,
-            addressLine1: validatedData.addressLine1,
-            addressLine2: validatedData.addressLine2 || null,
-            country: validatedData.country,
-            state: validatedData.state,
-            city: validatedData.city,
-            postalCode: validatedData.postalCode,
+            companyName: selectedShipment.companyName,
+            addressLine1: selectedShipment.addressLine1,
+            addressLine2: selectedShipment.addressLine2 || null,
+            country: selectedShipment.country,
+            state: selectedShipment.state,
+            city: selectedShipment.city,
+            postalCode: selectedShipment.postalCode,
             
             userId: userId,
-            shipmentId: null,
+            shipmentId: selectedShipment.id,
             
             // Create the invoice items as separate records
             items: {
@@ -120,6 +131,10 @@ export async function POST(request: NextRequest) {
                 total: Number(((Number(item.carat) || 0) * (Number(item.pricePerCarat) || 0)).toFixed(2))
               }))
             }
+          },
+          // Include items in the returned object for the frontend preview
+          include: {
+            items: true,
           }
         });
         return invoice;
@@ -135,6 +150,8 @@ export async function POST(request: NextRequest) {
 
       if (error instanceof Error && error.message.includes('Unique constraint failed')) {
         return NextResponse.json({ error: 'Failed to create invoice: Invoice number conflict.' }, { status: 409 });
+      } else if (errorMessage.includes('Selected company (Shipment ID:') && errorMessage.includes('not found')) {
+          return NextResponse.json({ error: errorMessage }, { status: 400 }); // Shipment not found error
       }
       return NextResponse.json({ error: `Failed to create invoice: ${errorMessage}` }, { status: 500 });
     } finally {

@@ -1,7 +1,8 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-import {  Percent, DollarSign } from "lucide-react"
+import { Percent, DollarSign } from "lucide-react"
+import { SaleEntry } from "@/types/sales"
 import {
   BarChart,
   Bar,
@@ -14,16 +15,6 @@ import {
   Cell,
 } from "recharts"
 
-interface SaleEntry {
-  isNoSale: boolean
-  profit: number
-  date: string
-  saleValue: number
-  purchaseValue: number
-  companyName: string
-  profitMargin: number
-}
-
 interface ProfitMetricsProps {
   salesData: SaleEntry[]
   showProfitAnalysis: boolean
@@ -32,15 +23,18 @@ interface ProfitMetricsProps {
 export default function ProfitMetrics({ salesData, showProfitAnalysis }: ProfitMetricsProps) {
   if (!showProfitAnalysis) return null
   
-  // Only consider entries with calculated profit
   const entriesWithProfit = salesData.filter(entry => 
-    !entry.isNoSale && entry.profit !== undefined
-  )
+    !entry.isNoSale && 
+    typeof entry.profit === 'number' &&
+    typeof entry.purchaseValue === 'number'
+  ) as (SaleEntry & { profit: number; purchaseValue: number })[];
   
   if (entriesWithProfit.length === 0) return null
   
   const getProfitByDateData = () => {
-    const grouped = {}
+    const grouped: { 
+        [key: string]: { date: string; sales: number; purchase: number; profit: number } 
+    } = {};
     
     entriesWithProfit.forEach(entry => {
       if (!grouped[entry.date]) {
@@ -52,7 +46,7 @@ export default function ProfitMetrics({ salesData, showProfitAnalysis }: ProfitM
         }
       }
       grouped[entry.date].sales += entry.saleValue
-      grouped[entry.date].purchase += entry.purchaseValue || 0
+      grouped[entry.date].purchase += entry.purchaseValue
       grouped[entry.date].profit += entry.profit
     })
     
@@ -66,7 +60,7 @@ export default function ProfitMetrics({ salesData, showProfitAnalysis }: ProfitM
         ? item.companyName.substring(0, 12) + '...' 
         : item.companyName,
       profit: item.profit,
-      margin: item.profitMargin
+      margin: item.profitMargin ?? 0
     }))
   }
   

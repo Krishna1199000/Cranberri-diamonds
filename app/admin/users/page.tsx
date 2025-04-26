@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+
 import {
   Table,
   TableBody,
@@ -24,6 +24,8 @@ import { toast } from "sonner";
 import { format } from 'date-fns';
 import { handleRoleChange } from '@/lib/roleChangeHandler';
 import PasswordVerification from '@/components/admin/password-verification';
+import { AdminLayout } from '@/components/layout/AdminLayout';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface User {
   id: string;
@@ -34,7 +36,6 @@ interface User {
 }
 
 export default function UserManagement() {
-  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +53,7 @@ export default function UserManagement() {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [isVerified]);
 
   useEffect(() => {
     // Fetch users when verification state changes to true
@@ -165,57 +166,60 @@ export default function UserManagement() {
   };
 
   if (!isVerified) {
-    return <PasswordVerification onSuccess={handleVerificationSuccess} />;
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-full">
+          <PasswordVerification onSuccess={handleVerificationSuccess} />
+        </div>
+      </AdminLayout>
+    );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-        <div className="text-lg">Loading users...</div>
-      </div>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Loading users...</div>
+        </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">User Management</h1>
-          <Button variant="outline" onClick={() => router.push("/Admins")}>
-            Back to Admin Dashboard
-          </Button>
-        </div>
-
-        <div className="mb-4 relative">
-          <div className="flex gap-2 max-w-md">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <Input
-                type="text"
-                placeholder="Search users by name or email..."
-                value={searchTerm}
-                onChange={handleSearch}
-                className="pl-10 w-full"
-              />
+    <AdminLayout>
+      <Card>
+        <CardHeader>
+          <CardTitle>User Management</CardTitle>
+          <div className="pt-4 relative">
+            <div className="flex gap-2 max-w-md">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <Input
+                  type="text"
+                  placeholder="Search users by name or email..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  className="pl-10 w-full"
+                />
+              </div>
+              {searchTerm && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSearchTerm("")}
+                  className="text-sm"
+                >
+                  Clear
+                </Button>
+              )}
             </div>
             {searchTerm && (
-              <Button 
-                variant="outline" 
-                onClick={() => setSearchTerm("")}
-                className="text-sm"
-              >
-                Clear
-              </Button>
+              <p className="mt-2 text-sm text-gray-500">
+                Found {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'}
+              </p>
             )}
           </div>
-          {searchTerm && (
-            <p className="mt-2 text-sm text-gray-500">
-              Found {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'}
-            </p>
-          )}
-        </div>
-
-        <div className="bg-white rounded-lg shadow">
+        </CardHeader>
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
@@ -256,14 +260,14 @@ export default function UserManagement() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-4">
-                    No users found matching &quot;{searchTerm}&quot;
+                    {searchTerm ? `No users found matching "${searchTerm}"` : "No users found."}
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
-        </div>
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+    </AdminLayout>
   );
 }

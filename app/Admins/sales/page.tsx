@@ -7,6 +7,7 @@ import { SalesTable } from "@/components/sales/SalesTable"
 import { EmployeeRankings } from "@/components/sales/EmployeeRankings"
 import { Button } from "@/components/ui/button"
 import { Award } from "lucide-react"
+import { AdminLayout } from "@/components/layout/AdminLayout"
 
 export default function SalesPage() {
   const [showRankings, setShowRankings] = useState(false)
@@ -47,47 +48,48 @@ export default function SalesPage() {
 
   useEffect(() => {
     fetchSalesData()
-  }, [period, customPeriod, selectedEmployee, refreshTrigger])
+  }, [period, customPeriod, selectedEmployee, refreshTrigger, fetchSalesData])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Diamond Sales Dashboard</h1>
-          <Button
-            onClick={() => setShowRankings(!showRankings)}
-            className="flex items-center gap-2"
-          >
-            <Award className="w-5 h-5" />
-            {showRankings ? "Hide Rankings" : "Show Rankings"}
-          </Button>
-        </div>
+    <AdminLayout>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Diamond Sales Dashboard</h1>
+        <Button
+          onClick={() => setShowRankings(!showRankings)}
+          className="flex items-center gap-2"
+          variant="outline"
+        >
+          <Award className="w-5 h-5" />
+          {showRankings ? "Hide Rankings" : "Show Rankings"}
+        </Button>
+      </div>
 
-        {showRankings && (
+      {showRankings && (
+        <div className="mb-6">
           <EmployeeRankings salesData={salesData} />
-        )}
+        </div>
+      )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <SalesEntryForm refreshData={refreshData} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <SalesEntryForm refreshData={refreshData} />
+        
+        <div className="space-y-6">
+          <SalesAnalytics 
+            salesData={salesData}
+            period={period}
+            setPeriod={setPeriod}
+            customPeriod={customPeriod}
+            setCustomPeriod={setCustomPeriod}
+            selectedEmployee={selectedEmployee}
+            setSelectedEmployee={setSelectedEmployee}
+          />
           
-          <div className="space-y-6">
-            <SalesAnalytics 
-              salesData={salesData}
-              period={period}
-              setPeriod={setPeriod}
-              customPeriod={customPeriod}
-              setCustomPeriod={setCustomPeriod}
-              selectedEmployee={selectedEmployee}
-              setSelectedEmployee={setSelectedEmployee}
-            />
-            
-            <SalesTable 
-              salesData={salesData} 
-              refreshData={refreshData} 
-            />
-          </div>
+          <SalesTable 
+            salesData={salesData} 
+            refreshData={refreshData} 
+          />
         </div>
       </div>
-    </div>
+    </AdminLayout>
   )
 }

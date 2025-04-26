@@ -14,13 +14,13 @@ import {
   Legend,
 } from "recharts"
 
-interface SalesDataItem {
+interface SaleEntry {
   isNoSale: boolean
-  profit?: number
+  profit?: number | null
 }
 
 interface ProfitAnalysisProps {
-  salesData: SalesDataItem[]
+  salesData: SaleEntry[]
   purchaseValue: string
   setPurchaseValue: (value: string) => void
   profitAnalysis: {
@@ -61,7 +61,7 @@ export default function ProfitAnalysis({
       return [
         { name: 'Profitable Items', value: profitAnalysis.entriesWithProfit, color: '#16a34a' },
         { name: 'Loss-making Items', value: profitAnalysis.entriesWithLoss, color: '#dc2626' },
-        { name: 'Neutral/Unknown', value: salesData.filter(item => !item.isNoSale && item.profit === undefined).length, color: '#9ca3af' },
+        { name: 'Neutral/Unknown', value: salesData.filter(item => !item.isNoSale && (item.profit === null || item.profit === undefined)).length, color: '#9ca3af' },
       ];
     }
   };

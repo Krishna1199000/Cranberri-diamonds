@@ -18,13 +18,7 @@ export const invoiceFormSchema = z.object({
   date: z.coerce.date({ errorMap: () => ({ message: 'Invalid date format' }) }),
   dueDate: z.coerce.date({ errorMap: () => ({ message: 'Invalid due date format' }) }),
   paymentTerms: z.coerce.number().min(1, "Payment terms are required"),
-  companyName: z.string().min(1, "Company name is required"),
-  addressLine1: z.string().min(1, "Address is required"),
-  addressLine2: z.string().optional(),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  country: z.string().min(1, "Country is required"),
-  postalCode: z.string().min(1, "Postal code is required"),
+  shipmentId: z.string().min(1, "Company selection is required"),
   description: z.string().optional(),
   shipmentCost: z.number(), // Make required
   discount: z.number(),     // Make required

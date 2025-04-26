@@ -15,12 +15,12 @@ interface SaleEntry {
   companyName: string
   shipmentCarrier: string
   saleValue: number
-  purchaseValue?: number
-  profit?: number
-  profitMargin?: number
+  purchaseValue?: number | null
+  profit?: number | null
+  profitMargin?: number | null
   isNoSale: boolean
   details: {
-    carat?: string
+    carat?: string | number
     color?: string
     clarity?: string
   }
@@ -29,7 +29,7 @@ interface SaleEntry {
 interface SalesTableProps {
   data: SaleEntry[]
   sortConfig: { key: string; direction: string }
-  handleSort: (key: string) => void
+  handleSort: (key: keyof SaleEntry | 'date') => void
   updateEntryPurchaseValue: (id: string, value: number) => void
   calculateEntryProfit: (id: string) => void
 }
@@ -56,10 +56,8 @@ export default function SalesTable({
   }
 
   const formatCurrency = (value: number | null | undefined) => {
-    if (value === null || value === undefined) {
-      return "$0.00";
-    }
-    return value.toLocaleString('en-US', {
+    const numValue = value ?? 0;
+    return numValue.toLocaleString('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
@@ -172,10 +170,10 @@ export default function SalesTable({
                     <Tooltip>
                       <TooltipTrigger>
                         <div className={`flex items-center font-medium ${
-                          entry.profit >= 0 ? 'text-green-600' : 'text-red-600'
+                          (entry.profit ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {formatCurrency(entry.profit)}
-                          {entry.profit >= 0 ? (
+                          {(entry.profit ?? 0) >= 0 ? (
                             <TrendingUp className="ml-1 h-4 w-4" />
                           ) : (
                             <TrendingDown className="ml-1 h-4 w-4" />

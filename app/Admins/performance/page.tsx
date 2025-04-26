@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Edit2, Trash2, User, Filter } from "lucide-react";
+import { AdminLayout } from "@/components/layout/AdminLayout";
 
 export default function AdminPerformance() {
   interface Employee {
@@ -56,7 +57,7 @@ export default function AdminPerformance() {
   ];
 
   // Find the name of an employee by their ID
-  const getEmployeeName = (userId) => {
+  const getEmployeeName = (userId: string) => {
     if (!userId) return "Select Employee";
     
     // Special case for current admin
@@ -71,7 +72,7 @@ export default function AdminPerformance() {
   // Fetch current admin user
   const fetchCurrentAdmin = async () => {
     try {
-      const response = await fetch("/api/auth/me");
+      const response = await fetch("/api/auth/me", { credentials: 'include' });
       if (!response.ok) {
         throw new Error("Failed to fetch admin data");
       }
@@ -152,9 +153,15 @@ export default function AdminPerformance() {
     }
   };
 
+  // Find the selected employee object for the FILTER dropdown
+  const selectedFilterEmployeeObject = employees.find(emp => emp.id === selectedEmployee);
+
+  // Find the selected employee object for the FORM dropdown
+  const selectedFormEmployeeObject = employees.find(emp => emp.id === formData.userId);
+
   useEffect(() => {
     fetchReports();
-  }, [selectedEmployee, selectedTimeFilter]);
+  }, [selectedEmployee, selectedTimeFilter, fetchReports]);
 
   useEffect(() => {
     // First fetch the admin user, then fetch employees
@@ -176,7 +183,7 @@ export default function AdminPerformance() {
     }
   }, [currentAdmin, employees]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -236,7 +243,7 @@ export default function AdminPerformance() {
     }
   };
 
-  const handleEdit = (report) => {
+  const handleEdit = (report: Report) => {
     setIsEditing(true);
     setEditingId(report.id);
     setFormData({
@@ -249,7 +256,7 @@ export default function AdminPerformance() {
     });
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this report?")) {
       try {
         const response = await fetch(`/api/performance/admin/${id}`, {
@@ -271,73 +278,83 @@ export default function AdminPerformance() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <h1 className="text-3xl font-bold">Performance Reports</h1>
+    <AdminLayout>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Performance Reports</h1>
+        
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          {/* Time Period Filter */}
+          <Select value={selectedTimeFilter} onValueChange={setSelectedTimeFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder={timeFilters.find(tf => tf.value === selectedTimeFilter)?.label || "All Time"} />
+            </SelectTrigger>
+            <SelectContent>
+              {timeFilters.map((filter) => (
+                <SelectItem key={filter.value} value={filter.value}>
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4" />
+                    {filter.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            {/* Time Period Filter */}
-            <Select value={selectedTimeFilter} onValueChange={setSelectedTimeFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder={timeFilters.find(tf => tf.value === selectedTimeFilter)?.label || "All Time"} />
-              </SelectTrigger>
-              <SelectContent>
-                {timeFilters.map((filter) => (
-                  <SelectItem key={filter.value} value={filter.value}>
-                    <div className="flex items-center gap-2">
-                      <Filter className="w-4 h-4" />
-                      {filter.label}
-                    </div>
+          {/* Employee Filter */}
+          <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              {selectedFilterEmployeeObject && selectedFilterEmployeeObject.id !== "all" ? (
+                selectedFilterEmployeeObject.name
+              ) : (
+                <SelectValue placeholder="All Employees" />
+              )}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Employees</SelectItem>
+              {currentAdmin && (
+                <SelectItem value={currentAdmin.id}>
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    {currentAdmin.name} (You)
+                  </div>
+                </SelectItem>
+              )}
+              {employees
+                .filter(emp => emp.id !== currentAdmin?.id)
+                .map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.name}
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Employee Filter */}
-            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder={selectedEmployee === "all" 
-                  ? "All Employees" 
-                  : getEmployeeName(selectedEmployee)} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Employees</SelectItem>
-                {currentAdmin && (
-                  <SelectItem value={currentAdmin.id}>
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      {currentAdmin.name} (You)
-                    </div>
-                  </SelectItem>
-                )}
-                {employees
-                  .filter(emp => emp.id !== currentAdmin?.id)
-                  .map((employee) => (
-                    <SelectItem key={employee.id} value={employee.id}>
-                      {employee.name}
-                    </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Report Form */}
-          <Card className="p-6">
-            <h2 className="text-2xl font-bold mb-6">
-              {isEditing ? "Edit Report" : "New Report"}
-            </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Report Form */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{isEditing ? "Edit Report" : "New Report"}</CardTitle>
+          </CardHeader>
+          <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Employee</label>
                 <Select
                   value={formData.userId}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, userId: value }))}
+                  disabled={!currentAdmin && employees.length === 0}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder={getEmployeeName(formData.userId)} />
+                  <SelectTrigger className="w-full">
+                    {selectedFormEmployeeObject ? (
+                      <span className="flex items-center gap-2">
+                        {selectedFormEmployeeObject.id === currentAdmin?.id && <User className="w-4 h-4" />}
+                        {selectedFormEmployeeObject.name} {selectedFormEmployeeObject.id === currentAdmin?.id ? '(You)' : ''}
+                      </span>
+                    ) : (
+                      <SelectValue placeholder="Select Employee" />
+                    )}
                   </SelectTrigger>
                   <SelectContent>
                     {currentAdmin && (
@@ -363,6 +380,7 @@ export default function AdminPerformance() {
                 <label className="block text-sm font-medium mb-1">Total Calls</label>
                 <Input
                   type="number"
+                  min="0"
                   value={formData.totalCalls}
                   onChange={(e) => setFormData((prev) => ({ ...prev, totalCalls: e.target.value }))}
                   required
@@ -373,6 +391,7 @@ export default function AdminPerformance() {
                 <label className="block text-sm font-medium mb-1">Total Emails</label>
                 <Input
                   type="number"
+                  min="0"
                   value={formData.totalEmails}
                   onChange={(e) => setFormData((prev) => ({ ...prev, totalEmails: e.target.value }))}
                   required
@@ -383,6 +402,7 @@ export default function AdminPerformance() {
                 <label className="block text-sm font-medium mb-1">Requirements Received</label>
                 <Input
                   type="number"
+                  min="0"
                   value={formData.requirementsReceived}
                   onChange={(e) => setFormData((prev) => ({ ...prev, requirementsReceived: e.target.value }))}
                   required
@@ -395,7 +415,7 @@ export default function AdminPerformance() {
                   type="text"
                   value={formData.memo}
                   onChange={(e) => setFormData((prev) => ({ ...prev, memo: e.target.value }))}
-                  placeholder="Enter memo number"
+                  placeholder="Enter memo number (optional)"
                 />
               </div>
 
@@ -405,7 +425,7 @@ export default function AdminPerformance() {
                   type="text"
                   value={formData.invoice}
                   onChange={(e) => setFormData((prev) => ({ ...prev, invoice: e.target.value }))}
-                  placeholder="Enter invoice number"
+                  placeholder="Enter invoice number (optional)"
                 />
               </div>
 
@@ -417,63 +437,64 @@ export default function AdminPerformance() {
                 {isSubmitting ? "Submitting..." : isEditing ? "Update Report" : "Submit Report"}
               </Button>
             </form>
-          </Card>
+          </CardContent>
+        </Card>
 
-          {/* Reports List */}
-          <Card className="p-6">
-            <h2 className="text-2xl font-bold mb-6">All Reports</h2>
-            <div className="space-y-4">
+        {/* Reports List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>All Reports</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
               {reports.length > 0 ? (
                 reports.map((report) => (
                   <motion.div
                     key={report.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="bg-white p-4 rounded-lg shadow"
+                    className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow"
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          {report.userId === currentAdmin?.id && <User className="w-4 h-4" />}
-                          <p className="font-medium">
-                            {report.user?.name || getEmployeeName(report.userId) || "Unknown Employee"}
+                          {report.userId === currentAdmin?.id && <User className="w-4 h-4 text-blue-500" />}
+                          <p className="font-medium text-gray-800 dark:text-gray-100">
+                            {report.user?.name || getEmployeeName(report.userId) || "Unknown"}
                           </p>
                         </div>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                           {new Date(report.date).toLocaleDateString()}
                         </p>
-                        <p>
-                          <strong>Calls:</strong> {report.totalCalls}
-                        </p>
-                        <p>
-                          <strong>Emails:</strong> {report.totalEmails}
-                        </p>
-                        <p>
-                          <strong>Requirements:</strong> {report.requirementsReceived}
-                        </p>
+                        <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 grid grid-cols-2 gap-x-4 gap-y-1">
+                          <p><strong>Calls:</strong> {report.totalCalls}</p>
+                          <p><strong>Emails:</strong> {report.totalEmails}</p>
+                          <p><strong>Reqs:</strong> {report.requirementsReceived}</p>
+                        </div>
                         {report.memo && (
-                          <p className="text-sm text-gray-600">
-                            <strong>Memo Number:</strong> {report.memo}
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            <strong>Memo:</strong> {report.memo}
                           </p>
                         )}
                         {report.invoice && (
-                          <p className="text-sm text-gray-600">
-                            <strong>Invoice Number:</strong> {report.invoice}
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            <strong>Invoice:</strong> {report.invoice}
                           </p>
                         )}
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 flex-shrink-0">
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="outline"
                           onClick={() => handleEdit(report)}
+                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 h-8 w-8"
                         >
                           <Edit2 className="w-4 h-4" />
                         </Button>
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="outline"
-                          className="text-red-600"
+                          className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 h-8 w-8"
                           onClick={() => handleDelete(report.id)}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -484,13 +505,13 @@ export default function AdminPerformance() {
                 ))
               ) : (
                 <div className="text-center text-gray-500 py-8">
-                  No reports found
+                  No reports found for the selected filters.
                 </div>
               )}
             </div>
-          </Card>
-        </div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

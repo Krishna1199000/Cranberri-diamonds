@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Edit2, Trash2 } from "lucide-react";
+import { EmployeeLayout } from "@/components/layout/EmployeeLayout";
 
 interface Report {
   id: string;
@@ -123,7 +124,7 @@ export default function EmployeePerformance() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <EmployeeLayout>
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Performance Report</h1>
 
@@ -252,6 +253,6 @@ export default function EmployeePerformance() {
           </Card>
         </div>
       </div>
-    </div>
+    </EmployeeLayout>
   );
 }

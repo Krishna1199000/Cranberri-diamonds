@@ -167,7 +167,7 @@ export default function CreateShipment() {
   const router = useRouter()
   const [formData, setFormData] = useState({
     companyName: '',
-    ownerName: '', // Add this line
+    ownerName: '',
     addressLine1: '',
     addressLine2: '',
     country: '',

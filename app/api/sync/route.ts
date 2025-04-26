@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { syncDiamonds } from '@/prisma/sync-diamonds';
-import { initializeSyncScheduler } from '@/lib/syncScheduler';
 import { getSession } from '@/lib/session'; // Assuming you have a session handling mechanism
 
-// Initialize the scheduler when the server starts
-// This will only be executed once when the module is first loaded
-if (process.env.NODE_ENV !== 'development') {
-  // Only run the scheduler in production to prevent multiple instances in dev
-  initializeSyncScheduler();
-}
+// Remove automatic scheduler initialization
+// if (process.env.NODE_ENV !== 'development') {
+//   // Only run the scheduler in production to prevent multiple instances in dev
+//   initializeSyncScheduler();
+// }
 
 export async function GET() {
   try {
@@ -45,25 +43,45 @@ export async function GET() {
 
 // Add a POST endpoint to manually trigger a sync (admin only)
 export async function POST() {
+  console.log("Received POST request to /api/sync"); // Added logging
   try {
     // Verify admin session
     const session = await getSession();
     if (!session || session.role !== 'admin') {
+      console.warn("Unauthorized sync attempt: No admin session found."); // Added logging
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized: Admin role required.' },
         { status: 401 }
       );
     }
     
-    // Start the sync process
+    console.log("Admin session verified. Starting sync process..."); // Added logging
+    
+    // Check if a sync is already running
+    const runningSync = await prisma.syncLog.findFirst({
+      where: { status: 'STARTED' },
+    });
+
+    if (runningSync) {
+      console.log("Sync already in progress."); // Added logging
+      return NextResponse.json(
+        { message: 'Sync process is already running', started: false },
+        { status: 409 } // 409 Conflict is appropriate here
+      );
+    }
+
+    // Start the sync process (no await - run in background)
     syncDiamonds()
-      .then(result => {
-        console.log(`Manual sync ${result.success ? 'completed' : 'failed'}`);
+      .then(() => {
+        // Logging is handled within syncDiamonds now for completion/failure
+        console.log(`Background sync process finished.`);
       })
       .catch(error => {
-        console.error('Error during manual sync:', error);
+        // This catch might be redundant if syncDiamonds handles its own errors, but good for safety
+        console.error('Error in background sync process:', error);
       });
     
+    console.log("Sync process initiated in background."); // Added logging
     return NextResponse.json({
       message: 'Sync process started',
       started: true,
@@ -71,7 +89,53 @@ export async function POST() {
   } catch (error) {
     console.error('Error starting sync process:', error);
     return NextResponse.json(
-      { error: 'Failed to start sync process' },
+      { error: 'Failed to start sync process', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+// Add a DELETE endpoint to stop a running sync
+export async function DELETE() {
+  console.log("Received DELETE request to /api/sync"); // Added logging
+  try {
+    // Verify admin session (optional, but recommended for consistency)
+    const session = await getSession();
+    if (!session || session.role !== 'admin') {
+       console.warn("Unauthorized stop sync attempt: No admin session found."); // Added logging
+      return NextResponse.json(
+        { error: 'Unauthorized: Admin role required.' },
+        { status: 401 }
+      );
+    }
+
+    // Find the sync log entry with status 'STARTED'
+    console.log("Finding sync log entry with status 'STARTED'..."); // Added logging
+    const runningSync = await prisma.syncLog.findFirst({
+      where: { status: 'STARTED' },
+    });
+
+    if (!runningSync) {
+      console.log("No sync process currently running to stop."); // Added logging
+      return NextResponse.json(
+        { message: 'No sync process is currently running' },
+        { status: 404 } // Not Found
+      );
+    }
+
+    // Update the status to 'STOPPING'
+    await prisma.syncLog.update({
+      where: { id: runningSync.id },
+      data: { status: 'STOPPING', message: 'Stop request received by user.' },
+    });
+
+    console.log(`Sync process ${runningSync.id} marked as STOPPING.`); // Added logging
+    return NextResponse.json({ message: 'Sync stop request initiated' });
+
+  } catch (error) {
+    console.error('Error stopping sync process:', error);
+    return NextResponse.json(
+      { error: 'Failed to stop sync process', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

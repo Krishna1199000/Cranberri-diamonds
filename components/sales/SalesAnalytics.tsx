@@ -109,6 +109,9 @@ export function SalesAnalytics({
     // Sort by date
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
+  // Find the selected employee object to display their name
+  const selectedEmployeeObject = employees.find(emp => emp.id === selectedEmployee);
+
   return (
     <Card className="p-6">
       <h2 className="text-2xl font-bold mb-4">Sales Analytics</h2>
@@ -138,7 +141,12 @@ export function SalesAnalytics({
             disabled={isLoading}
           >
             <SelectTrigger>
-              <SelectValue placeholder={isLoading ? "Loading employees..." : "Select employee"} />
+              {/* Display name if an employee is selected, otherwise show placeholder via SelectValue */}
+              {selectedEmployeeObject && selectedEmployeeObject.id !== "all" ? (
+                selectedEmployeeObject.name
+              ) : (
+                <SelectValue placeholder={isLoading ? "Loading employees..." : "Select employee"} />
+              )}
             </SelectTrigger>
             <SelectContent>
               {employees.map((employee) => (
