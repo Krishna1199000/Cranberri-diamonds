@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Sparkles } from "lucide-react"
 
 const faqs = [
   {
@@ -24,58 +24,142 @@ const faqs = [
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const [, setHoveredIndex] = useState<number | null>(null)
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        duration: 0.5,
+        staggerChildren: 0.1
+      }
+    }
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 200,
+        damping: 20
+      }
+    }
+  }
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20 bg-background overflow-hidden">
       <div className="container mx-auto px-4">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          whileInView={{ 
+            opacity: 1, 
+            y: 0,
+            transition: {
+              type: "spring",
+              stiffness: 200,
+              damping: 20
+            }
+          }}
+          viewport={{ once: true }}
           className="text-4xl font-serif text-center mb-12"
         >
           Frequently Asked Questions
         </motion.h2>
 
-        <div className="max-w-3xl mx-auto space-y-4">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="max-w-3xl mx-auto space-y-4"
+        >
           {faqs.map((faq, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              variants={itemVariants}
               className="bg-white rounded-lg shadow-sm overflow-hidden"
             >
-              <button
+              <motion.button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                className="w-full px-6 py-4 text-left flex items-center justify-between bg-background transition-colors"
+                whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.02)" }}
+                onHoverStart={() => setHoveredIndex(index)}
+                onHoverEnd={() => setHoveredIndex(null)}
               >
                 <span className="font-medium">{faq.question}</span>
-                <motion.span
-                  animate={{ rotate: openIndex === index ? 180 : 0 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                <motion.div
+                  animate={{ 
+                    rotate: openIndex === index ? 180 : 0,
+                    transition: {
+                      type: "spring",
+                      stiffness: 200,
+                      damping: 20
+                    }
+                  }}
                 >
-                  <ChevronDown className="w-5 h-5 text-gray-500" />
-                </motion.span>
-              </button>
+                  <ChevronDown className="w-5 h-5" />
+                </motion.div>
+              </motion.button>
 
               <AnimatePresence>
                 {openIndex === index && (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    initial={{ height: 0 }}
+                    animate={{ 
+                      height: "auto",
+                      transition: {
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 20
+                      }
+                    }}
+                    exit={{ 
+                      height: 0,
+                      transition: {
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 20
+                      }
+                    }}
                     className="overflow-hidden"
                   >
-                    <div className="px-6 pb-4 text-gray-600">{faq.answer}</div>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ 
+                        opacity: 1,
+                        transition: { duration: 0.2 }
+                      }}
+                      exit={{ opacity: 0 }}
+                      className="px-6 pb-4 pt-2 bg-background"
+                    >
+                      {faq.answer}
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
+
+        {/* Decorative sparkles */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ 
+            opacity: [0, 1, 0],
+            transition: {
+              repeat: Infinity,
+              duration: 2
+            }
+          }}
+          className="absolute top-10 right-10"
+        >
+          <Sparkles className="w-6 h-6 text-yellow-400" />
+        </motion.div>
       </div>
     </section>
   )
 }
-
