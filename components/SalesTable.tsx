@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { TrendingDown, TrendingUp } from "lucide-react"
@@ -42,17 +42,38 @@ export default function SalesTable({
   calculateEntryProfit,
 }: SalesTableProps) {
   const [editableEntry, setEditableEntry] = useState<string | null>(null)
-  
+  const [localPurchaseValue, setLocalPurchaseValue] = useState<string>("")
+
+  useEffect(() => {
+    if (editableEntry === null) {
+      return;
+    }
+
+    const handler = setTimeout(() => {
+      const numValue = parseFloat(localPurchaseValue)
+      if (!isNaN(numValue) && editableEntry) {
+        console.log(`Debounced: Updating ${editableEntry} to ${numValue}`)
+        updateEntryPurchaseValue(editableEntry, numValue)
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [localPurchaseValue, editableEntry, updateEntryPurchaseValue])
+
   const sortIndicator = (key: string) => {
     if (sortConfig.key !== key) return null
     return sortConfig.direction === 'asc' ? ' ↑' : ' ↓'
   }
   
-  const handlePurchaseValueChange = (id: string, value: string) => {
-    const numValue = parseFloat(value)
-    if (!isNaN(numValue)) {
-      updateEntryPurchaseValue(id, numValue)
-    }
+  const handleLocalInputChange = (value: string) => {
+    setLocalPurchaseValue(value);
+  }
+  
+  const startEditing = (entry: SaleEntry) => {
+    setEditableEntry(entry.id);
+    setLocalPurchaseValue(entry.purchaseValue?.toString() || "");
   }
 
   const formatCurrency = (value: number | null | undefined) => {
@@ -138,18 +159,17 @@ export default function SalesTable({
                         type="number"
                         min="0"
                         step="0.01"
-                        value={entry.purchaseValue || ""}
-                        onChange={(e) => handlePurchaseValueChange(entry.id, e.target.value)}
-                        onBlur={() => setEditableEntry(null)}
+                        value={localPurchaseValue}
+                        onChange={(e) => handleLocalInputChange(e.target.value)}
                         className="w-24 h-8 text-sm"
                         autoFocus
                       />
                     ) : (
                       <div 
-                        onClick={() => setEditableEntry(entry.id)}
-                        className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                        onClick={() => startEditing(entry)}
+                        className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[32px] flex items-center"
                       >
-                        {entry.purchaseValue ? formatCurrency(entry.purchaseValue) : "Click to add"}
+                        {entry.purchaseValue != null ? formatCurrency(entry.purchaseValue) : <span className="text-gray-400 italic">Click to add</span>}
                       </div>
                     )}
                     <Button 
@@ -157,7 +177,7 @@ export default function SalesTable({
                       size="sm" 
                       className="h-7 px-2"
                       onClick={() => calculateEntryProfit(entry.id)}
-                      disabled={!entry.purchaseValue}
+                      disabled={entry.purchaseValue == null}
                     >
                       Set
                     </Button>

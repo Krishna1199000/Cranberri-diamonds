@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect,useCallback } from "react"
 import { SalesEntryForm } from "@/components/sales/SalesEntryForm"
 import { SalesAnalytics } from "@/components/sales/SalesAnalytics"
 import { SalesTable } from "@/components/sales/SalesTable"
@@ -21,7 +21,7 @@ export default function SalesPage() {
     setRefreshTrigger(prev => prev + 1)
   }
 
-  const fetchSalesData = async () => {
+  const fetchSalesData = useCallback(async () => {
     try {
       let url = `/api/sales?period=${period}`
       if (period === "custom" && customPeriod.start && customPeriod.end) {
@@ -44,11 +44,11 @@ export default function SalesPage() {
       console.error("Error fetching sales data:", error)
       setSalesData([])
     }
-  }
+  }, [period, customPeriod, selectedEmployee])
 
   useEffect(() => {
     fetchSalesData()
-  }, [period, customPeriod, selectedEmployee, refreshTrigger, fetchSalesData])
+  }, [fetchSalesData, refreshTrigger])
 
   return (
     <AdminLayout>

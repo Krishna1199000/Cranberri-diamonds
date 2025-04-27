@@ -1,31 +1,10 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-
-interface SaleItem {
-  id?: string
-  carat: number | null
-  color: string | null
-  clarity: string | null
-  certificateNo: string | null
-  pricePerCarat: number | null
-  totalValue: number | null
-}
-
-interface SalesEntry {
-  id: string
-  saleDate: string
-  trackingId: string | null
-  companyName: string | null
-  isNoSale: boolean
-  totalSaleValue: number | null
-  shipmentCarrier: string | null
-  description: string | null
-  saleItems: SaleItem[]
-}
+import { SaleEntry } from "@/types/sales"
 
 interface SalesTableProps {
-  salesData: SalesEntry[]
+  salesData: SaleEntry[]
 }
 
 export function SalesTable({ salesData }: SalesTableProps) {
@@ -59,7 +38,7 @@ export function SalesTable({ salesData }: SalesTableProps) {
               salesData.map((entry) => (
                 <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 whitespace-nowrap">
-                    {formatDate(entry.saleDate)}
+                    {formatDate(entry.date)}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {entry.isNoSale ? "No Sale" : (entry.companyName || "—")}
@@ -68,7 +47,7 @@ export function SalesTable({ salesData }: SalesTableProps) {
                     {entry.shipmentCarrier || "—"}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
-                    {entry.isNoSale ? "—" : `$${entry.totalSaleValue?.toFixed(2) || '0.00'}`}
+                    {entry.isNoSale ? "—" : `$${entry.saleValue?.toFixed(2) || '0.00'}`}
                   </td>
                 </tr>
               ))

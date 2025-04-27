@@ -104,15 +104,19 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  console.log("--- GET /api/sales START ---");
   try {
     const session = await getSession();
+    console.log("GET /api/sales - Session:", session);
     const { searchParams } = new URL(req.url);
     const period = searchParams.get('period') || '7';
     const start = searchParams.get('start');
     const end = searchParams.get('end');
     const employeeId = searchParams.get('employeeId');
+    console.log("GET /api/sales - Params:", { period, start, end, employeeId });
     
     if (!session) {
+      console.log("GET /api/sales - Unauthorized (No session)");
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -133,11 +137,13 @@ export async function GET(req: Request) {
       };
     }
 
-    const where = {
+    const where: Prisma.SalesEntryWhereInput = {
       saleDate: dateFilter,
-      ...(session.role === 'employee' ? { employeeId: session.userId as string } : {}),
+      // Apply employee filter only if the user is an employee OR if an admin specifically filters
+      ...(session.role === 'employee' && !employeeId ? { employeeId: session.userId as string } : {}),
       ...(employeeId && employeeId !== 'all' ? { employeeId: employeeId as string } : {})
     };
+    console.log("GET /api/sales - Prisma WHERE clause:", JSON.stringify(where));
 
     const entries = await prisma.salesEntry.findMany({
       where,
@@ -154,19 +160,22 @@ export async function GET(req: Request) {
         saleDate: 'desc'
       }
     });
+    console.log(`GET /api/sales - Found ${entries.length} entries.`);
 
+    console.log("GET /api/sales - Returning success response.");
     return NextResponse.json({ success: true, entries });
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('GET /api/sales - Error caught:', { message: errorMessage, error });
     
-    console.error('Error fetching sales entries:', {
-      message: errorMessage
-    });
-
+    console.log("GET /api/sales - Returning error response.");
     return NextResponse.json(
       { success: false, message: 'Failed to fetch sales entries' },
       { status: 500 }
     );
+  } finally {
+      console.log("--- GET /api/sales END ---");
   }
 }
 

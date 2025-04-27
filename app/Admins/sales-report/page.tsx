@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -47,6 +47,7 @@ export default function AdminSalesReport() {
   const [employeeStats, setEmployeeStats] = useState<EmployeeStats[]>([])
   const [sortConfig, setSortConfig] = useState({ key: "date", direction: "desc" })
 
+
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ffc658"]
   
   const timeRanges = [
@@ -71,90 +72,7 @@ export default function AdminSalesReport() {
     }
   }
 
-  const fetchSalesData = async () => {
-    try {
-      let url = `/api/sales?period=${period}`
-      if (period === "custom" && customPeriod.start && customPeriod.end) {
-        url = `/api/sales?start=${customPeriod.start}&end=${customPeriod.end}`
-      }
-
-      const response = await fetch(url)
-      const data = await response.json()
-      
-      if (data.success) {
-        interface ApiSaleEntry {
-          id: string
-          saleDate: string
-          employee: { id: string; name: string }
-          trackingId?: string
-          companyName?: string
-          isNoSale: boolean
-          totalSaleValue?: number
-          purchaseValue?: number | null
-          profit?: number | null
-          profitMargin?: number | null
-          shipmentCarrier?: string
-          carat?: string | number
-          color?: string
-          clarity?: string
-          description?: string
-        }
-
-        const formattedData = data.entries.map((entry: ApiSaleEntry) => ({
-          id: entry.id,
-          date: new Date(entry.saleDate).toLocaleDateString(),
-          rawDate: new Date(entry.saleDate),
-          employeeId: entry.employee.id,
-          employeeName: entry.employee.name,
-          trackingId: entry.trackingId || "-",
-          companyName: entry.companyName || "No Sale",
-          isNoSale: entry.isNoSale,
-          saleValue: entry.totalSaleValue || 0,
-          purchaseValue: entry.purchaseValue || null,
-          profit: entry.profit,
-          profitMargin: entry.profitMargin,
-          shipmentCarrier: entry.shipmentCarrier || "N/A",
-          details: {
-            carat: entry.carat,
-            color: entry.color,
-            clarity: entry.clarity,
-          },
-          description: entry.description || "",
-        }))
-        
-        setSalesData(formattedData)
-        applyFilters(formattedData, selectedEmployee)
-        calculateEmployeeStats(formattedData)
-      }
-    } catch (error) {
-      console.error("Error fetching sales data:", error)
-      toast.error("Failed to fetch sales data")
-    }
-  }
-
-  const savePurchaseValue = async (id: string, value: number) => {
-    try {
-      const response = await fetch(`/api/sales/${id}/purchase-value`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ purchaseValue: value }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Purchase value saved successfully");
-        return true;
-      } else {
-        toast.error(data.message || "Failed to save purchase value");
-        return false;
-      }
-    } catch (error) {
-      console.error("Error saving purchase value:", error);
-      toast.error("Failed to save purchase value");
-      return false;
-    }
-  }
-
-  const applyFilters = (data: SaleEntry[], employeeId: string) => {
+  const applyFilters = useCallback((data: SaleEntry[], employeeId: string) => {
     let filtered = [...data]
     if (employeeId !== "all") {
       filtered = filtered.filter(item => item.employeeId === employeeId)
@@ -176,9 +94,9 @@ export default function AdminSalesReport() {
       return 0
     })
     setFilteredData(filtered)
-  }
+  }, [sortConfig])
 
-  const calculateEmployeeStats = (data: SaleEntry[]) => {
+  const calculateEmployeeStats = useCallback((data: SaleEntry[]) => {
     const stats: Record<string, EmployeeStats> = {}
     data.forEach(entry => {
       if (!entry.isNoSale) {
@@ -197,7 +115,115 @@ export default function AdminSalesReport() {
     const statsArray = Object.values(stats)
     statsArray.sort((a, b) => b.totalSales - a.totalSales)
     setEmployeeStats(statsArray)
-  }
+  }, [])
+
+  const handleSort = useCallback((key: keyof SaleEntry | 'date') => {
+    let direction = 'asc'
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc'
+    }
+    setSortConfig({ key: key.toString(), direction })
+  }, [sortConfig.key, sortConfig.direction])
+
+  useEffect(() => {
+    fetchEmployees()
+  }, [])
+
+  useEffect(() => {
+    const performFetch = async () => {
+      try {
+        let url = `/api/sales?period=${period}`
+        if (period === "custom" && customPeriod.start && customPeriod.end) {
+          url = `/api/sales?start=${customPeriod.start}&end=${customPeriod.end}`
+        }
+        const response = await fetch(url)
+        const data = await response.json()
+        if (data.success) {
+          interface ApiSaleEntry {
+            id: string
+            saleDate: string
+            employee: { id: string; name: string }
+            trackingId?: string
+            companyName?: string
+            isNoSale: boolean
+            totalSaleValue?: number
+            purchaseValue?: number | null
+            profit?: number | null
+            profitMargin?: number | null
+            shipmentCarrier?: string
+            carat?: string | number
+            color?: string
+            clarity?: string
+            description?: string
+          }
+          const formattedData = data.entries.map((entry: ApiSaleEntry): SaleEntry => ({
+            id: entry.id,
+            date: new Date(entry.saleDate).toLocaleDateString(),
+            rawDate: new Date(entry.saleDate),
+            employeeId: entry.employee.id,
+            employeeName: entry.employee.name,
+            trackingId: entry.trackingId || "-",
+            companyName: entry.companyName || "No Sale",
+            isNoSale: entry.isNoSale,
+            saleValue: entry.totalSaleValue || 0,
+            purchaseValue: entry.purchaseValue !== undefined ? entry.purchaseValue : null,
+            profit: entry.profit !== undefined ? entry.profit : null,
+            profitMargin: entry.profitMargin !== undefined ? entry.profitMargin : null,
+            shipmentCarrier: entry.shipmentCarrier || "N/A",
+            details: {
+              carat: entry.carat,
+              color: entry.color,
+              clarity: entry.clarity,
+            },
+            description: entry.description || "",
+          }))
+          setSalesData(formattedData)
+        }
+      } catch (error) {
+        console.error("Error fetching sales data:", error)
+        toast.error("Failed to fetch sales data")
+        setSalesData([])
+      }
+    }
+    performFetch()
+  }, [period, customPeriod])
+
+  useEffect(() => {
+    if (salesData.length > 0) {
+      applyFilters(salesData, selectedEmployee)
+      calculateEmployeeStats(salesData)
+    } else {
+      setFilteredData([])
+      setEmployeeStats([])
+    }
+  }, [salesData, selectedEmployee, sortConfig, applyFilters, calculateEmployeeStats])
+
+  const savePurchaseValue = useCallback(async (id: string, value: number) => {
+    try {
+      console.log(`Saving purchase value for ID ${id}: $${value}`);
+      
+      const response = await fetch(`/api/sales/${id}/purchase-value`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchaseValue: value }),
+      });
+      
+      const data = await response.json();
+      console.log("API response:", data);
+      
+      if (data.success) {
+        toast.success("Purchase value saved successfully");
+        return true;
+      } else {
+        toast.error(data.message || "Failed to save purchase value");
+        return false;
+      }
+    } catch (error) {
+      console.error("Error saving purchase value:", error);
+      toast.error("Failed to save purchase value");
+      return false;
+    }
+  }, []);
 
   const calculateProfit = () => {
     const purchase = parseFloat(purchaseValue)
@@ -219,25 +245,59 @@ export default function AdminSalesReport() {
     })
     setShowProfitAnalysis(true)
   }
-
-  const updateEntryPurchaseValue = async (id: string, value: number) => {
+  const updateEntryPurchaseValue = useCallback(async (id: string, value: number) => {
+    // Prevent non-numeric values
     if (isNaN(value)) {
       toast.error("Invalid purchase value entered.");
-      return; // Stop if value is not a valid number
+      return;
     }
-    setSalesData(prevData => 
-      prevData.map(entry => 
-        entry.id === id 
-          ? { ...entry, purchaseValue: value } 
-          : entry
-      )
-    )
-    await savePurchaseValue(id, value);
-    // Optionally recalculate profit for this entry immediately
-    // calculateEntryProfit(id); // Or trigger after save confirmation
-  }
+    
+    try {
+      // First update local state optimistically
+      setSalesData(prevData => 
+        prevData.map(entry => 
+          entry.id === id 
+            ? { ...entry, purchaseValue: value } 
+            : entry
+        )
+      );
+      
+      // Update filtered data too if needed (since this is what's displayed in the table)
+      setFilteredData(prevData => 
+        prevData.map(entry => 
+          entry.id === id 
+            ? { ...entry, purchaseValue: value } 
+            : entry
+        )
+      );
+      
+      // Then save to server
+      const success = await savePurchaseValue(id, value);
+      
+      if (!success) {
+        // If save failed, revert the local state change
+        setSalesData(prevData => 
+          prevData.map(entry => 
+            entry.id === id 
+              ? { ...entry, purchaseValue: entry.purchaseValue } // Revert to previous value
+              : entry
+          )
+        );
+        setFilteredData(prevData => 
+          prevData.map(entry => 
+            entry.id === id 
+              ? { ...entry, purchaseValue: entry.purchaseValue } // Revert to previous value
+              : entry
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error in updateEntryPurchaseValue:", error);
+      toast.error("An unexpected error occurred");
+    }
+  }, [savePurchaseValue]);
 
-  const calculateEntryProfit = async (id: string) => {
+  const calculateEntryProfit = useCallback(async (id: string) => {
     const entry = salesData.find(e => e.id === id);
     if (entry && typeof entry.purchaseValue === 'number') {
       const profit = entry.saleValue - entry.purchaseValue;
@@ -269,7 +329,7 @@ export default function AdminSalesReport() {
     } else {
       toast.warning("Purchase value required to calculate profit");
     }
-  }
+  }, [salesData])
 
   const calculateAllEntryProfits = async () => {
     const entriesWithPurchaseValue = salesData.filter(
@@ -336,26 +396,6 @@ export default function AdminSalesReport() {
       setShowProfitAnalysis(true);
     }
   }
-
-  const handleSort = (key: keyof SaleEntry | 'date') => {
-    let direction = 'asc'
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc'
-    }
-    setSortConfig({ key: key.toString(), direction })
-  }
-
-  useEffect(() => {
-    fetchEmployees()
-  }, [])
-
-  useEffect(() => {
-    fetchSalesData()
-  }, [period, customPeriod, fetchSalesData])
-
-  useEffect(() => {
-    applyFilters(salesData, selectedEmployee)
-  }, [selectedEmployee, salesData, sortConfig, applyFilters])
 
   const getChartData = () => {
     const grouped: Record<string, { date: string; sales: number }> = {}
@@ -511,7 +551,11 @@ export default function AdminSalesReport() {
              <CardContent>
                 <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Employee" />
+                    {/* Find selected employee and display name, or show placeholder */}
+                    {selectedEmployee === "all" 
+                      ? <SelectValue placeholder="All Employees" />
+                      : employees.find(emp => emp.id === selectedEmployee)?.name || <SelectValue placeholder="Select Employee" />
+                    }
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Employees</SelectItem>

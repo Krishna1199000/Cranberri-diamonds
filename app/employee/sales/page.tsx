@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { SalesEntryForm } from "@/components/employee/sales/SalesEntryForm"
 import { SalesAnalytics } from "@/components/employee/sales/SalesAnalytics"
 import { SalesTable } from "@/components/employee/sales/SalesTable"
@@ -19,7 +19,7 @@ export default function EmployeeSalesPage() {
     setRefreshTrigger(prev => prev + 1)
   }
 
-  const fetchSalesData = async () => {
+  const fetchSalesData = useCallback(async () => {
     try {
       let url = `/api/sales?period=${period}`
       if (period === "custom" && customPeriod.start && customPeriod.end) {
@@ -30,7 +30,59 @@ export default function EmployeeSalesPage() {
       const data = await response.json()
 
       if (data.success && Array.isArray(data.entries)) {
-        setSalesData(data.entries)
+        // Define the structure of the data coming from the API
+        interface ApiSaleEntry {
+          id: string
+          saleDate: string // API uses saleDate
+          employee: { id: string; name: string } // API includes employee object
+          trackingId?: string
+          companyName?: string
+          isNoSale: boolean
+          totalSaleValue?: number // API uses totalSaleValue
+          purchaseValue?: number | null
+          profit?: number | null
+          profitMargin?: number | null
+          shipmentCarrier?: string
+          saleItems?: { // API has saleItems array
+             carat?: string | number | null
+             color?: string | null
+             clarity?: string | null
+             certificateNo?: string | null
+             pricePerCarat?: number | null
+             totalValue?: number | null
+          }[]
+          description?: string
+        }
+
+        // Format the API data into the SaleEntry structure
+        const formattedData: SaleEntry[] = data.entries.map((entry: ApiSaleEntry) => {
+          const firstItem = entry.saleItems?.[0];
+          return {
+            id: entry.id,
+            date: new Date(entry.saleDate).toLocaleDateString(), // Format to string date
+            rawDate: new Date(entry.saleDate), // Keep raw date for potential sorting
+            employeeId: entry.employee.id,
+            employeeName: entry.employee.name,
+            trackingId: entry.trackingId || "-",
+            companyName: entry.companyName || "No Sale",
+            isNoSale: entry.isNoSale,
+            saleValue: entry.totalSaleValue || 0, // Map totalSaleValue to saleValue
+            purchaseValue: entry.purchaseValue !== undefined ? entry.purchaseValue : null,
+            profit: entry.profit !== undefined ? entry.profit : null,
+            profitMargin: entry.profitMargin !== undefined ? entry.profitMargin : null,
+            shipmentCarrier: entry.shipmentCarrier || "N/A",
+            // Create the details object from the first sale item
+            details: {
+              carat: firstItem?.carat,
+              color: firstItem?.color,
+              clarity: firstItem?.clarity,
+            },
+            description: entry.description || "",
+          };
+        });
+        
+        setSalesData(formattedData) // Set the correctly formatted data
+
       } else {
         setSalesData([])
         console.error("Invalid data format received:", data)
@@ -39,7 +91,7 @@ export default function EmployeeSalesPage() {
       console.error("Error fetching sales data:", error)
       setSalesData([])
     }
-  }
+  }, [period, customPeriod])
 
   useEffect(() => {
     fetchSalesData()
@@ -57,36 +109,14 @@ export default function EmployeeSalesPage() {
 
           <div className="space-y-6">
             <SalesAnalytics
-              salesData={salesData.map(sale => ({
-                saleDate: sale.date, // map date to saleDate
-                totalSaleValue: sale.saleValue, // map saleValue to totalSaleValue
-                // include other required properties
-                ...sale
-              }))}
+              salesData={salesData}
               period={period}
               setPeriod={setPeriod}
               customPeriod={customPeriod}
               setCustomPeriod={setCustomPeriod}
             />
 
-            <SalesTable salesData={salesData.map(sale => ({
-              saleDate: sale.date,
-              totalSaleValue: sale.saleValue,
-              saleItems: sale.details ? [{
-                // Add the missing required properties
-                certificateNo: sale.trackingId || 'N/A',
-                pricePerCarat: sale.saleValue / (parseFloat(sale.details.carat?.toString() || '1') || 1),
-                totalValue: sale.saleValue,
-                // Fix the carat type issue - ensure it's number | null
-                carat: typeof sale.details.carat === 'string'
-                  ? parseFloat(sale.details.carat) || null
-                  : sale.details.carat || null,
-                // Include other properties from details but exclude carat which we've handled above
-                color: sale.details.color || null,
-                clarity: sale.details.clarity || null
-              }] : [],
-              ...sale
-            }))} />
+            <SalesTable salesData={salesData} />
           </div>
         </div>
       </div>

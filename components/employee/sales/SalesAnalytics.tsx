@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { SaleEntry } from "@/types/sales"
 import {
   XAxis,
   YAxis,
@@ -13,12 +14,6 @@ import {
   BarChart,
   Bar,
 } from "recharts"
-
-interface SaleEntry {
-  isNoSale: boolean
-  saleDate: string
-  totalSaleValue: number
-}
 
 interface SalesAnalyticsProps {
   salesData: SaleEntry[]
@@ -46,12 +41,12 @@ export function SalesAnalytics({
   ]
 
   const chartData = salesData
-    .filter(entry => !entry.isNoSale)
-    .map(entry => ({
-      date: new Date(entry.saleDate).toLocaleDateString(),
-      value: entry.totalSaleValue || 0
-    }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  .filter(entry => !entry.isNoSale)
+  .map(entry => ({
+    date: new Date(entry.date).toLocaleDateString(),
+    value: entry.saleValue || 0  // use entry.saleValue instead of entry.totalSaleValue
+  }))
+  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
   return (
     <Card className="p-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,40 +118,40 @@ export default function AdminPerformance() {
   };
 
   // Fetch reports
-  const fetchReports = async () => {
-    try {
-      // Build the URL with filters
-      let url = "/api/performance/admin?";
-      
-      // Add employee filter if specific employee is selected
-      if (selectedEmployee !== "all") {
-        url += `employeeId=${selectedEmployee}&`;
+    const fetchReports = useCallback(async () => {
+      try {
+        // Build the URL with filters
+        let url = "/api/performance/admin?";
+        
+        // Add employee filter if specific employee is selected
+        if (selectedEmployee !== "all") {
+          url += `employeeId=${selectedEmployee}&`;
+        }
+        
+        // Add time filter if specific time period is selected
+        if (selectedTimeFilter !== "all") {
+          url += `timeFilter=${selectedTimeFilter}&`;
+        }
+        
+        // Remove trailing '&' if exists
+        if (url.endsWith('&')) {
+          url = url.slice(0, -1);
+        }
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error("Failed to fetch reports");
+        }
+        
+        const data = await response.json();
+        if (data.success && Array.isArray(data.reports)) {
+          setReports(data.reports);
+        }
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+        toast.error("Failed to fetch reports");
       }
-      
-      // Add time filter if specific time period is selected
-      if (selectedTimeFilter !== "all") {
-        url += `timeFilter=${selectedTimeFilter}&`;
-      }
-      
-      // Remove trailing '&' if exists
-      if (url.endsWith('&')) {
-        url = url.slice(0, -1);
-      }
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Failed to fetch reports");
-      }
-      
-      const data = await response.json();
-      if (data.success && Array.isArray(data.reports)) {
-        setReports(data.reports);
-      }
-    } catch (error) {
-      console.error("Error fetching reports:", error);
-      toast.error("Failed to fetch reports");
-    }
-  };
+    }, [selectedEmployee, selectedTimeFilter]);
 
   // Find the selected employee object for the FILTER dropdown
   const selectedFilterEmployeeObject = employees.find(emp => emp.id === selectedEmployee);
