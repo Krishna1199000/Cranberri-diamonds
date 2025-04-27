@@ -911,7 +911,7 @@ export default function Home() {
               href="https://wa.me/918452872491"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-slate-600 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded w-full max-w-xs mx-auto no-underline transition-colors duration-300 my-6 overflow-hidden"
+              className="flex items-center justify-center gap-2 bg-slate-600 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded w-full max-w-xs mx-auto no-underline transition-colors duration-300 my-6"
               initial={{ opacity: 0, y: 20 }}
               animate={isContactInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               whileHover={{
@@ -920,17 +920,8 @@ export default function Home() {
               }}
               whileTap={{ scale: 0.97 }}
             >
-              <motion.span
-                className="absolute inset-0 bg-gradient-to-r from-slate-500 to-slate-700"
-                animate={{
-                  x: ["0%", "100%", "0%"],
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 3
-                }}
-              />
-              <span className="relative z-10 flex items-center gap-2">
+              {/* Removed the animated gradient span */}
+              <span className="flex items-center gap-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
