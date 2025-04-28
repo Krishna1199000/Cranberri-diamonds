@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
-import { Menu, Home, Search, Package, BarChart, DollarSign, Box, LogOut } from 'lucide-react';
+import { Menu, Home, Search, Package, BarChart, DollarSign, Box, LogOut, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserProfileDropdown } from '@/components/UserProfileDropdown';
 import {
@@ -28,6 +28,7 @@ const navItems = [
   { label: 'Performance', icon: BarChart, href: '/employee/performance' },
   { label: 'Sales', icon: DollarSign, href: '/employee/sales' },
   { label: 'Parcel-Goods', icon: Box, href: '/parcel-goods' },
+  { label: 'Invoices', icon: FileText, href: '/invoices' },
 ];
 
 export function EmployeeLayout({ children }: EmployeeLayoutProps) {
@@ -82,7 +83,7 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Horizontal Header Navigation */}
-      <header className="sticky top-0 z-50 w-full bg-white dark:bg-gray-800 shadow-md">
+      <header className="sticky top-0 z-50 w-full bg-white dark:bg-gray-800 shadow-md print:hidden">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           {/* Logo/Title */}
           <Link href="/employee" className="flex items-center space-x-2 text-lg font-bold text-gray-800 dark:text-white">

@@ -7,7 +7,6 @@ import { Loader2, Plus, Trash2, FileText } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AdminLayout } from "@/components/layout/AdminLayout";
 
 interface Invoice {
   id: string;
@@ -76,7 +75,7 @@ export default function InvoicesPage() {
   };
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Invoices</h1>
         <Link href="/invoices/new">
@@ -145,6 +144,6 @@ export default function InvoicesPage() {
           ))}
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }

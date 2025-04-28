@@ -142,22 +142,22 @@ export function generateInvoiceNumber(lastInvoiceNo: string | null | undefined, 
                 }
             } else {
                  console.error(`[generateInvoiceNumber] Failed to parse numeric/alpha part: '${numericAlphaPart}'. Defaulting.`);
-                 nextNum = 54; // << CHANGE: Start at 54 if parsing fails
+                 nextNum = 57; // << CHANGED: Start at 57 if parsing fails
                  nextLetterCode = 'A'.charCodeAt(0);
             }
         } else {
              console.error(`[generateInvoiceNumber] Invalid numericAlphaPart: '${numericAlphaPart}'. Defaulting.`);
-             nextNum = 54; // << CHANGE: Start at 54 if parsing fails
+             nextNum = 57; // << CHANGED: Start at 57 if parsing fails
              nextLetterCode = 'A'.charCodeAt(0);
         }
     } else {
          console.error(`[generateInvoiceNumber] Failed to split lastInvoiceNo by '/'. Defaulting.`);
-         nextNum = 54; // << CHANGE: Start at 54 if parsing fails
+         nextNum = 57; // << CHANGED: Start at 57 if parsing fails
          nextLetterCode = 'A'.charCodeAt(0);
     }
   } else {
        console.log(`[generateInvoiceNumber] No valid lastInvoiceNo provided or prefix mismatch. Starting new sequence.`);
-       nextNum = 54; // << CHANGE: Start at 54 for the very first invoice
+       nextNum = 57; // << CHANGED: Start at 57 for the very first invoice
        nextLetterCode = 'A'.charCodeAt(0);
   }
 
