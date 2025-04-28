@@ -253,7 +253,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
       {/* Legal Text */} 
       {/* ... Legal Text ... */} 
       <div className="mt-4 mb-3 print:mt-1 print:mb-1 text-[10px] print:text-[9px] text-gray-500">
-        <p className="mb-1 print:mb-0.5 print:leading-snug">The diamonds herein invoiced have been purchased from legitimate sources not involved in funding conflict and are compliance with United Nations Resolutions. I hereby guarantee that these diamonds are conflict free, based on personal knowledge and/ or written guarantees provided by the supplier of these diamonds. UNIQUE LAB GROWN DIAMOND INC. deals only in Lab Grown Diamonds. All diamonds invoiced are Lab Grown Diamonds immaterial if its certified or non-certified.</p>
+        <p className="mb-1 print:mb-0.5 print:leading-snug">The diamonds herein invoiced have been purchased from legitimate sources not involved in funding conflict and are compliance with United Nations Resolutions. I hereby guarantee that these diamonds are conflict free, based on personal knowledge and/ or written guarantees provided by the supplier of these diamonds. Cranberri diamonds deals only in Lab Grown Diamonds. All diamonds invoiced are Lab Grown Diamonds immaterial if its certified or non-certified.</p>
         <p className="print:leading-snug">Received the above goods on the terms and conditions set out</p>
       </div>
 
