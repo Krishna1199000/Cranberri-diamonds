@@ -129,7 +129,7 @@ export default function InvoicesPage() {
                     size="sm"
                     onClick={() => handleDelete(invoice.id)}
                     disabled={deletingId === invoice.id}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400 border-red-600 hover:border-red-700 dark:border-red-500 dark:hover:border-red-400"
                   >
                     {deletingId === invoice.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

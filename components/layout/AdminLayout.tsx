@@ -80,7 +80,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
-      <nav className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-50">
+      <nav className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-50 print:hidden">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
