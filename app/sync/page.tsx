@@ -3,12 +3,21 @@
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Diamond, CheckCircle, AlertCircle, Clock, RefreshCw, XCircle, Ban, Square } from "lucide-react"
+import { Diamond, CheckCircle, AlertCircle, Clock, RefreshCw, XCircle, Ban, Square, History } from "lucide-react"
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { SyncStatus as PrismaSyncStatus } from '@prisma/client';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 
 type SyncStatus = PrismaSyncStatus;
 
@@ -22,13 +31,15 @@ interface SyncLog {
 
 interface SyncResponse {
   latestSync: SyncLog
+  syncHistory: SyncLog[]
   stats: {
     totalDiamonds: number
   }
 }
 
 export default function SyncPage() {
-  const [syncStatus, setSyncStatus] = useState<SyncLog | null>(null)
+  const [latestSyncStatus, setLatestSyncStatus] = useState<SyncLog | null>(null)
+  const [syncHistory, setSyncHistory] = useState<SyncLog[]>([])
   const [diamondCount, setDiamondCount] = useState<number>(0)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isStopping, setIsStopping] = useState(false)
@@ -51,7 +62,8 @@ export default function SyncPage() {
       const isActiveSync = data.latestSync?.status === PrismaSyncStatus.STARTED || 
                            data.latestSync?.status === PrismaSyncStatus.STOPPING;
       
-      setSyncStatus(data.latestSync)
+      setLatestSyncStatus(data.latestSync)
+      setSyncHistory(Array.isArray(data.syncHistory) ? data.syncHistory : [])
       setDiamondCount(data.stats.totalDiamonds)
       
       setIsSyncing(isActiveSync);
@@ -132,7 +144,7 @@ export default function SyncPage() {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
         }
-        const currentStatus = syncStatus?.status
+        const currentStatus = latestSyncStatus?.status
         const isActiveSync = currentStatus === PrismaSyncStatus.STARTED || 
                              currentStatus === PrismaSyncStatus.STOPPING;
         const intervalDuration = isActiveSync ? POLLING_INTERVAL_ACTIVE : POLLING_INTERVAL_IDLE;
@@ -144,30 +156,30 @@ export default function SyncPage() {
                  clearInterval(intervalRef.current);
              }
          };
-    }, [syncStatus?.status]);
+    }, [latestSyncStatus?.status]);
 
-  const getStatusIcon = (status: SyncStatus | undefined) => {
+  const getStatusPresentation = (status: SyncStatus | undefined): { icon: React.ReactNode, variant: "default" | "destructive" | "outline" | "secondary" | "success" | "info", textClass: string } => {
     switch (status) {
       case PrismaSyncStatus.COMPLETED:
-        return <CheckCircle className="h-5 w-5 text-green-500" />
+        return { icon: <CheckCircle className="h-4 w-4 mr-1" />, variant: "success", textClass: "text-green-600 dark:text-green-400" };
       case PrismaSyncStatus.COMPLETED_WITH_ERRORS:
-        return <AlertCircle className="h-5 w-5 text-yellow-500" />
+        return { icon: <AlertCircle className="h-4 w-4 mr-1" />, variant: "secondary", textClass: "text-yellow-600 dark:text-yellow-400" };
       case PrismaSyncStatus.FAILED:
-        return <XCircle className="h-5 w-5 text-red-500" />
+        return { icon: <XCircle className="h-4 w-4 mr-1" />, variant: "destructive", textClass: "text-destructive" };
       case PrismaSyncStatus.STARTED:
-        return <RefreshCw className="h-5 w-5 text-blue-500 animate-spin" />
+        return { icon: <RefreshCw className="h-4 w-4 mr-1 animate-spin" />, variant: "info", textClass: "text-blue-500 dark:text-blue-400" };
       case PrismaSyncStatus.STOPPING:
-        return <Ban className="h-5 w-5 text-orange-500 animate-pulse" />
+        return { icon: <Ban className="h-4 w-4 mr-1 animate-pulse" />, variant: "secondary", textClass: "text-orange-500 dark:text-orange-400" };
       case PrismaSyncStatus.CANCELLED:
-        return <Square className="h-5 w-5 text-gray-500" />
+        return { icon: <Square className="h-4 w-4 mr-1" />, variant: "secondary", textClass: "text-gray-500 dark:text-gray-400" };
       case PrismaSyncStatus.UNKNOWN:
       default:
-        return <Clock className="h-5 w-5 text-gray-400" />
+        return { icon: <Clock className="h-4 w-4 mr-1" />, variant: "outline", textClass: "text-gray-400" };
     }
   }
   
-  const isActiveSync = syncStatus?.status === PrismaSyncStatus.STARTED || 
-                       syncStatus?.status === PrismaSyncStatus.STOPPING;
+  const isActiveSync = latestSyncStatus?.status === PrismaSyncStatus.STARTED || 
+                       latestSyncStatus?.status === PrismaSyncStatus.STOPPING;
 
   function cn(...classes: (string | false | null | undefined)[]): string {
     return classes.filter(Boolean).join(' ')
@@ -194,7 +206,7 @@ export default function SyncPage() {
             {isSyncing && !isStopping ? 'Syncing...' : 'Sync Now'}
           </Button>
           
-           {syncStatus?.status === PrismaSyncStatus.STARTED && (
+           {latestSyncStatus?.status === PrismaSyncStatus.STARTED && (
               <Button 
                 variant="outline"
                 onClick={triggerStopSync} 
@@ -205,7 +217,7 @@ export default function SyncPage() {
                 {isStopping ? 'Stopping...' : 'Stop Sync'}
               </Button>
           )}
-           {syncStatus?.status === PrismaSyncStatus.STOPPING && (
+           {latestSyncStatus?.status === PrismaSyncStatus.STOPPING && (
                <span className="text-sm text-orange-600 dark:text-orange-400 flex items-center gap-1">
                    <Ban className="h-4 w-4 animate-pulse"/> Stopping...
                </span>
@@ -213,67 +225,62 @@ export default function SyncPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Latest Sync Status</CardTitle>
             <CardDescription>
-              {isActiveSync ? 'Sync is currently running.' : syncStatus?.status === PrismaSyncStatus.UNKNOWN ? 'No sync data available.' : 'Status of the last sync attempt.'}
+              {isActiveSync ? 'Sync is currently running.' : latestSyncStatus?.status === PrismaSyncStatus.UNKNOWN ? 'No sync data available.' : 'Status of the last sync attempt.'}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
               <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
-                 <strong>Error:</strong> {error} 
+                 <strong>Error:</strong> {error}
                  <Button variant="default" size="sm" onClick={() => fetchSyncStatus()} className="ml-2 h-auto p-0 bg-transparent hover:bg-transparent text-destructive underline hover:text-destructive/80">Retry</Button>
               </div>
             )}
             
-            {syncStatus && syncStatus.status !== PrismaSyncStatus.UNKNOWN ? (
-              <div className="space-y-4">
+            {latestSyncStatus && latestSyncStatus.id ? (
+              <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">Status:</span>
-                  <div className="flex items-center gap-1 text-sm font-semibold">
-                    {getStatusIcon(syncStatus.status)}
-                    <span 
-                      className={cn(
-                        syncStatus.status === PrismaSyncStatus.FAILED && 'text-destructive',
-                        syncStatus.status === PrismaSyncStatus.COMPLETED_WITH_ERRORS && 'text-yellow-600 dark:text-yellow-400',
-                        syncStatus.status === PrismaSyncStatus.CANCELLED && 'text-gray-500 dark:text-gray-400',
-                        syncStatus.status === PrismaSyncStatus.STOPPING && 'text-orange-500 dark:text-orange-400',
-                        syncStatus.status === PrismaSyncStatus.STARTED && 'text-blue-500 dark:text-blue-400',
-                        syncStatus.status === PrismaSyncStatus.COMPLETED && 'text-green-600 dark:text-green-400'
-                      )}
-                    >
-                      {syncStatus.status.replace('_',' ')}
-                    </span>
-                  </div>
+                  <span className="font-medium text-sm min-w-[80px]">Status:</span>
+                  <Badge variant={getStatusPresentation(latestSyncStatus.status).variant} className={`text-xs ${getStatusPresentation(latestSyncStatus.status).textClass}`}>
+                    {getStatusPresentation(latestSyncStatus.status).icon}
+                    {latestSyncStatus.status.replace('_',' ')}
+                  </Badge>
                 </div>
 
-                {syncStatus.message && (
-                   <p className={cn(
-                       "text-sm",
-                        syncStatus.status === PrismaSyncStatus.FAILED ? 'text-destructive' : 'text-muted-foreground'
-                   )}>
-                    <span className="font-medium">Details:</span> {syncStatus.message}
-                  </p>
-                )}
-                
-                {(syncStatus.status === PrismaSyncStatus.STARTED || syncStatus.status === PrismaSyncStatus.STOPPING || syncStatus.status === PrismaSyncStatus.COMPLETED || syncStatus.status === PrismaSyncStatus.COMPLETED_WITH_ERRORS || syncStatus.status === PrismaSyncStatus.CANCELLED) && (
-                  <div className="text-sm">
-                     <span className="font-medium">Timestamp:</span>
-                     <span className="ml-2 text-muted-foreground">
-                       {formatDistanceToNow(new Date(syncStatus.createdAt), { addSuffix: true })}
+                {(latestSyncStatus.status !== PrismaSyncStatus.UNKNOWN) && (
+                  <div className="flex items-center gap-2 text-sm">
+                     <span className="font-medium min-w-[80px]">Timestamp:</span>
+                     <span className="text-muted-foreground">
+                       {formatDistanceToNow(new Date(latestSyncStatus.createdAt), { addSuffix: true })}
                      </span>
                   </div>
                  )}
 
-                {(syncStatus.status === PrismaSyncStatus.STARTED || syncStatus.status === PrismaSyncStatus.COMPLETED || syncStatus.status === PrismaSyncStatus.COMPLETED_WITH_ERRORS || syncStatus.status === PrismaSyncStatus.CANCELLED || syncStatus.status === PrismaSyncStatus.STOPPING) && syncStatus.count >= 0 && (
-                  <div className="text-sm">
-                    <span className="font-medium">Diamonds Processed:</span>
-                    <span className="ml-2 text-muted-foreground">{syncStatus.count}{isActiveSync ? '...' : ''}</span>
+                {(latestSyncStatus.count >= 0) && (
+                   <div className="flex items-center gap-2 text-sm">
+                    <span className="font-medium min-w-[80px]">Processed:</span>
+                    <span className="text-muted-foreground">
+                        {latestSyncStatus.count.toLocaleString()} diamonds
+                        {isActiveSync ? '...' : ''}
+                    </span>
                   </div>
                 )}
+
+                {latestSyncStatus.message && (
+                   <div className="flex items-start gap-2 text-sm">
+                     <span className="font-medium min-w-[80px] mt-px">Details:</span>
+                     <p className={cn(
+                         "flex-1",
+                          latestSyncStatus.status === PrismaSyncStatus.FAILED ? 'text-destructive' : 'text-muted-foreground'
+                     )}>
+                       {latestSyncStatus.message}
+                     </p>
+                   </div>
+                 )}
               </div>
             ) : (
               <div className="text-sm text-muted-foreground italic">
@@ -303,13 +310,69 @@ export default function SyncPage() {
               
               <div>
                 <p className="text-xs text-muted-foreground">
-                  Use the &apos;Sync Now&apos; button to update the diamond database from the external source. The process runs in the background.
+                  Use the &apos;Sync Now&apos; button to update the diamond database from the external source. The process runs in the background. Auto-sync runs every 4 hours.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Sync History
+              </CardTitle>
+              <CardDescription>
+                  Showing the last {syncHistory?.length || 0} sync attempts. 
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <Table>
+                  <TableHeader>
+                      <TableRow>
+                          <TableHead className="w-[100px]">Status</TableHead>
+                          <TableHead className="w-[180px]">Timestamp</TableHead>
+                          <TableHead>Details</TableHead>
+                          <TableHead className="text-right w-[120px]">Processed</TableHead>
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      {Array.isArray(syncHistory) && syncHistory.length > 0 ? (
+                          syncHistory.map((log) => {
+                              if (!log || !log.id) return null; 
+                              const presentation = getStatusPresentation(log.status);
+                              return (
+                                  <TableRow key={log.id}>
+                                      <TableCell>
+                                          <Badge variant={presentation.variant} className={`text-xs whitespace-nowrap ${presentation.textClass}`}> 
+                                              {presentation.icon}
+                                              {log.status.replace('_', ' ')}
+                                          </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-xs text-muted-foreground">
+                                          {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                                      </TableCell>
+                                      <TableCell className="text-xs">{log.message || '-'}</TableCell>
+                                      <TableCell className="text-right text-xs">
+                                          {log.count >= 0 ? log.count.toLocaleString() : '-'}
+                                      </TableCell>
+                                  </TableRow>
+                              );
+                          })
+                      ) : (
+                          <TableRow>
+                              <TableCell colSpan={4} className="h-24 text-center text-sm text-muted-foreground">
+                                  No sync history found.
+                              </TableCell>
+                          </TableRow>
+                      )}
+                  </TableBody>
+              </Table>
+          </CardContent>
+       </Card>
+
     </AdminLayout>
   )
 }
