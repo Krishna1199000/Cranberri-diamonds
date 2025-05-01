@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { syncDiamonds } from '@/prisma/sync-diamonds';
+import { syncDiamonds } from '@/lib/syncDiamonds';
 import { getSession } from '@/lib/session'; // Assuming you have a session handling mechanism
+import { SyncStatus } from '@prisma/client'; // Import the enum
+import { initializeSyncScheduler } from '@/lib/scheduler'; // Import the initializer
 
-// Remove automatic scheduler initialization
-// if (process.env.NODE_ENV !== 'development') {
-//   // Only run the scheduler in production to prevent multiple instances in dev
-//   initializeSyncScheduler();
-// }
+// Initialize scheduler only once in production/staging environments
+if (process.env.NODE_ENV !== 'development') {
+  initializeSyncScheduler();
+}
 
 export async function GET() {
   try {
@@ -20,10 +21,11 @@ export async function GET() {
     
     return NextResponse.json({
       latestSync: latestSync || { 
-        status: 'UNKNOWN', 
+        id: '', // Add default id
+        status: SyncStatus.UNKNOWN, // Use enum
         message: 'No sync history found',
         count: 0,
-        createdAt: new Date().toISOString()
+        createdAt: new Date() // Use Date object
       },
       stats: {
         totalDiamonds: diamondCount,
@@ -59,7 +61,7 @@ export async function POST() {
     
     // Check if a sync is already running
     const runningSync = await prisma.syncLog.findFirst({
-      where: { status: 'STARTED' },
+      where: { status: SyncStatus.STARTED }, // Use enum
     });
 
     if (runningSync) {
@@ -112,7 +114,7 @@ export async function DELETE() {
     // Find the sync log entry with status 'STARTED'
     console.log("Finding sync log entry with status 'STARTED'..."); // Added logging
     const runningSync = await prisma.syncLog.findFirst({
-      where: { status: 'STARTED' },
+      where: { status: SyncStatus.STARTED }, // Use enum
     });
 
     if (!runningSync) {
@@ -126,7 +128,7 @@ export async function DELETE() {
     // Update the status to 'STOPPING'
     await prisma.syncLog.update({
       where: { id: runningSync.id },
-      data: { status: 'STOPPING', message: 'Stop request received by user.' },
+      data: { status: SyncStatus.STOPPING, message: 'Stop request received by user.' }, // Use enum
     });
 
     console.log(`Sync process ${runningSync.id} marked as STOPPING.`); // Added logging

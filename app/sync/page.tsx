@@ -8,13 +8,16 @@ import { formatDistanceToNow } from "date-fns/formatDistanceToNow"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import { SyncStatus as PrismaSyncStatus } from '@prisma/client';
+
+type SyncStatus = PrismaSyncStatus;
 
 interface SyncLog {
   id: string
-  status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'STOPPING' | 'CANCELLED' | 'COMPLETED_WITH_ERRORS' | 'UNKNOWN'
+  status: SyncStatus
   message: string | null
   count: number
-  createdAt: string
+  createdAt: string | Date
 }
 
 interface SyncResponse {
@@ -45,7 +48,8 @@ export default function SyncPage() {
       }
       const data: SyncResponse = await response.json()
       
-      const isActiveSync = data.latestSync?.status === 'STARTED' || data.latestSync?.status === 'STOPPING'
+      const isActiveSync = data.latestSync?.status === PrismaSyncStatus.STARTED || 
+                           data.latestSync?.status === PrismaSyncStatus.STOPPING;
       
       setSyncStatus(data.latestSync)
       setDiamondCount(data.stats.totalDiamonds)
@@ -129,7 +133,8 @@ export default function SyncPage() {
           clearInterval(intervalRef.current);
         }
         const currentStatus = syncStatus?.status
-        const isActiveSync = currentStatus === 'STARTED' || currentStatus === 'STOPPING';
+        const isActiveSync = currentStatus === PrismaSyncStatus.STARTED || 
+                             currentStatus === PrismaSyncStatus.STOPPING;
         const intervalDuration = isActiveSync ? POLLING_INTERVAL_ACTIVE : POLLING_INTERVAL_IDLE;
 
          intervalRef.current = setInterval(() => fetchSyncStatus(), intervalDuration);
@@ -141,26 +146,28 @@ export default function SyncPage() {
          };
     }, [syncStatus?.status]);
 
-  const getStatusIcon = (status: string | undefined) => {
+  const getStatusIcon = (status: SyncStatus | undefined) => {
     switch (status) {
-      case 'COMPLETED':
+      case PrismaSyncStatus.COMPLETED:
         return <CheckCircle className="h-5 w-5 text-green-500" />
-      case 'COMPLETED_WITH_ERRORS':
+      case PrismaSyncStatus.COMPLETED_WITH_ERRORS:
         return <AlertCircle className="h-5 w-5 text-yellow-500" />
-      case 'FAILED':
+      case PrismaSyncStatus.FAILED:
         return <XCircle className="h-5 w-5 text-red-500" />
-      case 'STARTED':
+      case PrismaSyncStatus.STARTED:
         return <RefreshCw className="h-5 w-5 text-blue-500 animate-spin" />
-      case 'STOPPING':
+      case PrismaSyncStatus.STOPPING:
         return <Ban className="h-5 w-5 text-orange-500 animate-pulse" />
-      case 'CANCELLED':
+      case PrismaSyncStatus.CANCELLED:
         return <Square className="h-5 w-5 text-gray-500" />
+      case PrismaSyncStatus.UNKNOWN:
       default:
         return <Clock className="h-5 w-5 text-gray-400" />
     }
   }
   
-  const isActiveSync = syncStatus?.status === 'STARTED' || syncStatus?.status === 'STOPPING'
+  const isActiveSync = syncStatus?.status === PrismaSyncStatus.STARTED || 
+                       syncStatus?.status === PrismaSyncStatus.STOPPING;
 
   function cn(...classes: (string | false | null | undefined)[]): string {
     return classes.filter(Boolean).join(' ')
@@ -187,7 +194,7 @@ export default function SyncPage() {
             {isSyncing && !isStopping ? 'Syncing...' : 'Sync Now'}
           </Button>
           
-           {syncStatus?.status === 'STARTED' && (
+           {syncStatus?.status === PrismaSyncStatus.STARTED && (
               <Button 
                 variant="outline"
                 onClick={triggerStopSync} 
@@ -198,7 +205,7 @@ export default function SyncPage() {
                 {isStopping ? 'Stopping...' : 'Stop Sync'}
               </Button>
           )}
-           {syncStatus?.status === 'STOPPING' && (
+           {syncStatus?.status === PrismaSyncStatus.STOPPING && (
                <span className="text-sm text-orange-600 dark:text-orange-400 flex items-center gap-1">
                    <Ban className="h-4 w-4 animate-pulse"/> Stopping...
                </span>
@@ -211,7 +218,7 @@ export default function SyncPage() {
           <CardHeader>
             <CardTitle>Latest Sync Status</CardTitle>
             <CardDescription>
-              {isActiveSync ? 'Sync is currently running.' : syncStatus?.status === 'UNKNOWN' ? 'No sync data available.' : 'Status of the last sync attempt.'}
+              {isActiveSync ? 'Sync is currently running.' : syncStatus?.status === PrismaSyncStatus.UNKNOWN ? 'No sync data available.' : 'Status of the last sync attempt.'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -222,7 +229,7 @@ export default function SyncPage() {
               </div>
             )}
             
-            {syncStatus && syncStatus.status !== 'UNKNOWN' ? (
+            {syncStatus && syncStatus.status !== PrismaSyncStatus.UNKNOWN ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">Status:</span>
@@ -230,12 +237,12 @@ export default function SyncPage() {
                     {getStatusIcon(syncStatus.status)}
                     <span 
                       className={cn(
-                        syncStatus.status === 'FAILED' && 'text-destructive',
-                        syncStatus.status === 'COMPLETED_WITH_ERRORS' && 'text-yellow-600 dark:text-yellow-400',
-                        syncStatus.status === 'CANCELLED' && 'text-gray-500 dark:text-gray-400',
-                        syncStatus.status === 'STOPPING' && 'text-orange-500 dark:text-orange-400',
-                        syncStatus.status === 'STARTED' && 'text-blue-500 dark:text-blue-400',
-                        syncStatus.status === 'COMPLETED' && 'text-green-600 dark:text-green-400'
+                        syncStatus.status === PrismaSyncStatus.FAILED && 'text-destructive',
+                        syncStatus.status === PrismaSyncStatus.COMPLETED_WITH_ERRORS && 'text-yellow-600 dark:text-yellow-400',
+                        syncStatus.status === PrismaSyncStatus.CANCELLED && 'text-gray-500 dark:text-gray-400',
+                        syncStatus.status === PrismaSyncStatus.STOPPING && 'text-orange-500 dark:text-orange-400',
+                        syncStatus.status === PrismaSyncStatus.STARTED && 'text-blue-500 dark:text-blue-400',
+                        syncStatus.status === PrismaSyncStatus.COMPLETED && 'text-green-600 dark:text-green-400'
                       )}
                     >
                       {syncStatus.status.replace('_',' ')}
@@ -246,13 +253,13 @@ export default function SyncPage() {
                 {syncStatus.message && (
                    <p className={cn(
                        "text-sm",
-                        syncStatus.status === 'FAILED' ? 'text-destructive' : 'text-muted-foreground'
+                        syncStatus.status === PrismaSyncStatus.FAILED ? 'text-destructive' : 'text-muted-foreground'
                    )}>
                     <span className="font-medium">Details:</span> {syncStatus.message}
                   </p>
                 )}
                 
-                {(syncStatus.status === 'STARTED' || syncStatus.status === 'STOPPING' || syncStatus.status === 'COMPLETED' || syncStatus.status === 'COMPLETED_WITH_ERRORS' || syncStatus.status === 'CANCELLED') && (
+                {(syncStatus.status === PrismaSyncStatus.STARTED || syncStatus.status === PrismaSyncStatus.STOPPING || syncStatus.status === PrismaSyncStatus.COMPLETED || syncStatus.status === PrismaSyncStatus.COMPLETED_WITH_ERRORS || syncStatus.status === PrismaSyncStatus.CANCELLED) && (
                   <div className="text-sm">
                      <span className="font-medium">Timestamp:</span>
                      <span className="ml-2 text-muted-foreground">
@@ -261,7 +268,7 @@ export default function SyncPage() {
                   </div>
                  )}
 
-                {(syncStatus.status === 'STARTED' || syncStatus.status === 'COMPLETED' || syncStatus.status === 'COMPLETED_WITH_ERRORS' || syncStatus.status === 'CANCELLED' || syncStatus.status === 'STOPPING') && syncStatus.count >= 0 && (
+                {(syncStatus.status === PrismaSyncStatus.STARTED || syncStatus.status === PrismaSyncStatus.COMPLETED || syncStatus.status === PrismaSyncStatus.COMPLETED_WITH_ERRORS || syncStatus.status === PrismaSyncStatus.CANCELLED || syncStatus.status === PrismaSyncStatus.STOPPING) && syncStatus.count >= 0 && (
                   <div className="text-sm">
                     <span className="font-medium">Diamonds Processed:</span>
                     <span className="ml-2 text-muted-foreground">{syncStatus.count}{isActiveSync ? '...' : ''}</span>

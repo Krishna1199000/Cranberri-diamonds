@@ -54,9 +54,19 @@ model Diamond {
   @@map("diamonds")
 }
 
+enum SyncStatus {
+  STARTED
+  COMPLETED
+  FAILED
+  STOPPING
+  CANCELLED
+  COMPLETED_WITH_ERRORS
+  UNKNOWN
+}
+
 model SyncLog {
   id        String   @id @default(uuid())
-  status    String
+  status    SyncStatus @default(UNKNOWN)
   message   String?
   count     Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at")
