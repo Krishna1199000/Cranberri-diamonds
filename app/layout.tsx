@@ -1,3 +1,4 @@
+import Footer from '@/components/ui/footer';
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
@@ -19,6 +20,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} font-serif`}>
         {children}
+        <Footer/>
         <Toaster richColors position="top-right" />
       </body>
     </html>

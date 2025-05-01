@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient} from '@prisma/client';
- // Import getSession
+import { getSession } from '@/lib/session'; // Import getSession
 
 const prisma = new PrismaClient();
 
@@ -10,12 +10,20 @@ export async function GET(
 ) {
     const resolvedParams = await params;
     try {
-       
+    
+        const session = await getSession();
+    
+        const userRole = session?.role as string | undefined;
+
+        if (!session?.userId || !userRole) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+        
         const invoice = await prisma.invoice.findUnique({
             where: { id: resolvedParams.id },
             include: { 
-                items: true, // Include related items
-                user: { // Optionally include user details if needed
+                items: true,
+                user: {
                     select: { id: true, name: true, email: true }
                 }
             }
@@ -23,6 +31,11 @@ export async function GET(
 
         if (!invoice) {
             return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+        }
+
+        // Authorization check: Allow admins OR if employee owns the invoice
+        if (userRole !== 'admin' && invoice.userId !== resolvedParams.id) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
         // Add no-cache headers similar to other GET routes
@@ -42,46 +55,37 @@ export async function GET(
 }
 
 export async function DELETE(
-    request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
     const resolvedParams = await params;
-    const invoiceId = resolvedParams.id;
-
     try {
-        // Optional: Add session/authorization check if needed
-        // const session = await getSession();
-        // if (!session || session.role !== 'admin') { // Example: Only allow admins
-        //     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-        // }
+        const session = await getSession();
+        const userRole = session?.role as string | undefined;
 
-        // Use a transaction to ensure atomicity
-        await prisma.$transaction(async (tx) => {
-            // 1. Delete associated InvoiceItems first
-            await tx.invoiceItem.deleteMany({
-                where: { invoiceId: invoiceId },
-            });
+        // Authorization check: Only allow admins to delete
+        if (userRole !== 'admin') {
+            return NextResponse.json({ error: 'Forbidden: Only admins can delete invoices' }, { status: 403 });
+        }
 
-            // 2. Delete the Invoice itself
-            await tx.invoice.delete({
-                where: { id: invoiceId },
-            });
+        // Check if invoice exists before attempting deletion
+        const existingInvoice = await prisma.invoice.findUnique({
+            where: { id: resolvedParams.id },
         });
 
-        console.log(`Successfully deleted invoice and associated items: ${invoiceId}`);
-        return NextResponse.json({ message: 'Invoice deleted successfully' }, { status: 200 });
+        if (!existingInvoice) {
+            return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+        }
+
+        await prisma.invoice.delete({
+            where: { id: resolvedParams.id },
+        });
+
+        return NextResponse.json({ message: 'Invoice deleted successfully' });
 
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error(`Error deleting invoice ${invoiceId}:`, errorMessage);
-        
-        // Check if the error is because the invoice didn't exist (e.g., from delete operation failing)
-        // Prisma might throw a specific error code (P2025) if record to delete is not found
-       
-        
-        // Handle other potential errors (like db connection issues, etc.)
-        // The previous constraint error check might be less relevant now as we delete items first
-        return NextResponse.json({ error: `Failed to delete invoice: ${errorMessage}` }, { status: 500 });
+        console.error(`Error deleting invoice ${resolvedParams.id}:`, error);
+        return NextResponse.json({ error: 'Failed to delete invoice' }, { status: 500 });
     } finally {
         await prisma.$disconnect();
     }

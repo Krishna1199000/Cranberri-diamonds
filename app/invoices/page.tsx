@@ -8,6 +8,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+// Define session user type (adjust based on actual session structure)
+interface SessionUser {
+    id: string;
+    role: 'admin' | 'employee' | 'customer'; // Add other roles as needed
+    name?: string;
+}
+
 interface Invoice {
   id: string;
   invoiceNo: string;
@@ -22,11 +29,25 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<SessionUser['role'] | null>(null); // State to store user role
 
   useEffect(() => {
-    const fetchInvoices = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
+        // Fetch user role first
+        const userResponse = await fetch("/api/auth/me", { credentials: 'include' });
+        if (userResponse.ok) {
+          const userData: SessionUser = await userResponse.json();
+          setUserRole(userData.role);
+        } else {
+          // Handle error fetching user, maybe redirect or show error
+          toast.error("Failed to verify user role.");
+          setUserRole(null); // Or handle appropriately
+          // Consider redirecting: window.location.href = '/auth/signin';
+        }
+
+        // Fetch invoices (API now handles filtering based on role)
         const response = await fetch("/api/invoices");
         const data = await response.json();
         
@@ -41,7 +62,7 @@ export default function InvoicesPage() {
       }
     };
 
-    fetchInvoices();
+    fetchData();
   }, []);
 
   const handleDelete = async (invoiceId: string) => {
@@ -124,20 +145,24 @@ export default function InvoicesPage() {
                   <Link href={`/invoices/${invoice.id}`}>
                     <Button variant="outline" size="sm">View</Button>
                   </Link>
-                  <Button
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleDelete(invoice.id)}
-                    disabled={deletingId === invoice.id}
-                    className="flex items-center gap-1 text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400 border-red-600 hover:border-red-700 dark:border-red-500 dark:hover:border-red-400"
-                  >
-                    {deletingId === invoice.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <Trash2 className="h-4 w-4" />
-                    )}
-                    Delete
-                  </Button>
+                  {/* Conditionally render Delete Button only for admins */}
+                  {userRole === 'admin' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(invoice.id)}
+                      disabled={deletingId === invoice.id}
+                      aria-label="Delete invoice"
+                      className="flex items-center"
+                    >
+                      {deletingId === invoice.id ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-2" /> 
+                      )}
+                       Delete
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
