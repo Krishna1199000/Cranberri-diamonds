@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { InvoicePreview } from "@/components/invoice/invoice-preview";
 import { InvoiceFormValues } from "@/lib/validators/invoice"; // Use the form type for structure
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useUser } from "@/hooks/use-user";
 
 // Define the structure of the fetched invoice data (matching API response)
 type FetchedInvoice = InvoiceFormValues & {
@@ -19,10 +20,12 @@ type FetchedInvoice = InvoiceFormValues & {
 
 export default function ViewInvoicePage() {
     const params = useParams();
+    const router = useRouter();
     const id = params.id as string; // Get ID from URL
     const [invoice, setInvoice] = useState<FetchedInvoice | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { user, isLoading: userLoading } = useUser();
 
     useEffect(() => {
         if (!id) return;
@@ -57,7 +60,7 @@ export default function ViewInvoicePage() {
         fetchInvoice();
     }, [id]);
 
-    if (loading) {
+    if (loading || userLoading) {
         return (
             <div className="container py-10 flex justify-center items-center min-h-[calc(100vh-200px)]">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -92,11 +95,21 @@ export default function ViewInvoicePage() {
            {/* Pass the fetched invoice data (as InvoiceFormValues structure) */}
            {/* The Preview component handles its own layout/styling */}
            <InvoicePreview invoice={invoice} />
-           <div className="mt-6 text-center print:hidden">
+           <div className="mt-6 flex justify-center space-x-4 print:hidden">
+                {user?.role === 'admin' && (
+                    <Button 
+                        variant="outline" 
+                        className="flex items-center gap-2"
+                        onClick={() => router.push(`/invoices/${id}/edit`)}
+                    >
+                        <Pencil className="h-4 w-4" />
+                        Edit Invoice
+                    </Button>
+                )}
                 <Button asChild variant="outline">
                     <Link href="/invoices">Back to Invoices List</Link>
                 </Button>
            </div>
         </div>
     );
-} 
+}
