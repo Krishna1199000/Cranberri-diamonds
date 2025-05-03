@@ -157,35 +157,50 @@ export async function PUT(
 
 export async function DELETE(
     req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const resolvedParams = await params;
+    const invoiceId = resolvedParams.id; // Get ID for clarity
+
     try {
         const session = await getSession();
         const userRole = session?.role as string | undefined;
 
-        // Authorization check: Only allow admins to delete
         if (userRole !== 'admin') {
             return NextResponse.json({ error: 'Forbidden: Only admins can delete invoices' }, { status: 403 });
         }
 
-        // Check if invoice exists before attempting deletion
-        const existingInvoice = await prisma.invoice.findUnique({
-            where: { id: resolvedParams.id },
-        });
+        // Use a transaction to delete items first, then the invoice
+        await prisma.$transaction(async (tx) => {
+            // Check if invoice exists within the transaction
+            const existingInvoice = await tx.invoice.findUnique({
+                where: { id: invoiceId },
+            });
 
-        if (!existingInvoice) {
-            return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
-        }
+            if (!existingInvoice) {
+                // Throw error to rollback transaction if not found
+                throw new Error('Invoice not found'); 
+            }
 
-        await prisma.invoice.delete({
-            where: { id: resolvedParams.id },
+            // 1. Delete related InvoiceItems
+            await tx.invoiceItem.deleteMany({
+                where: { invoiceId: invoiceId },
+            });
+
+            // 2. Delete the Invoice itself
+            await tx.invoice.delete({
+                where: { id: invoiceId },
+            });
         });
 
         return NextResponse.json({ message: 'Invoice deleted successfully' });
 
     } catch (error) {
-        console.error(`Error deleting invoice ${resolvedParams.id}:`, error);
+        console.error(`Error deleting invoice ${invoiceId}:`, error);
+        // Handle specific error if invoice not found during transaction
+        if (error instanceof Error && error.message === 'Invoice not found') {
+             return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+        }
         return NextResponse.json({ error: 'Failed to delete invoice' }, { status: 500 });
     } finally {
         await prisma.$disconnect();
