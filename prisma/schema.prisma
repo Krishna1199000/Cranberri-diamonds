@@ -54,6 +54,12 @@ model Diamond {
   @@map("diamonds")
 }
 
+enum DiamondStatus {
+  AVAILABLE
+  HOLD
+  MEMO
+}
+
 enum SyncStatus {
   STARTED
   COMPLETED
@@ -134,6 +140,7 @@ model Shipment {
   invoices            Invoice[]
   remarks             Remark[]
   createdBy           User      @relation(fields: [userId], references: [id])
+  inventoryItems      InventoryItem[] @relation("HeldInventoryItems")
 
   @@map("shipments")
 }
@@ -273,4 +280,32 @@ enum Role {
   admin
   employee
   customer
+}
+
+// Updated InventoryItem model
+model InventoryItem {
+  id            String   @id @default(uuid())
+  stockId       String   @unique @map("stock_id")
+  shape         String
+  size          Float    // Corresponds to Carat
+  color         String
+  clarity       String
+  cut           String?
+  polish        String
+  sym           String
+  lab           String
+  pricePerCarat Float    @map("price_per_carat")
+  finalAmount   Float    @map("final_amount")
+  status        DiamondStatus @default(AVAILABLE)
+  videoUrl      String?  @map("video_url")
+  imageUrl      String?  @map("image_url")
+  certUrl       String?  @map("cert_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Added relationship to Shipment
+  heldByShipmentId String?       @map("held_by_shipment_id")
+  heldByShipment   Shipment?     @relation("HeldInventoryItems", fields: [heldByShipmentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("inventory_items")
 }

@@ -24,6 +24,7 @@ interface EmployeeLayoutProps {
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
   { label: 'Search Diamond', icon: Search, href: '/employee' },
+  { label: 'Inventory', icon: Box, href: '/employee/inventory' },
   { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
   { label: 'Performance', icon: BarChart, href: '/employee/performance' },
   { label: 'Sales', icon: DollarSign, href: '/employee/sales' },

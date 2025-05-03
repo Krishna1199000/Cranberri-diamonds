@@ -59,21 +59,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/signin', request.url));
     }
 
-    // Check if role has changed
-    const response = await fetch(`${request.nextUrl.origin}/api/auth/verify-role`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId: payload.userId, currentRole: payload.role }),
-    });
-
-    if (!response.ok) {
-      // If role has changed, redirect to signin
-      return NextResponse.redirect(new URL('/auth/signin', request.url));
-    }
-
-    // Role-based access control
+    // Role-based access control (Now relies solely on JWT payload role)
     if (isAdminPage || isSyncPage || isAdminUsersPage) {
       if (payload.role !== 'admin') {
         return NextResponse.redirect(new URL('/auth/signin', request.url));

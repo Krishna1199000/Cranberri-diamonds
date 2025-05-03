@@ -63,6 +63,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { label: 'Sales', icon: BarChart, href: '/Admins/sales' },
     { label: 'Sales Report', icon: BarChart, href: '/Admins/sales-report' },
     { label: 'Performance', icon: TrendingUp, href: '/Admins/performance' },
+    { label: 'Inventory', icon: Box, href: '/admin/inventory' },
     { label: 'Manage Users', icon: Users, href: '/admin/users' },
     { label: 'Invoices', icon: FileText, href: '/invoices' },
     { label: 'Sync Database', icon: Database, href: '/sync' },
