@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect,useCallback } from "react"
-import { SalesEntryForm } from "@/components/sales/SalesEntryForm"
 import { SalesAnalytics } from "@/components/sales/SalesAnalytics"
 import { SalesTable } from "@/components/sales/SalesTable"
 import { EmployeeRankings } from "@/components/sales/EmployeeRankings"
@@ -70,25 +69,21 @@ export default function SalesPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <SalesEntryForm refreshData={refreshData} />
+      <div className="space-y-6">
+        <SalesAnalytics 
+          data={salesData}
+          period={period}
+          setPeriod={setPeriod}
+          customPeriod={customPeriod}
+          setCustomPeriod={setCustomPeriod}
+          selectedEmployee={selectedEmployee}
+          setSelectedEmployee={setSelectedEmployee}
+        />
         
-        <div className="space-y-6">
-          <SalesAnalytics 
-            salesData={salesData}
-            period={period}
-            setPeriod={setPeriod}
-            customPeriod={customPeriod}
-            setCustomPeriod={setCustomPeriod}
-            selectedEmployee={selectedEmployee}
-            setSelectedEmployee={setSelectedEmployee}
-          />
-          
-          <SalesTable 
-            salesData={salesData} 
-            refreshData={refreshData} 
-          />
-        </div>
+        <SalesTable 
+          salesData={salesData} 
+          refreshData={refreshData} 
+        />
       </div>
     </AdminLayout>
   )

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { SalesEntryForm } from "@/components/employee/sales/SalesEntryForm"
 import { SalesAnalytics } from "@/components/employee/sales/SalesAnalytics"
 import { SalesTable } from "@/components/employee/sales/SalesTable"
 import { EmployeeLayout } from "@/components/layout/EmployeeLayout"
@@ -11,13 +10,8 @@ import { SaleEntry } from "@/types/sales"
 
 export default function EmployeeSalesPage() {
   const [salesData, setSalesData] = useState<SaleEntry[]>([])
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [period, setPeriod] = useState("7")
   const [customPeriod, setCustomPeriod] = useState({ start: "", end: "" })
-
-  const refreshData = () => {
-    setRefreshTrigger(prev => prev + 1)
-  }
 
   const fetchSalesData = useCallback(async () => {
     try {
@@ -95,7 +89,7 @@ export default function EmployeeSalesPage() {
 
   useEffect(() => {
     fetchSalesData()
-  }, [period, customPeriod, refreshTrigger, fetchSalesData])
+  }, [period, customPeriod, fetchSalesData])
 
   return (
     <EmployeeLayout>
@@ -104,20 +98,16 @@ export default function EmployeeSalesPage() {
           <h1 className="text-3xl font-bold text-gray-800">Sales Dashboard</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <SalesEntryForm refreshData={refreshData} />
+        <div className="space-y-6">
+          <SalesAnalytics
+            salesData={salesData}
+            period={period}
+            setPeriod={setPeriod}
+            customPeriod={customPeriod}
+            setCustomPeriod={setCustomPeriod}
+          />
 
-          <div className="space-y-6">
-            <SalesAnalytics
-              salesData={salesData}
-              period={period}
-              setPeriod={setPeriod}
-              customPeriod={customPeriod}
-              setCustomPeriod={setCustomPeriod}
-            />
-
-            <SalesTable salesData={salesData} />
-          </div>
+          <SalesTable salesData={salesData} />
         </div>
       </div>
     </EmployeeLayout>

@@ -66,6 +66,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { label: 'Inventory', icon: Box, href: '/admin/inventory' },
     { label: 'Manage Users', icon: Users, href: '/admin/users' },
     { label: 'Invoices', icon: FileText, href: '/invoices' },
+    { label: 'Memos', icon: FileText, href: '/memos' },
     { label: 'Sync Database', icon: Database, href: '/sync' },
     { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
     { label: 'Parcel-Goods', icon: Box, href: '/parcel-goods' },

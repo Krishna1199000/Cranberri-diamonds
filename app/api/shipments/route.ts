@@ -8,19 +8,46 @@ export async function GET() {
   try {
     const session = await getSession()
     
-    if (!session) {
+    if (!session || !session.userId) {
       return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
+        { success: false, message: 'Unauthorized - Session required' },
         { status: 401 }
       )
     }
     
-    // If user is admin, return all shipments
-    // If user is employee, return only their shipments
+    let whereClause = {};
+    if (session.role === 'admin') {
+      // Admin sees all, whereClause remains empty {}
+    } else if (session.role === 'employee') {
+      if (!session.userId) {
+        return NextResponse.json(
+            { success: false, message: 'Unauthorized - User ID missing in session' },
+            { status: 401 }
+        );
+      }
+      // Fetch the employee's name to filter by salesExecutive
+      const currentUser = await db.user.findUnique({
+          where: { id: session.userId as string },
+          select: { name: true }
+      });
+      if (!currentUser || !currentUser.name) {
+          // If user not found or has no name, they can see no shipments by this logic
+          // Alternatively, could fall back to userId or throw an error
+          console.warn(`Employee ${session.userId} has no name, cannot filter by salesExecutive.`);
+          // Return empty list to prevent unauthorized access if name is crucial
+           return NextResponse.json({ success: true, shipments: [] })
+      }
+      whereClause = { salesExecutive: currentUser.name };
+    } else {
+        // Other roles (e.g., customer) are unauthorized for this list view
+         return NextResponse.json(
+            { success: false, message: 'Unauthorized - Role not permitted' },
+            { status: 403 }
+        );
+    }
+
     const shipments = await db.shipment.findMany({
-      where: session.role === 'admin' ? {} : {
-        userId: String(session.userId)
-      },
+      where: whereClause,
       orderBy: { updatedAt: 'desc' }
     })
     

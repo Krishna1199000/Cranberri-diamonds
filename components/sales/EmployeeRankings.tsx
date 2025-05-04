@@ -1,21 +1,13 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
+import { SaleEntry } from "@/types/sales"
 
 interface EmployeeRanking {
   id: string
   name: string
   totalSales: number
   salesCount: number
-}
-
-interface SaleEntry {
-  employee: {
-    id: string;
-    name: string;
-  };
-  isNoSale?: boolean;
-  totalSaleValue?: number;
 }
 
 interface EmployeeRankingsProps {
@@ -32,22 +24,22 @@ export function EmployeeRankings({ salesData }: EmployeeRankingsProps) {
     const stats: Record<string, EmployeeRanking> = {};
     
     data.forEach(entry => {
-      if (!entry || !entry.employee || !entry.employee.id || !entry.employee.name) {
+      if (!entry || !entry.employeeId || !entry.employeeName) {
         return;
       }
       
       if (!entry.isNoSale) {
-        if (!stats[entry.employee.id]) {
-          stats[entry.employee.id] = {
-            id: entry.employee.id,
-            name: entry.employee.name,
+        if (!stats[entry.employeeId]) {
+          stats[entry.employeeId] = {
+            id: entry.employeeId,
+            name: entry.employeeName,
             salesCount: 0,
             totalSales: 0,
           }
         }
         
-        stats[entry.employee.id].salesCount++;
-        stats[entry.employee.id].totalSales += Number(entry.totalSaleValue || 0);
+        stats[entry.employeeId].salesCount++;
+        stats[entry.employeeId].totalSales += Number(entry.saleValue || 0);
       }
     });
     

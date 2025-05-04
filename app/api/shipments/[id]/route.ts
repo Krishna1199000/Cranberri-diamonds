@@ -15,10 +15,10 @@ export async function GET(
     const session = await getSession()
     console.log('Session data:', session)
     
-    if (!session?.userId) {
+    if (!session || !session.userId) {
       console.log('Unauthorized access attempt - no userId')
       return NextResponse.json(
-        { success: false, message: 'Unauthorized - Please login' },
+        { success: false, message: 'Unauthorized - Session required' },
         { status: 401 }
       )
     }
@@ -37,12 +37,24 @@ export async function GET(
     }
 
     // Check if user has permission to view this shipment
-    if (session.role !== 'admin' && shipment.userId !== session.userId) {
-      console.log('Permission denied - User:', session.userId, 'Role:', session.role)
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized - You do not have permission to view this shipment' },
-        { status: 403 }
-      )
+    if (session.role !== 'admin') {
+        // Ensure session.userId is valid before querying user
+        if (!session.userId) { 
+             return NextResponse.json({ success: false, message: 'Unauthorized - User ID missing' }, { status: 401 });
+        }
+        // Fetch the current user's name for comparison
+        const currentUser = await db.user.findUnique({
+          where: { id: resolvedParams.id },
+          select: { name: true }
+        });
+        // Deny if not admin AND shipment's salesExecutive doesn't match current user's name
+        if (shipment.salesExecutive !== currentUser?.name) {
+           console.log('Permission denied - User:', session.userId, 'Role:', session.role, 'SalesExec:', shipment.salesExecutive);
+           return NextResponse.json(
+             { success: false, message: 'Unauthorized - You do not have permission to view this shipment' },
+             { status: 403 }
+           );
+        }
     }
 
     return NextResponse.json({ success: true, shipment })
@@ -64,10 +76,10 @@ export async function PUT(
     const session = await getSession()
     console.log('Session data:', session)
 
-    if (!session?.userId) {
+    if (!session || !session.userId) {
       console.log('Unauthorized access attempt - no userId')
       return NextResponse.json(
-        { success: false, message: 'Unauthorized - Please login' },
+        { success: false, message: 'Unauthorized - Session required' },
         { status: 401 }
       )
     }
@@ -86,13 +98,25 @@ export async function PUT(
       )
     }
 
-    // Only allow admin or the creator to edit the shipment
-    if (session.role !== 'admin' && existingShipment.userId !== session.userId) {
-      console.log('Permission denied - User:', session.userId, 'Role:', session.role)
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized - You do not have permission to edit this shipment' },
-        { status: 403 }
-      )
+    // Only allow admin or the employee listed as salesExecutive to edit the shipment
+    if (session.role !== 'admin') {
+       // Ensure session.userId is valid before querying user
+       if (!session.userId) { 
+           return NextResponse.json({ success: false, message: 'Unauthorized - User ID missing' }, { status: 401 });
+       }
+       // Fetch the current user's name for comparison
+       const currentUser = await db.user.findUnique({
+          where: { id: resolvedParams.id },
+          select: { name: true }
+        });
+       // Deny if not admin AND existing shipment's salesExecutive doesn't match current user's name
+       if (existingShipment.salesExecutive !== currentUser?.name) {
+           console.log('Permission denied - User:', session.userId, 'Role:', session.role, 'SalesExec:', existingShipment.salesExecutive);
+           return NextResponse.json(
+             { success: false, message: 'Unauthorized - You do not have permission to edit this shipment' },
+             { status: 403 }
+           );
+        }
     }
 
     const contentType = req.headers.get('content-type')
@@ -156,10 +180,10 @@ export async function DELETE(
     const session = await getSession()
     console.log('Session data:', session)
 
-    if (!session?.userId) {
+    if (!session || !session.userId) {
       console.log('Unauthorized access attempt - no userId')
       return NextResponse.json(
-        { success: false, message: 'Unauthorized - Please login' },
+        { success: false, message: 'Unauthorized - Session required' },
         { status: 401 }
       )
     }
@@ -178,13 +202,25 @@ export async function DELETE(
       )
     }
 
-    // Only allow admin or the creator to delete the shipment
-    if (session.role !== 'admin' && existingShipment.userId !== session.userId) {
-      console.log('Permission denied - User:', session.userId, 'Role:', session.role)
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized - You do not have permission to delete this shipment' },
-        { status: 403 }
-      )
+    // Only allow admin or the employee listed as salesExecutive to delete the shipment
+    if (session.role !== 'admin') {
+        // Ensure session.userId is valid before querying user
+        if (!session.userId) { 
+            return NextResponse.json({ success: false, message: 'Unauthorized - User ID missing' }, { status: 401 });
+        }
+       // Fetch the current user's name for comparison
+       const currentUser = await db.user.findUnique({
+          where: { id: resolvedParams.id},
+          select: { name: true }
+        });
+       // Deny if not admin AND existing shipment's salesExecutive doesn't match current user's name
+       if (existingShipment.salesExecutive !== currentUser?.name) {
+            console.log('Permission denied - User:', session.userId, 'Role:', session.role, 'SalesExec:', existingShipment.salesExecutive);
+           return NextResponse.json(
+             { success: false, message: 'Unauthorized - You do not have permission to delete this shipment' },
+             { status: 403 }
+           );
+        }
     }
 
     await db.shipment.delete({

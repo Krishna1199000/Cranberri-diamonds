@@ -30,6 +30,7 @@ const navItems = [
   { label: 'Sales', icon: DollarSign, href: '/employee/sales' },
   { label: 'Parcel-Goods', icon: Box, href: '/parcel-goods' },
   { label: 'Invoices', icon: FileText, href: '/invoices' },
+  { label: 'Memos', icon: FileText, href: '/memos' },
 ];
 
 export function EmployeeLayout({ children }: EmployeeLayoutProps) {

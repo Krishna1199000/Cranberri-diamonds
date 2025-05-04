@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-        
+    
     if (!session || (session as {role?: string})?.role !== 'admin') {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     const diamond = await prisma.diamond.create({
       data: {
         stockId: data.stockId,
-        certificateNo: data.certificateNo, 
+        certificateNo: data.certificateNo,
         shape: data.shape,
         size: parseFloat(data.size),
         color: data.color,
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         cut: data.cut || null,
         polish: data.polish,
         sym: data.sym,
-        floro: data.floro, 
+        floro: data.floro,
         lab: data.lab,
         rapPrice: parseFloat(data.rapPrice),
         rapAmount: parseFloat(data.rapAmount),

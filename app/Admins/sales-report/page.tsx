@@ -18,7 +18,7 @@ import {
   Bar,
   Cell,
 } from "recharts"
-import { Calendar, Download, TrendingUp, Users } from "lucide-react"
+import { Calendar, Download, TrendingUp, Users, DollarSign, Hourglass } from "lucide-react"
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import { SaleEntry, EmployeeStats } from "@/types/sales"
 
@@ -45,8 +45,8 @@ export default function AdminSalesReport() {
   })
   const [showProfitAnalysis, setShowProfitAnalysis] = useState(false)
   const [employeeStats, setEmployeeStats] = useState<EmployeeStats[]>([])
-  const [sortConfig, setSortConfig] = useState({ key: "date", direction: "desc" })
-
+  const [totalProfit, setTotalProfit] = useState(0);
+  const [totalOutstanding, setTotalOutstanding] = useState(0);
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ffc658"]
   
@@ -78,23 +78,22 @@ export default function AdminSalesReport() {
       filtered = filtered.filter(item => item.employeeId === employeeId)
     }
     filtered.sort((a, b) => {
-      const aValue = sortConfig.key === 'date' ? a.rawDate.getTime() : a[sortConfig.key as keyof SaleEntry] ?? 0;
-      const bValue = sortConfig.key === 'date' ? b.rawDate.getTime() : b[sortConfig.key as keyof SaleEntry] ?? 0;
+      const aValue = a.rawDate.getTime()
+      const bValue = b.rawDate.getTime()
       
-       // Handle potential non-numeric values for sorting if needed
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-          if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-          if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-      } else {
-          // Basic string comparison if not numbers (adjust as needed)
-          const strA = String(aValue);
-          const strB = String(bValue);
-          return sortConfig.direction === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
-      }
+      if (aValue < bValue) return -1
+      if (aValue > bValue) return 1
       return 0
     })
     setFilteredData(filtered)
-  }, [sortConfig])
+
+    // Recalculate totals based on the *filtered* data
+    const outstanding = filtered.filter((e: SaleEntry) => !e.paymentReceived && !e.isNoSale).reduce((sum, e) => sum + e.saleValue, 0);
+    const profit = filtered.filter((e: SaleEntry) => typeof e.purchaseValue === 'number' && e.purchaseValue !== null && typeof e.profit === 'number')
+                         .reduce((sum, e) => sum + e.profit!, 0);
+    setTotalOutstanding(outstanding);
+    setTotalProfit(profit);
+  }, [])
 
   const calculateEmployeeStats = useCallback((data: SaleEntry[]) => {
     const stats: Record<string, EmployeeStats> = {}
@@ -117,14 +116,6 @@ export default function AdminSalesReport() {
     setEmployeeStats(statsArray)
   }, [])
 
-  const handleSort = useCallback((key: keyof SaleEntry | 'date') => {
-    let direction = 'asc'
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc'
-    }
-    setSortConfig({ key: key.toString(), direction })
-  }, [sortConfig.key, sortConfig.direction])
-
   useEffect(() => {
     fetchEmployees()
   }, [])
@@ -139,6 +130,7 @@ export default function AdminSalesReport() {
         const response = await fetch(url)
         const data = await response.json()
         if (data.success) {
+          // Define the shape of the raw API entry more completely if possible
           interface ApiSaleEntry {
             id: string
             saleDate: string
@@ -151,32 +143,37 @@ export default function AdminSalesReport() {
             profit?: number | null
             profitMargin?: number | null
             shipmentCarrier?: string
-            carat?: string | number
-            color?: string
-            clarity?: string
+            // Assume items might exist for details
+            saleItems?: { carat?: string | number, color?: string, clarity?: string }[]
             description?: string
+            paymentReceived: boolean; // Ensure this is expected from API
           }
-          const formattedData = data.entries.map((entry: ApiSaleEntry): SaleEntry => ({
-            id: entry.id,
-            date: new Date(entry.saleDate).toLocaleDateString(),
-            rawDate: new Date(entry.saleDate),
-            employeeId: entry.employee.id,
-            employeeName: entry.employee.name,
-            trackingId: entry.trackingId || "-",
-            companyName: entry.companyName || "No Sale",
-            isNoSale: entry.isNoSale,
-            saleValue: entry.totalSaleValue || 0,
-            purchaseValue: entry.purchaseValue !== undefined ? entry.purchaseValue : null,
-            profit: entry.profit !== undefined ? entry.profit : null,
-            profitMargin: entry.profitMargin !== undefined ? entry.profitMargin : null,
-            shipmentCarrier: entry.shipmentCarrier || "N/A",
-            details: {
-              carat: entry.carat,
-              color: entry.color,
-              clarity: entry.clarity,
-            },
-            description: entry.description || "",
-          }))
+          const formattedData = data.entries.map((entry: ApiSaleEntry): SaleEntry => {
+            // Extract details from the first sale item if available
+            const firstItem = entry.saleItems?.[0];
+            return {
+              id: entry.id,
+              date: new Date(entry.saleDate).toLocaleDateString(),
+              rawDate: new Date(entry.saleDate), // Keep raw date for sorting
+              employeeId: entry.employee.id,
+              employeeName: entry.employee.name,
+              trackingId: entry.trackingId || "-",
+              companyName: entry.companyName || "No Sale",
+              isNoSale: entry.isNoSale,
+              saleValue: entry.totalSaleValue || 0,
+              purchaseValue: entry.purchaseValue !== undefined ? entry.purchaseValue : null,
+              profit: entry.profit !== undefined ? entry.profit : null,
+              profitMargin: entry.profitMargin !== undefined ? entry.profitMargin : null,
+              shipmentCarrier: entry.shipmentCarrier || "N/A",
+              details: { // Populate details from the first item
+                carat: firstItem?.carat,
+                color: firstItem?.color,
+                clarity: firstItem?.clarity,
+              },
+              description: entry.description || "",
+              paymentReceived: entry.paymentReceived, // Ensure this line exists and is correct
+            }
+           })
           setSalesData(formattedData)
         }
       } catch (error) {
@@ -195,35 +192,10 @@ export default function AdminSalesReport() {
     } else {
       setFilteredData([])
       setEmployeeStats([])
+      setTotalOutstanding(0);
+      setTotalProfit(0);
     }
-  }, [salesData, selectedEmployee, sortConfig, applyFilters, calculateEmployeeStats])
-
-  const savePurchaseValue = useCallback(async (id: string, value: number) => {
-    try {
-      console.log(`Saving purchase value for ID ${id}: $${value}`);
-      
-      const response = await fetch(`/api/sales/${id}/purchase-value`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ purchaseValue: value }),
-      });
-      
-      const data = await response.json();
-      console.log("API response:", data);
-      
-      if (data.success) {
-        toast.success("Purchase value saved successfully");
-        return true;
-      } else {
-        toast.error(data.message || "Failed to save purchase value");
-        return false;
-      }
-    } catch (error) {
-      console.error("Error saving purchase value:", error);
-      toast.error("Failed to save purchase value");
-      return false;
-    }
-  }, []);
+  }, [salesData, selectedEmployee, applyFilters, calculateEmployeeStats])
 
   const calculateProfit = () => {
     const purchase = parseFloat(purchaseValue)
@@ -245,91 +217,6 @@ export default function AdminSalesReport() {
     })
     setShowProfitAnalysis(true)
   }
-  const updateEntryPurchaseValue = useCallback(async (id: string, value: number) => {
-    // Prevent non-numeric values
-    if (isNaN(value)) {
-      toast.error("Invalid purchase value entered.");
-      return;
-    }
-    
-    try {
-      // First update local state optimistically
-      setSalesData(prevData => 
-        prevData.map(entry => 
-          entry.id === id 
-            ? { ...entry, purchaseValue: value } 
-            : entry
-        )
-      );
-      
-      // Update filtered data too if needed (since this is what's displayed in the table)
-      setFilteredData(prevData => 
-        prevData.map(entry => 
-          entry.id === id 
-            ? { ...entry, purchaseValue: value } 
-            : entry
-        )
-      );
-      
-      // Then save to server
-      const success = await savePurchaseValue(id, value);
-      
-      if (!success) {
-        // If save failed, revert the local state change
-        setSalesData(prevData => 
-          prevData.map(entry => 
-            entry.id === id 
-              ? { ...entry, purchaseValue: entry.purchaseValue } // Revert to previous value
-              : entry
-          )
-        );
-        setFilteredData(prevData => 
-          prevData.map(entry => 
-            entry.id === id 
-              ? { ...entry, purchaseValue: entry.purchaseValue } // Revert to previous value
-              : entry
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Error in updateEntryPurchaseValue:", error);
-      toast.error("An unexpected error occurred");
-    }
-  }, [savePurchaseValue]);
-
-  const calculateEntryProfit = useCallback(async (id: string) => {
-    const entry = salesData.find(e => e.id === id);
-    if (entry && typeof entry.purchaseValue === 'number') {
-      const profit = entry.saleValue - entry.purchaseValue;
-      const profitMargin = entry.saleValue !== 0 ? (profit / entry.saleValue) * 100 : 0;
-      setSalesData(prevData => 
-        prevData.map(e => {
-          if (e.id === id) {
-            return { ...e, profit, profitMargin }
-          }
-          return e
-        })
-      )
-      try {
-        const response = await fetch(`/api/sales/${id}/profit`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profit, profitMargin }),
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast.success("Profit calculated and saved");
-        } else {
-          toast.error(data.message || "Failed to save profit calculation");
-        }
-      } catch (error) {
-        console.error("Error saving profit calculation:", error);
-        toast.error("Failed to save profit calculation");
-      }
-    } else {
-      toast.warning("Purchase value required to calculate profit");
-    }
-  }, [salesData])
 
   const calculateAllEntryProfits = async () => {
     const entriesWithPurchaseValue = salesData.filter(
@@ -468,6 +355,49 @@ export default function AdminSalesReport() {
     document.body.removeChild(link)
   }
 
+  // ---> START: Handler for updating payment status <--- 
+  const handleUpdatePaymentStatus = useCallback(async (id: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    console.log(`Attempting to update payment status for ID ${id} to ${newStatus}`);
+
+    // Optimistic UI Update
+    const originalSalesData = [...salesData];
+    const originalFilteredData = [...filteredData];
+
+    setSalesData(prev => prev.map(entry => entry.id === id ? { ...entry, paymentReceived: newStatus } : entry));
+    setFilteredData(prev => prev.map(entry => entry.id === id ? { ...entry, paymentReceived: newStatus } : entry));
+    
+    // Recalculate totals optimistically
+    const updatedFiltered = filteredData.map(entry => entry.id === id ? { ...entry, paymentReceived: newStatus } : entry);
+    const outstanding = updatedFiltered.filter((e: SaleEntry) => !e.paymentReceived && !e.isNoSale).reduce((sum, e) => sum + e.saleValue, 0);
+    setTotalOutstanding(outstanding); // Profit doesn't change with payment status
+
+    try {
+      const response = await fetch(`/api/sales/${id}/payment-status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentReceived: newStatus }),
+      });
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || "Failed to update status on server");
+      }
+      toast.success(`Payment status updated successfully for entry ${id}`);
+
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update payment status");
+      // Revert Optimistic Update on failure
+      setSalesData(originalSalesData);
+      setFilteredData(originalFilteredData);
+       // Recalculate totals based on reverted data
+      const revertedOutstanding = originalFilteredData.filter((e: SaleEntry) => !e.paymentReceived && !e.isNoSale).reduce((sum, e) => sum + e.saleValue, 0);
+      setTotalOutstanding(revertedOutstanding);
+    }
+  }, [salesData, filteredData]);
+  // ---> END: Handler for updating payment status <--- 
+
   return (
     <AdminLayout>
        <div className="flex justify-between items-center mb-6">
@@ -485,7 +415,7 @@ export default function AdminSalesReport() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
@@ -500,6 +430,36 @@ export default function AdminSalesReport() {
                </div>
                <p className="text-xs text-muted-foreground">
                  {filteredData.filter(item => !item.isNoSale).length} transactions
+               </p>
+             </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
+               <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+             <CardContent>
+               <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {totalProfit.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
+               </div>
+               <p className="text-xs text-muted-foreground">
+                 Sum of calculated profit for entries with purchase value set.
+               </p>
+             </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
+               <Hourglass className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+             <CardContent>
+               <div className={`text-2xl font-bold ${totalOutstanding > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+                 {totalOutstanding.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
+               </div>
+                <p className="text-xs text-muted-foreground">
+                 Based on sales entries marked as not received.
                </p>
              </CardContent>
           </Card>
@@ -649,11 +609,8 @@ export default function AdminSalesReport() {
              </CardHeader>
             <CardContent>
                  <SalesTable 
-                    data={filteredData}
-                    sortConfig={sortConfig}
-                    handleSort={handleSort}
-                    updateEntryPurchaseValue={updateEntryPurchaseValue}
-                    calculateEntryProfit={calculateEntryProfit}
+                    salesData={filteredData}
+                    onUpdatePaymentStatus={handleUpdatePaymentStatus}
                   />
             </CardContent>
           </Card>

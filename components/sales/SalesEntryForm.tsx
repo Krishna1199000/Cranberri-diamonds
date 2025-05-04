@@ -67,6 +67,7 @@ export function SalesEntryForm({ refreshData }: SalesEntryFormProps) {
     { value: "FedEx", label: "FedEx" },
     { value: "USPS", label: "USPS" },
     { value: "DHL", label: "DHL" },
+    { value: "Hand Delivery", label: "Hand Delivery" },
   ]
 
   const fetchCompanies = async () => {

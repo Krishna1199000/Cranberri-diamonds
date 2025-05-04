@@ -982,9 +982,9 @@ export default function Home() {
                 animate={isContactInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
                 transition={{ delay: 0.7 }}
               >
-                <p>+91 929 297 9769</p>
-                <p>+91 845 287 2491</p>
-                <p>+91 845 197 7249</p>
+                <p>+1 929 297 9769</p>
+                <p>+1 929 297 9759</p>
+                <p>+91 84519 93266</p>
               </motion.div>
 
               <BusinessHours />

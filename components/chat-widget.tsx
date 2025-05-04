@@ -2,14 +2,16 @@
 
 import { useState, useRef } from "react"
 import { motion, AnimatePresence, useMotionTemplate, useMotionValue } from "framer-motion"
-import { MessageSquare, X, Send, ChevronRight } from "lucide-react"
+import { MessageSquare, X, Send, Loader2, CheckCircle } from "lucide-react"
 // import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({ name: "", email: "", message: "" })
   const formRef = useRef<HTMLFormElement>(null)
   
@@ -30,15 +32,43 @@ export default function ChatWidget() {
     rgba(0, 0, 0, 1) 50%
   )`
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulate form submission
-    setSubmitted(true)
-    // Reset form after 3 seconds
-    setTimeout(() => {
-      setSubmitted(false)
-      setFormData({ name: "", email: "", message: "" })
-    }, 3000)
+    setIsSubmitting(true)
+    setSubmitted(false)
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to send message');
+      }
+
+      // Success
+      setSubmitted(true)
+      toast.success("Message sent successfully!")
+      // Clear form after successful submission (maybe after animation)
+      setTimeout(() => {
+         setFormData({ name: "", email: "", message: "" })
+         setSubmitted(false) // Ready for a new message
+      }, 3000)
+
+    } catch (error) {
+      console.error("Contact form submission error:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred."
+      toast.error(`Error: ${errorMessage}`)
+      setSubmitted(false) // Allow retry
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -241,16 +271,24 @@ export default function ChatWidget() {
                       >
                         <motion.button
                           type="submit"
-                          className="w-full bg-black text-white rounded-md py-2.5 relative overflow-hidden"
+                          className="w-full bg-black text-white rounded-md py-2.5 relative overflow-hidden flex items-center justify-center gap-2"
                           style={{ background }}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
+                          whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+                          whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
                           onMouseMove={handleMouseMove}
+                          disabled={isSubmitting}
                         >
-                          <span className="relative z-10 flex items-center justify-center gap-2">
-                            Send Message
-                            <Send className="h-4 w-4" />
-                          </span>
+                          {isSubmitting ? (
+                              <> 
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Sending...
+                              </>    
+                          ) : (
+                              <>
+                                  Send Message
+                                  <Send className="h-4 w-4" />
+                              </>    
+                          )}
                         </motion.button>
                       </motion.div>
                     </motion.form>
@@ -258,50 +296,14 @@ export default function ChatWidget() {
                 ) : (
                   <motion.div
                     key="success"
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="flex flex-col items-center justify-center py-10"
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="flex flex-col items-center justify-center h-60 text-center"
                   >
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 260,
-                        damping: 20
-                      }}
-                      className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4"
-                    >
-                      <motion.div
-                        animate={{ 
-                          scale: [1, 1.2, 1],
-                          rotate: [0, 5, 0, -5, 0]
-                        }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                      >
-                        <ChevronRight className="h-8 w-8 text-green-600" />
-                      </motion.div>
-                    </motion.div>
-                    
-                    <motion.h3
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="text-lg font-medium text-center mb-2"
-                    >
-                      Message Sent!
-                    </motion.h3>
-                    
-                    <motion.p
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="text-sm text-gray-600 text-center"
-                    >
-                      We&apos;ll get back to you as soon as possible.
-                    </motion.p>
+                     <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+                     <h4 className="font-semibold text-lg mb-1">Message Sent!</h4>
+                     <p className="text-sm text-gray-600">Thanks for reaching out. We&apos;ll get back to you soon.</p>
                   </motion.div>
                 )}
               </AnimatePresence>

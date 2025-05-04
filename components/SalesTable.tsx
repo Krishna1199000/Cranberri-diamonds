@@ -3,70 +3,21 @@
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { TrendingDown, TrendingUp } from "lucide-react"
+import { TrendingDown, TrendingUp, CheckCircle, CircleOff } from "lucide-react"
+import { SaleEntry } from "@/types/sales"
 
 import { Tooltip } from "@/components/ui/tooltip"
 import { TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-interface SaleEntry {
-  id: string
-  date: string
-  employeeName: string
-  companyName: string
-  shipmentCarrier: string
-  saleValue: number
-  purchaseValue?: number | null
-  profit?: number | null
-  profitMargin?: number | null
-  isNoSale: boolean
-  details: {
-    carat?: string | number
-    color?: string
-    clarity?: string
-  }
-}
-
 interface SalesTableProps {
-  data: SaleEntry[]
-  sortConfig: { key: string; direction: string }
-  handleSort: (key: keyof SaleEntry | 'date') => void
-  updateEntryPurchaseValue: (id: string, value: number) => void
-  calculateEntryProfit: (id: string) => void
+  salesData: SaleEntry[]
+  onUpdatePaymentStatus: (id: string, status: boolean) => void
 }
 
-export default function SalesTable({
-  data,
-  sortConfig,
-  handleSort,
-  updateEntryPurchaseValue,
-  calculateEntryProfit,
-}: SalesTableProps) {
+export default function SalesTable({ salesData, onUpdatePaymentStatus }: SalesTableProps) {
   const [editableEntry, setEditableEntry] = useState<string | null>(null)
   const [localPurchaseValue, setLocalPurchaseValue] = useState<string>("")
 
-  useEffect(() => {
-    if (editableEntry === null) {
-      return;
-    }
-
-    const handler = setTimeout(() => {
-      const numValue = parseFloat(localPurchaseValue)
-      if (!isNaN(numValue) && editableEntry) {
-        console.log(`Debounced: Updating ${editableEntry} to ${numValue}`)
-        updateEntryPurchaseValue(editableEntry, numValue)
-      }
-    }, 500);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [localPurchaseValue, editableEntry, updateEntryPurchaseValue])
-
-  const sortIndicator = (key: string) => {
-    if (sortConfig.key !== key) return null
-    return sortConfig.direction === 'asc' ? ' ↑' : ' ↓'
-  }
-  
   const handleLocalInputChange = (value: string) => {
     setLocalPurchaseValue(value);
   }
@@ -92,31 +43,27 @@ export default function SalesTable({
         <thead className="bg-gray-50">
           <tr>
             <th 
-              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-              onClick={() => handleSort('date')}
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Date{sortIndicator('date')}
+              Date
             </th>
             <th 
-              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-              onClick={() => handleSort('employeeName')}
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Employee{sortIndicator('employeeName')}
+              Employee
             </th>
             <th 
-              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-              onClick={() => handleSort('companyName')}
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Company{sortIndicator('companyName')}
+              Company
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Shipment
             </th>
             <th 
-              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-              onClick={() => handleSort('saleValue')}
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Sale Value{sortIndicator('saleValue')}
+              Sale Value
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Purchase Value
@@ -124,13 +71,18 @@ export default function SalesTable({
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Profit
             </th>
+            <th 
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Payment
+            </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Details
             </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {data.slice(0, 10).map((entry) => (
+          {(salesData || []).map((entry) => (
             <tr key={entry.id} className={entry.isNoSale ? "bg-gray-50" : ""}>
               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                 {entry.date}
@@ -176,8 +128,16 @@ export default function SalesTable({
                       variant="outline" 
                       size="sm" 
                       className="h-7 px-2"
-                      onClick={() => calculateEntryProfit(entry.id)}
-                      disabled={entry.purchaseValue == null}
+                      disabled={editableEntry !== entry.id || localPurchaseValue === ""}
+                      onClick={() => { 
+                        const numValue = parseFloat(localPurchaseValue);
+                        if (!isNaN(numValue)) {
+                           console.log(`Set purchase value for ${entry.id} to ${numValue}`); 
+                           setEditableEntry(null);
+                        } else {
+                           console.error("Invalid number entered for purchase value");
+                        }
+                      }}
                     >
                       Set
                     </Button>
@@ -207,6 +167,25 @@ export default function SalesTable({
                   </TooltipProvider>
                 )}
               </td>
+              <td className="px-4 py-3 whitespace-nowrap text-sm">
+                {!entry.isNoSale ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-7 px-2 ${entry.paymentReceived ? 'text-green-600 hover:bg-green-50' : 'text-orange-600 hover:bg-orange-50'}`}
+                    onClick={() => onUpdatePaymentStatus(entry.id, entry.paymentReceived)}
+                  >
+                    {entry.paymentReceived ? (
+                       <CheckCircle className="mr-1 h-3 w-3" /> 
+                    ) : (
+                       <CircleOff className="mr-1 h-3 w-3" />
+                    )}
+                    {entry.paymentReceived ? "Received" : "Pending"}
+                  </Button>
+                ) : (
+                  <span className="italic text-gray-400">N/A</span>
+                )}
+              </td>
               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                 {entry.isNoSale ? (
                   <span className="italic">N/A</span>
@@ -223,10 +202,10 @@ export default function SalesTable({
         </tbody>
       </table>
       
-      {data.length > 10 && (
+      {salesData.length > 10 && (
         <div className="py-3 flex justify-center">
           <p className="text-sm text-gray-500">
-            Showing 10 of {data.length} entries. Export for complete data.
+            Showing 10 of {salesData.length} entries. Export for complete data.
           </p>
         </div>
       )}

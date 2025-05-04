@@ -1,24 +1,25 @@
 // types/sales.ts
 export interface SaleEntry {
-  id: string;
-  date: string; // Formatted date string
-  rawDate: Date; // Raw Date object for sorting/filtering
-  employeeId: string;
-  employeeName: string;
-  trackingId: string;
-  companyName: string;
-  isNoSale: boolean;
-  saleValue: number;
-  purchaseValue?: number | null; // Optional
-  profit?: number | null; // Optional
-  profitMargin?: number | null; // Optional
-  shipmentCarrier: string;
+  id: string
+  date: string
+  rawDate: Date
+  employeeId: string
+  employeeName: string
+  trackingId: string
+  companyName: string
+  isNoSale: boolean
+  saleValue: number
+  purchaseValue: number | null
+  profit: number | null
+  profitMargin: number | null
+  shipmentCarrier: string
   details: {
-    carat?: string | number;
-    color?: string;
-    clarity?: string;
-  };
-  description: string;
+    carat?: string | number
+    color?: string
+    clarity?: string
+  }
+  description: string
+  paymentReceived: boolean
 }
 
 // You could add other related types here as needed, e.g., EmployeeStats

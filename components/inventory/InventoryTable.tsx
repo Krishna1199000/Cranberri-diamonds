@@ -348,7 +348,7 @@ export function InventoryTable({
                   onClick={() => onPageChange(currentPage + 1)}
                   aria-disabled={currentPage >= totalPages}
                   className={currentPage >= totalPages ? "pointer-events-none opacity-50" : undefined}
-                />
+          />
               </PaginationItem>
             </PaginationContent>
           </PaginationContainer>

@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
+import {
+  Card,
+} from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import {
@@ -14,6 +16,7 @@ import {
   BarChart,
   Bar,
 } from "recharts"
+import { SaleEntry } from "@/types/sales"
 
 interface Employee {
   id: string
@@ -21,17 +24,8 @@ interface Employee {
   email?: string
 }
 
-interface SaleEntry {
-  saleDate: string
-  totalSaleValue: number
-  isNoSale: boolean
-  employee?: {
-    name: string
-  }
-}
-
 interface SalesAnalyticsProps {
-  salesData: SaleEntry[]
+  data: SaleEntry[]
   period: string
   setPeriod: (period: string) => void
   customPeriod: { start: string; end: string }
@@ -41,7 +35,7 @@ interface SalesAnalyticsProps {
 }
 
 export function SalesAnalytics({
-  salesData,
+  data,
   period,
   setPeriod,
   customPeriod,
@@ -99,12 +93,12 @@ export function SalesAnalytics({
   ]
 
   // Transform the sales data for the chart
-  const chartData = salesData
+  const chartData = data
     .filter(entry => !entry.isNoSale)
     .map(entry => ({
-      date: new Date(entry.saleDate).toLocaleDateString(),
-      value: entry.totalSaleValue || 0,
-      employee: entry.employee?.name || "Unknown"
+      date: new Date(entry.rawDate).toLocaleDateString(),
+      value: entry.saleValue || 0,
+      employee: entry.employeeName || "Unknown"
     }))
     // Sort by date
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())

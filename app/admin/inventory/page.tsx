@@ -39,7 +39,7 @@ export default function AdminInventoryPage() {
   const [selectedItem, setSelectedItem] = useState<InventoryItemType | undefined>(undefined); // Use correct type
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
+
   const [shipments, setShipments] = useState<ShipmentOption[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -53,9 +53,9 @@ export default function AdminInventoryPage() {
         if (data && data.success && Array.isArray(data.shipments)) {
           // Map PrismaShipment to ShipmentOption
           setShipments(data.shipments.map((shipment: PrismaShipment) => ({
-            id: shipment.id,
-            companyName: shipment.companyName
-          })));
+          id: shipment.id,
+          companyName: shipment.companyName
+        })));
         } else {
           console.error("Invalid data structure received from /api/shipments:", data);
           setShipments([]); 
@@ -136,7 +136,7 @@ export default function AdminInventoryPage() {
   
   const handleEditInventoryItem = async (data: InventoryItemFormData) => {
     if (!selectedItem) return;
-
+    
     setFormSubmitting(true);
     try {
       const response = await fetch(`/api/inventory-items/${selectedItem.id}`, {
@@ -147,12 +147,12 @@ export default function AdminInventoryPage() {
         body: JSON.stringify(data),
         credentials: "include", 
       });
-
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update inventory item");
       }
-
+      
       setRefreshKey(prevKey => prevKey + 1);
 
     } catch (error) {
@@ -183,12 +183,12 @@ export default function AdminInventoryPage() {
         body: JSON.stringify(updatePayload),
         credentials: "include",
       });
-
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update status");
       }
-
+      
       setRefreshKey(prevKey => prevKey + 1);
 
     } catch (error) {
@@ -313,7 +313,7 @@ export default function AdminInventoryPage() {
       )}
       
       {isEditDialogOpen && selectedItem && (
-        <AddEditInventoryForm
+        <AddEditInventoryForm 
           isOpen={isEditDialogOpen}
           onClose={() => setIsEditDialogOpen(false)}
           item={selectedItem} // Pass InventoryItemType | undefined

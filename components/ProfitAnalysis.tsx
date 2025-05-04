@@ -13,11 +13,8 @@ import {
   Tooltip,
   Legend,
 } from "recharts"
-
-interface SaleEntry {
-  isNoSale: boolean
-  profit?: number | null
-}
+import { formatCurrency } from "@/lib/utils"
+import { SaleEntry } from "@/types/sales"
 
 interface ProfitAnalysisProps {
   salesData: SaleEntry[]
@@ -43,13 +40,10 @@ export default function ProfitAnalysis({
   setPurchaseValue,
   profitAnalysis,
   showProfitAnalysis,
-
   calculateProfit,
   calculateAllEntryProfits,
 }: ProfitAnalysisProps) {
   const [activeTab, setActiveTab] = useState<'overall' | 'entries'>('overall');
-
-
 
   const getProfitDistributionData = () => {
     if (activeTab === 'overall') {
@@ -64,15 +58,6 @@ export default function ProfitAnalysis({
         { name: 'Neutral/Unknown', value: salesData.filter(item => !item.isNoSale && (item.profit === null || item.profit === undefined)).length, color: '#9ca3af' },
       ];
     }
-  };
-
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
   };
 
   const chartData = getProfitDistributionData();

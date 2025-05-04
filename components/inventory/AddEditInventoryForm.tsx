@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import {
+import { 
   Form,
   FormControl,
   FormField,
@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
+import { 
   shapeOptions,
   colorOptions,
   clarityOptions,
@@ -88,7 +88,7 @@ export function AddEditInventoryForm({
   shipments,
 }: AddEditInventoryFormProps) {
   const [isShipmentRequired, setIsShipmentRequired] = useState(false);
-
+  
   const form = useForm<InventoryItemFormData>({
     resolver: zodResolver(inventoryFormSchema),
     defaultValues: {
@@ -110,7 +110,7 @@ export function AddEditInventoryForm({
       heldByShipmentId: undefined,
     },
   });
-
+  
   useEffect(() => {
     if (item) {
       form.reset({
@@ -138,7 +138,7 @@ export function AddEditInventoryForm({
       setIsShipmentRequired(false);
     }
   }, [item, form]);
-
+  
   const handleStatusChange = (value: string) => {
     form.setValue("status", value as "AVAILABLE" | "HOLD" | "MEMO");
     setIsShipmentRequired(value === "HOLD" || value === "MEMO");
@@ -146,7 +146,7 @@ export function AddEditInventoryForm({
       form.setValue("heldByShipmentId", null);
     }
   };
-
+  
   const handleSubmit = async (data: z.infer<typeof inventoryFormSchema>) => {
     if ((data.status === "HOLD" || data.status === "MEMO") && !data.heldByShipmentId) {
       form.setError("heldByShipmentId", {
@@ -155,7 +155,7 @@ export function AddEditInventoryForm({
       });
       return;
     }
-
+    
     try {
       await onSubmit(data);
       onClose();
@@ -163,7 +163,7 @@ export function AddEditInventoryForm({
       console.error("Error submitting form:", error);
     }
   };
-
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
@@ -173,11 +173,11 @@ export function AddEditInventoryForm({
           </DialogTitle>
           <DialogDescription>
             {item
-              ? "Update the details of the inventory item."
+              ? "Update the details of the inventory item." 
               : "Fill in the details to add a new inventory item."}
           </DialogDescription>
         </DialogHeader>
-
+        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -188,24 +188,24 @@ export function AddEditInventoryForm({
                   <FormItem>
                     <FormLabel>Stock ID*</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter stock ID"
+                      <Input 
+                        {...field} 
+                        placeholder="Enter stock ID" 
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="shape"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Shape*</FormLabel>
-                    <Select
-                      value={field.value}
+                    <Select 
+                      value={field.value} 
                       onValueChange={field.onChange}
                     >
                       <FormControl>
@@ -225,7 +225,7 @@ export function AddEditInventoryForm({
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="size"
@@ -233,26 +233,26 @@ export function AddEditInventoryForm({
                   <FormItem>
                     <FormLabel>Carat*</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        placeholder="Enter carat weight"
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        {...field} 
+                        placeholder="Enter carat weight" 
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="color"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Color*</FormLabel>
-                    <Select
-                      value={field.value}
+                    <Select 
+                      value={field.value} 
                       onValueChange={field.onChange}
                     >
                       <FormControl>
@@ -272,15 +272,15 @@ export function AddEditInventoryForm({
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="clarity"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Clarity*</FormLabel>
-                    <Select
-                      value={field.value}
+                    <Select 
+                      value={field.value} 
                       onValueChange={field.onChange}
                     >
                       <FormControl>
@@ -300,15 +300,15 @@ export function AddEditInventoryForm({
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="cut"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Cut</FormLabel>
-                    <Select
-                      value={field.value || ""}
+                    <Select 
+                      value={field.value || ""} 
                       onValueChange={field.onChange}
                     >
                       <FormControl>
@@ -329,15 +329,15 @@ export function AddEditInventoryForm({
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="polish"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Polish*</FormLabel>
-                    <Select
-                      value={field.value}
+                    <Select 
+                      value={field.value} 
                       onValueChange={field.onChange}
                     >
                       <FormControl>
@@ -357,15 +357,15 @@ export function AddEditInventoryForm({
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="sym"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Symmetry*</FormLabel>
-                    <Select
-                      value={field.value}
+                    <Select 
+                      value={field.value} 
                       onValueChange={field.onChange}
                     >
                       <FormControl>
@@ -385,15 +385,15 @@ export function AddEditInventoryForm({
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="lab"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lab*</FormLabel>
-                    <Select
-                      value={field.value}
+                    <Select 
+                      value={field.value} 
                       onValueChange={field.onChange}
                     >
                       <FormControl>
@@ -414,7 +414,7 @@ export function AddEditInventoryForm({
                 )}
               />
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -423,18 +423,18 @@ export function AddEditInventoryForm({
                   <FormItem>
                     <FormLabel>Price/Ct*</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        placeholder="Enter price per carat"
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        {...field} 
+                        placeholder="Enter price per carat" 
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="finalAmount"
@@ -442,11 +442,11 @@ export function AddEditInventoryForm({
                   <FormItem>
                     <FormLabel>Amount*</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        placeholder="Enter final amount"
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        {...field} 
+                        placeholder="Enter final amount" 
                       />
                     </FormControl>
                     <FormMessage />
@@ -454,7 +454,7 @@ export function AddEditInventoryForm({
                 )}
               />
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
@@ -463,17 +463,17 @@ export function AddEditInventoryForm({
                   <FormItem>
                     <FormLabel>Image URL</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        value={field.value || ""}
-                        placeholder="Enter image URL"
+                      <Input 
+                        {...field} 
+                        value={field.value || ""} 
+                        placeholder="Enter image URL" 
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="videoUrl"
@@ -481,17 +481,17 @@ export function AddEditInventoryForm({
                   <FormItem>
                     <FormLabel>Video URL</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        value={field.value || ""}
-                        placeholder="Enter video URL"
+                      <Input 
+                        {...field} 
+                        value={field.value || ""} 
+                        placeholder="Enter video URL" 
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="certUrl"
@@ -499,10 +499,10 @@ export function AddEditInventoryForm({
                   <FormItem>
                     <FormLabel>Certificate URL</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        value={field.value || ""}
-                        placeholder="Enter certificate URL"
+                      <Input 
+                        {...field} 
+                        value={field.value || ""} 
+                        placeholder="Enter certificate URL" 
                       />
                     </FormControl>
                     <FormMessage />
@@ -510,7 +510,7 @@ export function AddEditInventoryForm({
                 )}
               />
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -518,8 +518,8 @@ export function AddEditInventoryForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status*</FormLabel>
-                    <Select
-                      value={field.value}
+                    <Select 
+                      value={field.value} 
                       onValueChange={handleStatusChange}
                     >
                       <FormControl>
@@ -539,7 +539,7 @@ export function AddEditInventoryForm({
                   </FormItem>
                 )}
               />
-
+              
               {isShipmentRequired && (
                 <FormField
                   control={form.control}
@@ -547,8 +547,8 @@ export function AddEditInventoryForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Company*</FormLabel>
-                      <Select
-                        value={field.value || ""}
+                      <Select 
+                        value={field.value || ""} 
                         onValueChange={field.onChange}
                       >
                         <FormControl>
@@ -570,7 +570,7 @@ export function AddEditInventoryForm({
                 />
               )}
             </div>
-
+            
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
