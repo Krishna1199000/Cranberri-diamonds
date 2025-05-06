@@ -469,7 +469,7 @@ export default function Navbar() {
                     }}
                     className="mt-8 text-center text-gray-600 text-sm"
                   >
-                    <p>© 2024 Cranberri Diamonds.</p>
+                    <p>© 2025 Cranberri Diamonds.</p>
                     <p>All rights reserved.</p>
                   </motion.div>
                 </nav>

@@ -29,16 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  shapeOptions,
-  colorOptions,
-  clarityOptions,
-  cutOptions,
-  labOptions,
-  statusOptions
-} from "@/lib/utils/inventory";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { DiamondStatus, type InventoryItem as PrismaInventoryItem } from "@prisma/client";
+import { statusOptions } from "@/lib/utils/inventory";
 
 // Define form data type
 export type InventoryItemFormData = z.infer<typeof inventoryFormSchema>;
@@ -204,23 +197,12 @@ export function AddEditInventoryForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Shape*</FormLabel>
-                    <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select shape" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {shapeOptions.map((shape) => (
-                          <SelectItem key={shape} value={shape}>
-                            {shape}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Enter shape" 
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -251,23 +233,12 @@ export function AddEditInventoryForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Color*</FormLabel>
-                    <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select color" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {colorOptions.map((color) => (
-                          <SelectItem key={color} value={color}>
-                            {color}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Enter color" 
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -279,23 +250,12 @@ export function AddEditInventoryForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Clarity*</FormLabel>
-                    <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select clarity" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clarityOptions.map((clarity) => (
-                          <SelectItem key={clarity} value={clarity}>
-                            {clarity}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Enter clarity" 
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -307,24 +267,13 @@ export function AddEditInventoryForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Cut</FormLabel>
-                    <Select 
-                      value={field.value || ""} 
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select cut" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="">None</SelectItem>
-                        {cutOptions.map((cut) => (
-                          <SelectItem key={cut} value={cut}>
-                            {cut}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        value={field.value || ""} 
+                        placeholder="Enter cut (optional)" 
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -336,23 +285,12 @@ export function AddEditInventoryForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Polish*</FormLabel>
-                    <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select polish" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {cutOptions.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Enter polish" 
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -364,23 +302,12 @@ export function AddEditInventoryForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Symmetry*</FormLabel>
-                    <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select symmetry" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {cutOptions.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Enter symmetry" 
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -392,23 +319,12 @@ export function AddEditInventoryForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lab*</FormLabel>
-                    <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select lab" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {labOptions.map((lab) => (
-                          <SelectItem key={lab} value={lab}>
-                            {lab}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Enter lab" 
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

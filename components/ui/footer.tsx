@@ -228,7 +228,7 @@ const Footer = () => {
           className="py-6 text-center"
           variants={itemVariants}
         >
-          <p className="text-sm text-gray-600 mb-2">© 2024 Cranberri Diamonds.</p>
+          <p className="text-sm text-gray-600 mb-2">© 2025 Cranberri Diamonds.</p>
           <p className="text-sm text-gray-600 mb-4">All rights reserved.</p>
           <p className="text-sm text-gray-600">
             Powered by{" "}
