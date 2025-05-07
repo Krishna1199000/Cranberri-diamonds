@@ -15,7 +15,6 @@ import { toast } from "sonner"
 
 // Import the constants from a shared file
 import {
-  countries,
   paymentTerms,
   carriers,
   organizationTypes,
@@ -93,8 +92,6 @@ export default function EditShipment() {
     setFormData(prev => ({
       ...prev,
       [field]: value,
-      ...(field === 'country' && { state: '', city: '' }),
-      ...(field === 'state' && { city: '' })
     }))
   }
 
@@ -197,43 +194,24 @@ export default function EditShipment() {
                   <label className="block text-sm font-medium text-gray-700">
                     Country <span className="text-red-500">*</span>
                   </label>
-                  <Select
+                  <Input
+                    required
                     value={formData.country}
-                    onValueChange={(value) => handleChange('country', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(countries).map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => handleChange('country', e.target.value)}
+                    placeholder="Enter Country"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     State <span className="text-red-500">*</span>
                   </label>
-                  <Select
+                  <Input
+                    required
                     value={formData.state}
-                    onValueChange={(value) => handleChange('state', value)}
-                    disabled={!formData.country}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select State" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData.country && Object.keys(countries[formData.country as keyof typeof countries]).map((state) => (
-                        <SelectItem key={state} value={state}>
-                          {state}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => handleChange('state', e.target.value)}
+                    placeholder="Enter State"
+                  />
                 </div>
               </div>
 
@@ -242,24 +220,12 @@ export default function EditShipment() {
                   <label className="block text-sm font-medium text-gray-700">
                     City <span className="text-red-500">*</span>
                   </label>
-                  <Select
+                  <Input
+                    required
                     value={formData.city}
-                    onValueChange={(value) => handleChange('city', value)}
-                    disabled={!formData.state}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select City" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData.country && formData.state &&
-                        ((countries[formData.country as keyof typeof countries] as Record<string, string[]>)[formData.state] || []).map((city) => (
-                          <SelectItem key={city} value={city}>
-                            {city}
-                          </SelectItem>
-                        ))
-                      }
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => handleChange('city', e.target.value)}
+                    placeholder="Enter City"
+                  />
                 </div>
 
                 <div>

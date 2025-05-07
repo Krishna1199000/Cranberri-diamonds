@@ -1,32 +1,3 @@
-export const countries = {
-  "USA": {
-    "California": ["Los Angeles", "San Francisco", "San Diego"],
-    "New York": ["New York City", "Buffalo", "Albany"],
-    "Texas": ["Houston", "Austin", "Dallas"],
-    "Florida": ["Miami", "Orlando", "Tampa", "Fort Lauderdale"]
-  },
-  "India": {
-    "Maharashtra": ["Mumbai", "Pune", "Nagpur"],
-    "Delhi": ["New Delhi", "North Delhi", "South Delhi"],
-    "Karnataka": ["Bangalore", "Mysore", "Hubli"]
-  },
-  "Australia": {
-    "New South Wales": ["Sydney", "Newcastle", "Wollongong"],
-    "Victoria": ["Melbourne", "Geelong", "Ballarat"],
-    "Queensland": ["Brisbane", "Gold Coast", "Cairns"]
-  },
-  "United Kingdom": {
-    "England": ["London", "Manchester", "Birmingham"],
-    "Scotland": ["Edinburgh", "Glasgow", "Aberdeen"],
-    "Wales": ["Cardiff", "Swansea", "Newport"]
-  },
-  "Hong Kong": {
-    "Hong Kong Island": ["Central", "Wan Chai", "Causeway Bay"],
-    "Kowloon": ["Tsim Sha Tsui", "Mong Kok", "Yau Ma Tei"],
-    "New Territories": ["Sha Tin", "Tsuen Wan", "Tuen Mun"]
-  }
-}
-
 export const paymentTerms = [
   "Immediate",
   "1 Day",
