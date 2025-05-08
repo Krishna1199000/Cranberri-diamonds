@@ -35,16 +35,24 @@ import type { InventoryItem as PrismaInventoryItem } from "@prisma/client";
 // Import Diamond type for helper function
 import { Diamond } from "@/lib/utils/inventory";
 
+// Define a more specific type for inventory items that includes shipment details
+interface InventoryItemWithShipmentDetails extends PrismaInventoryItem {
+  heldByShipment?: {
+    id: string; // Assuming id is part of the shipment details
+    companyName: string;
+  } | null;
+}
+
 interface InventoryTableProps {
-  items: PrismaInventoryItem[]; // Use imported Prisma type directly
+  items: InventoryItemWithShipmentDetails[]; 
   isLoading: boolean;
   total: number;
   currentPage: number;
   pageSize: number;
   isAdmin?: boolean;
   onPageChange: (page: number) => void;
-  onEdit?: (item: PrismaInventoryItem) => void; // Use Prisma type
-  onStatusChange?: (item: PrismaInventoryItem) => void; // Use Prisma type
+  onEdit?: (item: InventoryItemWithShipmentDetails) => void; 
+  onStatusChange?: (item: InventoryItemWithShipmentDetails) => void; 
   onSelect?: (selected: string[]) => void;
 }
 
@@ -105,7 +113,7 @@ export function InventoryTable({
   };
 
   // Helper function to convert InventoryItem to Diamond for getStatusDisplay
-  const itemToDiamond = (item: PrismaInventoryItem): Diamond => {
+  const itemToDiamond = (item: InventoryItemWithShipmentDetails): Diamond => {
     return {
       id: item.id,
       stockId: item.stockId,
@@ -204,6 +212,8 @@ export function InventoryTable({
                 </TableHead>
               )}
               <TableHead className="w-14">Sr No.</TableHead>
+              <TableHead>Held By Company</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Stock ID</TableHead>
               <TableHead>Media</TableHead>
               <TableHead>Shape</TableHead>
@@ -216,101 +226,119 @@ export function InventoryTable({
               <TableHead>Lab</TableHead>
               <TableHead>Price/Ct</TableHead>
               <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
               {isAdmin && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 16 : 15} className="h-24 text-center">
+                <TableCell colSpan={isAdmin ? 17 : 16} className="h-24 text-center">
                   No inventory items found.
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item, index) => (
-                <TableRow key={item.id}>
-                  {isAdmin && (
-                    <TableCell>
-                      <Checkbox 
-                        checked={selected.includes(item.id)}
-                        onChange={(checked) => handleSelect(item.id, !!checked)}
-                      />
+              items.map((item, index) => {
+                const currentStatus = mapStatus(item.status);
+                const companyName = (currentStatus === DiamondStatus.MEMO || currentStatus === DiamondStatus.HOLD) 
+                                    ? item.heldByShipment?.companyName || "-" 
+                                    : "-";
+                
+                // Log individual item and its heldByShipment details
+                if (index < 5) { // Log first 5 items to avoid flooding console
+                  console.log(`Item ${index} (Stock ID: ${item.stockId}):`, JSON.parse(JSON.stringify(item))); // Deep copy for logging
+                  // Safer logging for heldByShipment:
+                  console.log(
+                    `Item ${index} (Stock ID: ${item.stockId}) heldByShipment:`, 
+                    item.heldByShipment ? JSON.parse(JSON.stringify(item.heldByShipment)) : item.heldByShipment
+                  );
+                  console.log(`Item ${index} (Stock ID: ${item.stockId}) status: ${currentStatus}, companyName derived:`, companyName);
+                }
+
+                return (
+                  <TableRow key={item.id}>
+                    {isAdmin && (
+                      <TableCell>
+                        <Checkbox 
+                          checked={selected.includes(item.id)}
+                          onChange={(checked) => handleSelect(item.id, !!checked)}
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell>{(currentPage - 1) * pageSize + index + 1}</TableCell>
+                    <TableCell>{companyName}</TableCell>
+                    <TableCell className={getStatusColor(currentStatus)}>
+                      <Badge variant="outline">
+                        {getStatusDisplay(itemToDiamond(item))}
+                      </Badge>
                     </TableCell>
-                  )}
-                  <TableCell>{(currentPage - 1) * pageSize + index + 1}</TableCell>
-                  <TableCell className="font-medium">{item.stockId}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {item.imageUrl && (
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => handleMediaClick('image', item.imageUrl || null)}
-                        >
-                          <ImageIcon className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {item.videoUrl && (
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => handleMediaClick('video', item.videoUrl || null)}
-                        >
-                          <Video className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {item.certUrl && (
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => handleMediaClick('certificate', item.certUrl || null)}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{item.shape}</TableCell>
-                  <TableCell>{item.size?.toFixed(2) ?? 'N/A'}</TableCell>
-                  <TableCell>{item.color}</TableCell>
-                  <TableCell>{item.clarity}</TableCell>
-                  <TableCell>{item.cut || '-'}</TableCell>
-                  <TableCell>{item.polish}</TableCell>
-                  <TableCell>{item.sym}</TableCell>
-                  <TableCell>{item.lab}</TableCell>
-                  <TableCell>${formatNumber(item.pricePerCarat)}</TableCell>
-                  <TableCell>${formatNumber(item.finalAmount)}</TableCell>
-                  <TableCell>
-                    <Badge className={`${getStatusColor(mapStatus(item.status))} border px-2 py-1`}>
-                      {getStatusDisplay(itemToDiamond(item), !isAdmin)}
-                    </Badge>
-                  </TableCell>
-                  {isAdmin && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline" 
-                          size="icon"
-                          onClick={() => onStatusChange && onStatusChange(item)}
-                        >
-                          <FileCog className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline" 
-                          size="icon"
-                          onClick={() => onEdit && onEdit(item)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                    <TableCell className="font-medium">{item.stockId}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {item.imageUrl && (
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => handleMediaClick('image', item.imageUrl || null)}
+                          >
+                            <ImageIcon className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {item.videoUrl && (
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => handleMediaClick('video', item.videoUrl || null)}
+                          >
+                            <Video className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {item.certUrl && (
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => handleMediaClick('certificate', item.certUrl || null)}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
-                  )}
-                </TableRow>
-              ))
+                    <TableCell>{item.shape}</TableCell>
+                    <TableCell>{item.size?.toFixed(2) ?? 'N/A'}</TableCell>
+                    <TableCell>{item.color}</TableCell>
+                    <TableCell>{item.clarity}</TableCell>
+                    <TableCell>{item.cut || '-'}</TableCell>
+                    <TableCell>{item.polish}</TableCell>
+                    <TableCell>{item.sym}</TableCell>
+                    <TableCell>{item.lab}</TableCell>
+                    <TableCell>${formatNumber(item.pricePerCarat)}</TableCell>
+                    <TableCell>${formatNumber(item.finalAmount)}</TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => onStatusChange && onStatusChange(item)}
+                          >
+                            <FileCog className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => onEdit && onEdit(item)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -348,7 +376,7 @@ export function InventoryTable({
                   onClick={() => onPageChange(currentPage + 1)}
                   aria-disabled={currentPage >= totalPages}
                   className={currentPage >= totalPages ? "pointer-events-none opacity-50" : undefined}
-          />
+                />
               </PaginationItem>
             </PaginationContent>
           </PaginationContainer>

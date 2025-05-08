@@ -83,23 +83,19 @@ export const getStatusColor = (status: DiamondStatus) => {
   }
 };
 
-export const getStatusDisplay = (diamond: Diamond, isEmployee = false) => {
-  if (isEmployee) {
-    switch (diamond.status) {
-      case "AVAILABLE":
-        return "Available";
-      case "HOLD":
-        return `H-${diamond.heldByShipment?.companyName || ""}`;
-      case "MEMO":
-        return `M-${diamond.heldByShipment?.companyName || ""}`;
-      default:
-        return "Available";
-    }
+export const getStatusDisplay = (diamond: Diamond): string => {
+  switch (diamond.status) {
+    case DiamondStatus.AVAILABLE:
+      return "Available";
+    case DiamondStatus.HOLD:
+      return "Hold";
+    case DiamondStatus.MEMO:
+      return "Memo";
+    default:
+      // Fallback for any unexpected status values
+      const statusStr = String(diamond.status);
+      return statusStr.charAt(0).toUpperCase() + statusStr.slice(1).toLowerCase();
   }
-  
-  return diamond.status === "AVAILABLE" 
-    ? "Available" 
-    : `${diamond.status} - ${diamond.heldByShipment?.companyName || ""}`;
 };
 
 export const formatNumber = (num: number, decimals = 2) => {

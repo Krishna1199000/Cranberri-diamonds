@@ -68,22 +68,22 @@ export default function SalesPage() {
           <EmployeeRankings salesData={salesData} />
         </div>
       )}
-
-      <div className="space-y-6">
-        <SalesAnalytics 
-          data={salesData}
-          period={period}
-          setPeriod={setPeriod}
-          customPeriod={customPeriod}
-          setCustomPeriod={setCustomPeriod}
-          selectedEmployee={selectedEmployee}
-          setSelectedEmployee={setSelectedEmployee}
-        />
         
-        <SalesTable 
-          salesData={salesData} 
-          refreshData={refreshData} 
-        />
+        <div className="space-y-6">
+          <SalesAnalytics 
+          data={salesData}
+            period={period}
+            setPeriod={setPeriod}
+            customPeriod={customPeriod}
+            setCustomPeriod={setCustomPeriod}
+            selectedEmployee={selectedEmployee}
+            setSelectedEmployee={setSelectedEmployee}
+          />
+          
+          <SalesTable 
+            salesData={salesData} 
+            refreshData={refreshData} 
+          />
       </div>
     </AdminLayout>
   )

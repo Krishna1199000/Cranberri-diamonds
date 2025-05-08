@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 const prisma = new PrismaClient();
 import { getSession } from '@/lib/session';
 
@@ -12,6 +12,9 @@ export async function GET(
   
     const diamond = await prisma.diamond.findUnique({
       where: { id: resolvedParams.id},
+      // Ensure you include related data if needed by the component using this GET request
+      // For example, if it needs shipment info for a "Diamond" model that has such a relation:
+      // include: { heldByShipment: true }
     });
     
     if (!diamond) {
@@ -60,8 +63,8 @@ export async function PUT(
       );
     }
     
-    // Ensure only valid Diamond fields are included in the update
-    const updateData = {
+    // Original updateData logic for prisma.diamond
+    const updateData: Prisma.DiamondUpdateInput = { // Use Prisma.DiamondUpdateInput
         stockId: data.stockId,
         certificateNo: data.certificateNo,
         shape: data.shape,
@@ -85,7 +88,7 @@ export async function PUT(
         depth: data.depth ? parseFloat(data.depth) : undefined,
         table: data.table ? parseFloat(data.table) : undefined,
         ratio: data.ratio ? parseFloat(data.ratio) : undefined,
-        status: data.status,
+        status: data.status, // Assuming status on Diamond model is just a string
         comment: data.comment,
         videoUrl: data.videoUrl,
         imageUrl: data.imageUrl,
@@ -101,15 +104,22 @@ export async function PUT(
         fancyColor: data.fancyColor,
         location: data.location,
         inscription: data.inscription,
+        // If the 'Diamond' model in schema.prisma has a heldByShipmentId or similar field for linking,
+        // you would handle it here. For example:
+        // heldByShipmentId: data.heldByShipmentId, // or null if unlinking
     };
     
-    // Remove undefined fields to allow partial updates
-    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key];
+      }
+    });
 
-    // Update diamond
     const diamond = await prisma.diamond.update({
       where: { id: resolvedParams.id },
       data: updateData,
+      // If you need to return the updated related shipment data with the diamond:
+      // include: { heldByShipment: true }
     });
     
     return NextResponse.json(diamond);
@@ -137,7 +147,6 @@ export async function DELETE(
       );
     }
     
-    // Check if diamond exists
     const existing = await prisma.diamond.findUnique({
       where: {  id: resolvedParams.id }
     });
@@ -149,7 +158,6 @@ export async function DELETE(
       );
     }
     
-    // Delete diamond
     await prisma.diamond.delete({
       where: {  id: resolvedParams.id }
     });

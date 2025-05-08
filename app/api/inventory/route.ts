@@ -1,28 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, DiamondStatus, Prisma } from '@prisma/client';
 import { getSession } from '@/lib/session';
 const prisma = new PrismaClient();
 
 // Define a more specific type for the where clause
-interface DiamondWhereClause {
+interface InventoryItemWhereClause {
   OR?: { [key: string]: { contains: string; mode: 'insensitive' } }[];
-  status?: string; // status is String in the reverted Diamond model
+  status?: DiamondStatus; // Use DiamondStatus enum type
 }
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
-    const status = searchParams.get("status") || "";
+    const statusParam = searchParams.get("status")?.toUpperCase() || ""; // Get status and convert to uppercase
     const take = parseInt(searchParams.get("take") || "10");
     const skip = parseInt(searchParams.get("skip") || "0");
     
-    const where: DiamondWhereClause = {}; // Use defined type
+    const where: InventoryItemWhereClause = {}; 
     
     if (search) {
+      // Adjust search fields based on InventoryItem model
+      // certificateNo is not on InventoryItem, remove or handle differently
       where.OR = [
         { stockId: { contains: search, mode: 'insensitive' } },
-        { certificateNo: { contains: search, mode: 'insensitive' } },
+        // { certificateNo: { contains: search, mode: 'insensitive' } }, // certificateNo is not in InventoryItem model
         { shape: { contains: search, mode: 'insensitive' } },
         { color: { contains: search, mode: 'insensitive' } },
         { clarity: { contains: search, mode: 'insensitive' } },
@@ -30,22 +32,28 @@ export async function GET(request: NextRequest) {
       ];
     }
     
-    if (status) { 
-      where.status = status;
+    // Validate and assign status if it's a valid DiamondStatus enum member
+    if (statusParam && Object.values(DiamondStatus).includes(statusParam as DiamondStatus)) { 
+      where.status = statusParam as DiamondStatus;
     }
     
-    const [diamonds, total] = await Promise.all([
-      prisma.diamond.findMany({
-        where,
-        take,
-        skip,
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.diamond.count({ where })
-    ]);
+    const inventoryItems = await prisma.inventoryItem.findMany({
+      where,
+      take,
+      skip,
+      orderBy: { createdAt: 'desc' }, // Ensure InventoryItem has createdAt
+      include: { 
+        heldByShipment: true
+      }
+    });
+
+    const total = await prisma.inventoryItem.count({ where });
     
+    // Log the fetched inventory items to check for heldByShipment details
+    console.log("Fetched inventory items in API route (first 5):", JSON.stringify(inventoryItems.slice(0, 5), null, 2));
+
     return NextResponse.json({ 
-      diamonds, 
+      diamonds: inventoryItems, // Keep 'diamonds' key for frontend compatibility for now, or update frontend
       total,
       pages: Math.ceil(total / take)
     });
@@ -71,10 +79,10 @@ export async function POST(request: NextRequest) {
     
     const data = await request.json();
     
+    // Required fields for InventoryItem (adjust based on your InventoryItem model in schema.prisma)
     const requiredFields = [
-      'stockId', 'certificateNo', 'shape', 'size', 'color', 'clarity', 
-      'polish', 'sym', 'floro', 'lab', 'rapPrice', 'rapAmount', 
-      'discount', 'pricePerCarat', 'finalAmount', 'measurement', 'status'
+      'stockId', 'shape', 'size', 'color', 'clarity', 
+      'polish', 'sym', 'lab', 'pricePerCarat', 'status' // Removed fields not in InventoryItem, ensure all essential fields are listed
     ];
                            
     for (const field of requiredFields) {
@@ -85,8 +93,25 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-    
-    const existing = await prisma.diamond.findUnique({
+
+    const sizeValue = parseFloat(data.size);
+    const pricePerCaratValue = parseFloat(data.pricePerCarat);
+
+    if (isNaN(sizeValue) || isNaN(pricePerCaratValue)) {
+      return NextResponse.json(
+        { error: "Invalid 'size' or 'pricePerCarat'. Must be valid numbers." },
+        { status: 400 }
+      );
+    }
+    // Consider adding checks for positive values if necessary, e.g.:
+    // if (sizeValue <= 0 || pricePerCaratValue <= 0) {
+    //   return NextResponse.json(
+    //     { error: "'size' and 'pricePerCarat' must be positive numbers." },
+    //     { status: 400 }
+    //   );
+    // }
+
+    const existing = await prisma.inventoryItem.findUnique({
       where: { stockId: data.stockId }
     });
     
@@ -97,55 +122,49 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const diamond = await prisma.diamond.create({
-      data: {
+    // Prepare data for InventoryItem creation
+    const inventoryItemData: Prisma.InventoryItemCreateInput = {
         stockId: data.stockId,
-        certificateNo: data.certificateNo,
         shape: data.shape,
-        size: parseFloat(data.size),
+        size: sizeValue, 
         color: data.color,
         clarity: data.clarity,
         cut: data.cut || null,
         polish: data.polish,
         sym: data.sym,
-        floro: data.floro,
         lab: data.lab,
-        rapPrice: parseFloat(data.rapPrice),
-        rapAmount: parseFloat(data.rapAmount),
-        discount: parseFloat(data.discount),
-        pricePerCarat: parseFloat(data.pricePerCarat),
-        finalAmount: parseFloat(data.finalAmount),
-        measurement: data.measurement, 
-        length: data.length ? parseFloat(data.length) : null,
-        width: data.width ? parseFloat(data.width) : null,
-        height: data.height ? parseFloat(data.height) : null,
-        depth: data.depth ? parseFloat(data.depth) : null,
-        table: data.table ? parseFloat(data.table) : null,
-        ratio: data.ratio ? parseFloat(data.ratio) : null,
-        status: data.status,
-        comment: data.comment || null,
+        pricePerCarat: pricePerCaratValue,
+        finalAmount: data.finalAmount, // Assuming finalAmount is sent from client or calculated before
+        status: data.status as DiamondStatus, // Ensure status is of DiamondStatus enum type
         videoUrl: data.videoUrl || null,
         imageUrl: data.imageUrl || null,
         certUrl: data.certUrl || null,
-        girdle: data.girdle || null,
-        culet: data.culet || null,
-        cAngle: data.cAngle ? parseFloat(data.cAngle) : null,
-        cHeight: data.cHeight ? parseFloat(data.cHeight) : null,
-        pAngle: data.pAngle ? parseFloat(data.pAngle) : null,
-        pDepth: data.pDepth ? parseFloat(data.pDepth) : null,
-        fancyIntensity: data.fancyIntensity || null,
-        fancyOvertone: data.fancyOvertone || null,
-        fancyColor: data.fancyColor || null,
-        location: data.location || null,
-        inscription: data.inscription || null,
-      }
+        // Fields from Diamond model not directly in InventoryItem (like rapPrice, discount, measurement etc.) need to be handled
+        // e.g., decide if they are stored elsewhere or if InventoryItem model needs them.
+        // For now, only mapping fields present in InventoryItem schema.
+    };
+
+    // If status is HOLD or MEMO, expect heldByShipmentId from the client
+    if ((data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO) && data.heldByShipmentId) {
+        inventoryItemData.heldByShipment = {
+            connect: { id: data.heldByShipmentId }
+        };
+    } else if (data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO) {
+        // If status is HOLD/MEMO but no heldByShipmentId, it might be an error or optional
+        // For now, we won't set it if not provided. 
+        // Prisma will set heldByShipmentId to null if the foreign key field itself is optional and no connect is provided.
+        // Consider returning an error if linking to a shipment is mandatory for these statuses.
+    }
+
+    const inventoryItem = await prisma.inventoryItem.create({
+      data: inventoryItemData
     });
     
-    return NextResponse.json(diamond);
+    return NextResponse.json(inventoryItem);
   } catch (error) {
-    console.error("Error creating diamond item:", error);
+    console.error("Error creating inventory item:", error);
     return NextResponse.json(
-      { error: "Failed to create diamond item" },
+      { error: "Failed to create inventory item" },
       { status: 500 }
     );
   }

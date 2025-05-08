@@ -104,11 +104,11 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
                   className={clsx(
                     "flex items-center space-x-1 text-sm font-medium transition-colors",
                     isActive
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                      ? "text-primary dark:text-primary-foreground font-semibold"
+                      : "text-foreground/70 dark:text-foreground/70 hover:text-primary dark:hover:text-primary-foreground"
                   )}
                 >
-                  <item.icon className={clsx("h-4 w-4", isActive ? "text-blue-600 dark:text-blue-400" : "")}/>
+                  <item.icon className={clsx("h-4 w-4", isActive ? "text-primary dark:text-primary-foreground" : "text-foreground/70 dark:text-foreground/70")}/>
                   <span>{item.label}</span>
                 </Link>
               );
@@ -143,14 +143,20 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
                     const isActive = pathname === item.href;
                     return (
                       <DropdownMenuItem key={item.label} asChild>
-                        <Link href={item.href} className={clsx("flex items-center space-x-2", isActive ? "text-blue-600 dark:text-blue-400 font-semibold" : "")}>
-                          <item.icon className={clsx("h-4 w-4", isActive ? "text-blue-600 dark:text-blue-400" : "")} />
+                        <Link href={item.href} className={clsx(
+                            "flex items-center space-x-2", 
+                            isActive 
+                                ? "text-primary dark:text-primary-foreground font-semibold" 
+                                : "text-foreground/80 dark:text-foreground/80"
+                            )}
+                        >
+                          <item.icon className={clsx("h-4 w-4", isActive ? "text-primary dark:text-primary-foreground" : "text-foreground/80 dark:text-foreground/80")} />
                           <span>{item.label}</span>
                         </Link>
                       </DropdownMenuItem>
                     );
                  })}
-                 <DropdownMenuItem onSelect={handleLogout} className="text-red-600 focus:text-red-600 flex items-center space-x-2">
+                 <DropdownMenuItem onSelect={handleLogout} className="focus:text-red-600 flex items-center space-x-2 text-destructive">
                      <LogOut className="h-4 w-4" />
                      <span>Logout</span>
                  </DropdownMenuItem>

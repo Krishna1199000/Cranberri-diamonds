@@ -95,7 +95,7 @@ export function AddEditInventoryForm({
       sym: "",
       lab: "",
       pricePerCarat: undefined,
-      finalAmount: undefined,
+      finalAmount: 0,
       videoUrl: "",
       imageUrl: "",
       certUrl: "",
@@ -103,6 +103,21 @@ export function AddEditInventoryForm({
       heldByShipmentId: undefined,
     },
   });
+  
+  const watchedSize = form.watch("size");
+  const watchedPricePerCarat = form.watch("pricePerCarat");
+
+  useEffect(() => {
+    const sizeNum = typeof watchedSize === 'number' ? watchedSize : parseFloat(String(watchedSize));
+    const pricePerCaratNum = typeof watchedPricePerCarat === 'number' ? watchedPricePerCarat : parseFloat(String(watchedPricePerCarat));
+
+    if (!isNaN(sizeNum) && !isNaN(pricePerCaratNum) && sizeNum > 0 && pricePerCaratNum > 0) {
+      const calculatedAmount = parseFloat((sizeNum * pricePerCaratNum).toFixed(2));
+      form.setValue("finalAmount", calculatedAmount, { shouldValidate: true });
+    } else {
+      form.setValue("finalAmount", 0, { shouldValidate: true });
+    }
+  }, [watchedSize, watchedPricePerCarat, form.setValue]);
   
   useEffect(() => {
     if (item) {
@@ -362,7 +377,9 @@ export function AddEditInventoryForm({
                         type="number" 
                         step="0.01" 
                         {...field} 
-                        placeholder="Enter final amount" 
+                        placeholder="Calculated automatically" 
+                        readOnly
+                        className="bg-gray-100"
                       />
                     </FormControl>
                     <FormMessage />

@@ -34,7 +34,7 @@ export async function GET(
         }
 
         // Authorization check: Allow admins OR if employee owns the invoice
-        if (userRole !== 'admin' && invoice.userId !== resolvedParams.id) {
+        if (userRole !== 'admin' && invoice.userId !== session.userId) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 

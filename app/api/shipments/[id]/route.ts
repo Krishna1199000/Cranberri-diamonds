@@ -44,7 +44,7 @@ export async function GET(
         }
         // Fetch the current user's name for comparison
         const currentUser = await db.user.findUnique({
-          where: { id: resolvedParams.id },
+          where: { id: session.userId as string },
           select: { name: true }
         });
         // Deny if not admin AND shipment's salesExecutive doesn't match current user's name
@@ -106,7 +106,7 @@ export async function PUT(
        }
        // Fetch the current user's name for comparison
        const currentUser = await db.user.findUnique({
-          where: { id: resolvedParams.id },
+          where: { id: session.userId as string },
           select: { name: true }
         });
        // Deny if not admin AND existing shipment's salesExecutive doesn't match current user's name
@@ -210,7 +210,7 @@ export async function DELETE(
         }
        // Fetch the current user's name for comparison
        const currentUser = await db.user.findUnique({
-          where: { id: resolvedParams.id},
+          where: { id: session.userId as string },
           select: { name: true }
         });
        // Deny if not admin AND existing shipment's salesExecutive doesn't match current user's name

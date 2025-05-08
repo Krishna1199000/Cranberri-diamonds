@@ -98,16 +98,16 @@ export default function EmployeeSalesPage() {
           <h1 className="text-3xl font-bold text-gray-800">Sales Dashboard</h1>
         </div>
 
-        <div className="space-y-6">
-          <SalesAnalytics
-            salesData={salesData}
-            period={period}
-            setPeriod={setPeriod}
-            customPeriod={customPeriod}
-            setCustomPeriod={setCustomPeriod}
-          />
+          <div className="space-y-6">
+            <SalesAnalytics
+              salesData={salesData}
+              period={period}
+              setPeriod={setPeriod}
+              customPeriod={customPeriod}
+              setCustomPeriod={setCustomPeriod}
+            />
 
-          <SalesTable salesData={salesData} />
+            <SalesTable salesData={salesData} />
         </div>
       </div>
     </EmployeeLayout>

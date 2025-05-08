@@ -18,26 +18,26 @@
 
 @layer base {
   :root {
-    --background: 214 100% 95%; /* HSL for #e8f3ff */
-    --foreground: 223 97% 11%;  /* HSL for #011437 */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 72% 51%;
-    --primary-foreground: 0 85.7% 97.3%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 72% 51%;
-    --radius: 0.75rem;
+    --background: 0 0% 100%; /* White */
+    --foreground: 0 0% 10%;  /* Dark Gray for text */
+    --card: 0 0% 97%; /* Very Light Gray for card/content backgrounds */
+    --card-foreground: 0 0% 10%; /* Dark Gray for text on cards */
+    --popover: 0 0% 100%; /* White for popovers */
+    --popover-foreground: 0 0% 10%; /* Dark Gray for text on popovers */
+    --primary: 0 0% 0%; /* Black for primary actions */
+    --primary-foreground: 0 0% 100%; /* White for text on primary actions */
+    --secondary: 0 0% 94%; /* Light Gray for secondary element backgrounds */
+    --secondary-foreground: 0 0% 20%; /* Medium-Dark Gray for text on secondary elements */
+    --muted: 0 0% 94%; /* Light Gray for muted backgrounds */
+    --muted-foreground: 0 0% 40%; /* Medium Gray for muted text */
+    --accent: 0 0% 90%; /* Light Gray for accents */
+    --accent-foreground: 0 0% 10%; /* Dark Gray for text on accents */
+    --destructive: 0 84.2% 60.2%; /* Keeping original destructive or can be changed to a gray if needed */
+    --destructive-foreground: 0 0% 98%; /* Original */
+    --border: 0 0% 88%; /* Light Gray for borders */
+    --input: 0 0% 88%; /* Light Gray for input borders (background often transparent or card color) */
+    --ring: 0 0% 0%; /* Black for focus rings, aligned with new primary */
+    --radius: 0.75rem; /* Existing radius, not changing as per request */
   }
 
   .dark {

@@ -53,13 +53,13 @@ export default function ChatWidget() {
       }
 
       // Success
-      setSubmitted(true)
+    setSubmitted(true)
       toast.success("Message sent successfully!")
       // Clear form after successful submission (maybe after animation)
-      setTimeout(() => {
-         setFormData({ name: "", email: "", message: "" })
+    setTimeout(() => {
+      setFormData({ name: "", email: "", message: "" })
          setSubmitted(false) // Ready for a new message
-      }, 3000)
+    }, 3000)
 
     } catch (error) {
       console.error("Contact form submission error:", error);
@@ -285,8 +285,8 @@ export default function ChatWidget() {
                               </>    
                           ) : (
                               <>
-                                  Send Message
-                                  <Send className="h-4 w-4" />
+                            Send Message
+                            <Send className="h-4 w-4" />
                               </>    
                           )}
                         </motion.button>
@@ -300,7 +300,7 @@ export default function ChatWidget() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     className="flex flex-col items-center justify-center h-60 text-center"
-                  >
+                    >
                      <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
                      <h4 className="font-semibold text-lg mb-1">Message Sent!</h4>
                      <p className="text-sm text-gray-600">Thanks for reaching out. We&apos;ll get back to you soon.</p>
