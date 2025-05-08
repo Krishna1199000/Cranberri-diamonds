@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, DiamondStatus, Prisma } from '@prisma/client';
 import { getSession } from '@/lib/session';
+import { PrismaClient, DiamondStatus, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -43,9 +43,15 @@ export async function GET(request: NextRequest) {
         take,
         skip,
         orderBy: { createdAt: 'desc' },
+        include: {
+          heldByShipment: true
+        }
       }),
       prisma.inventoryItem.count({ where })
     ]);
+    
+    // Add console log to verify data fetched by *this* route
+    console.log("Fetched inventory items in /api/inventory-items (first 5):", JSON.stringify(items.slice(0, 5), null, 2));
 
     return NextResponse.json({
       items,
@@ -53,7 +59,13 @@ export async function GET(request: NextRequest) {
       pages: Math.ceil(total / take)
     });
   } catch (error) {
-    console.error("Error fetching inventory items:", error);
+    // Safer error logging
+    console.error(
+      "Error fetching inventory items:", 
+      error instanceof Error ? error.message : String(error)
+    );
+    // Optionally log the full error structure if it helps debugging, but handle non-objects
+    // console.error("Full error structure:", JSON.stringify(error, null, 2));
     return NextResponse.json(
       { error: "Failed to fetch inventory items" },
       { status: 500 }
@@ -98,30 +110,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new InventoryItem
+    // Create new InventoryItem data object
+    const inventoryItemCreateData: Prisma.InventoryItemCreateInput = {
+      stockId: data.stockId,
+      shape: data.shape,
+      size: data.size ? parseFloat(data.size) : 0,
+      color: data.color,
+      clarity: data.clarity,
+      cut: data.cut || null,
+      polish: data.polish,
+      sym: data.sym,
+      lab: data.lab,
+      pricePerCarat: data.pricePerCarat ? parseFloat(data.pricePerCarat) : 0,
+      finalAmount: data.finalAmount ? parseFloat(data.finalAmount) : 0,
+      status: data.status,
+      videoUrl: data.videoUrl || null,
+      imageUrl: data.imageUrl || null,
+      certUrl: data.certUrl || null,
+    };
+    
+    // Add shipment linking logic if status is HOLD or MEMO and ID is provided
+    if ((data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO) && data.heldByShipmentId) {
+      inventoryItemCreateData.heldByShipment = {
+        connect: { id: data.heldByShipmentId }
+      };
+    }
+    // Optional: Add error handling if HOLD/MEMO status but no heldByShipmentId provided
+    else if (data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO) {
+        // console.warn("Creating item with HOLD/MEMO status without heldByShipmentId.");
+        // Can choose to return an error:
+        // return NextResponse.json({ error: "heldByShipmentId is required for HOLD/MEMO status" }, { status: 400 });
+    }
+
     const inventoryItem = await prisma.inventoryItem.create({
-      data: {
-        stockId: data.stockId,
-        shape: data.shape,
-        size: data.size ? parseFloat(data.size) : 0, // Default to 0 or handle error
-        color: data.color,
-        clarity: data.clarity,
-        cut: data.cut || null,
-        polish: data.polish,
-        sym: data.sym,
-        lab: data.lab,
-        pricePerCarat: data.pricePerCarat ? parseFloat(data.pricePerCarat) : 0, // Default to 0 or handle error
-        finalAmount: data.finalAmount ? parseFloat(data.finalAmount) : 0, // Default to 0 or handle error
-        status: data.status,
-        videoUrl: data.videoUrl || null,
-        imageUrl: data.imageUrl || null,
-        certUrl: data.certUrl || null,
-      }
+      data: inventoryItemCreateData
     });
 
     return NextResponse.json(inventoryItem);
   } catch (error) {
-    console.error("Error creating inventory item:", error instanceof Error ? error.message : error);
+    // Safer error logging
+    console.error(
+      "Error creating inventory item:", 
+       error instanceof Error ? error.message : String(error)
+    );
     const requestBody = await request.text().catch(() => 'Could not read body');
     console.error("Request Body:", requestBody); 
     return NextResponse.json(

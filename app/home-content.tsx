@@ -82,19 +82,19 @@ export default function Home() {
   const DiscoverShapes = [
     {
       name: "Round",
-      url: "/LABON - Search Inventory.png",
+      url: "/Round-pinterest.JPG",
     },
     {
       name: "Princess",
-      url: "/Princess.png",
+      url: "/Princess-pinterest.JPG",
     },
     {
       name: "Oval",
-      url: "/Oval.png",
+      url: "/Oval-pinterest.JPG",
     },
     {
       name: "Emerald",
-      url: "/Emerald.png",
+      url: "/Emerald-pinterest.JPG",
     }
   ]
 
@@ -525,60 +525,52 @@ export default function Home() {
       </motion.div>
 
       {/* Diamond Shapes */}
-      <section
+      <motion.section
         ref={shapesRef}
-        className="py-20 bg-background overflow-hidden"
+        className="py-16 md:py-24 bg-background"
+        initial="hidden"
+        animate={isShapesInView ? "visible" : "hidden"}
       >
         <div className="container mx-auto px-4">
-          <motion.h3
-            initial={{ opacity: 0, y: 20 }}
-            animate={isShapesInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{
-              type: "spring",
-              stiffness: 200,
-              damping: 20
-            }}
-            className="text-4xl font-serif text-center mb-6"
+          <motion.h2
+            className="text-3xl md:text-4xl font-serif text-center mb-4 text-foreground"
           >
             Discover Our Shapes
-          </motion.h3>
-
+          </motion.h2>
           <motion.div
-            className="w-20 h-1 bg-black/20 rounded-full mx-auto mb-12"
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={isShapesInView ? { scaleX: 1, opacity: 1 } : { scaleX: 0, opacity: 0 }}
-            transition={{ delay: 0.2 }}
+            className="w-20 h-1 bg-primary mx-auto mb-12 rounded-full"
           />
-
           <motion.div
             variants={shapeContainerVariants}
-            initial="hidden"
-            animate={isShapesInView ? "visible" : "hidden"}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 justify-items-center"
+            className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8"
           >
             {DiscoverShapes.map((shape, index) => (
               <motion.div
                 key={shape.name}
+                custom={index}
                 variants={shapeItemVariants}
                 whileHover="hover"
-                className="relative w-40 h-40 flex flex-col items-center"
+                className="group relative text-center p-4 rounded-lg bg-background shadow-sm hover:shadow-xl transition-all duration-300"
               >
-                <div className="h-24 w-full relative mb-2">
-                  <Image src={shape.url || "/placeholder.svg"} alt={shape.name} fill className="object-contain" />
+                <div className="relative w-full h-40 md:h-56 mb-4 rounded-md overflow-hidden">
+                  <Image
+                    src={shape.url}
+                    alt={shape.name}
+                    layout="fill"
+                    objectFit="contain"
+                    className="transition-transform duration-500 group-hover:scale-105"
+                  />
                 </div>
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={isShapesInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
-                  className="text-lg font-medium mt-2"
+                <motion.p
+                  className="text-lg font-medium text-foreground"
                 >
                   {shape.name}
-                </motion.div>
+                </motion.p>
               </motion.div>
             ))}
           </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* About Section */}
       <section

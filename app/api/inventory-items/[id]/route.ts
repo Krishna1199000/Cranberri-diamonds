@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma, DiamondStatus } from '@prisma/client';
 import { getSession } from '@/lib/session';
 
 const prisma = new PrismaClient();
@@ -35,29 +35,34 @@ export async function PUT(request: NextRequest,
       );
     }
     
-    // If changing status to HOLD or MEMO, require heldByShipmentId (similar logic to Diamond PUT route if exists)
-    if ((data.status === 'HOLD' || data.status === 'MEMO') && !data.heldByShipmentId) {
-      return NextResponse.json(
-        { error: "Shipment information required for HOLD or MEMO status" },
-        { status: 400 }
-      );
-    }
+    // Build updateData carefully
+    const updateData: Prisma.InventoryItemUpdateInput = {};
 
-    // If changing status to AVAILABLE, clear heldByShipmentId
-    const finalData = { ...data };
-    if (finalData.status === 'AVAILABLE') {
-      finalData.heldByShipmentId = null;
-    }
+    // Map scalar fields if they exist in the request data
+    if (data.stockId !== undefined) updateData.stockId = data.stockId;
+    if (data.shape !== undefined) updateData.shape = data.shape;
+    // Handle numeric fields: set to undefined if null/invalid to avoid sending null to Prisma update
+    const parsedSize = data.size ? parseFloat(data.size) : NaN;
+    if (data.size !== undefined) updateData.size = isNaN(parsedSize) ? undefined : parsedSize;
+    if (data.color !== undefined) updateData.color = data.color;
+    if (data.clarity !== undefined) updateData.clarity = data.clarity;
+    if (data.cut !== undefined) updateData.cut = data.cut;
+    if (data.polish !== undefined) updateData.polish = data.polish;
+    if (data.sym !== undefined) updateData.sym = data.sym;
+    if (data.lab !== undefined) updateData.lab = data.lab;
+    const parsedPricePerCarat = data.pricePerCarat ? parseFloat(data.pricePerCarat) : NaN;
+    if (data.pricePerCarat !== undefined) updateData.pricePerCarat = isNaN(parsedPricePerCarat) ? undefined : parsedPricePerCarat;
+    const parsedFinalAmount = data.finalAmount ? parseFloat(data.finalAmount) : NaN;
+    if (data.finalAmount !== undefined) updateData.finalAmount = isNaN(parsedFinalAmount) ? undefined : parsedFinalAmount;
+    if (data.status !== undefined) updateData.status = data.status as DiamondStatus; // Cast to enum
+    if (data.videoUrl !== undefined) updateData.videoUrl = data.videoUrl;
+    if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+    if (data.certUrl !== undefined) updateData.certUrl = data.certUrl;
 
-    // Convert numeric fields, handling potential null/undefined from form
-    finalData.size = finalData.size ? parseFloat(finalData.size) : null;
-    finalData.pricePerCarat = finalData.pricePerCarat ? parseFloat(finalData.pricePerCarat) : null;
-    finalData.finalAmount = finalData.finalAmount ? parseFloat(finalData.finalAmount) : null;
-    
-    // Check if the new stockId conflicts with another existing item
-    if (finalData.stockId && finalData.stockId !== existingItem.stockId) {
+    // Check for stockId conflict only if a new, different stockId is provided
+    if (data.stockId && data.stockId !== existingItem.stockId) {
         const conflict = await prisma.inventoryItem.findUnique({
-            where: { stockId: finalData.stockId },
+            where: { stockId: data.stockId }, // Use data.stockId for the check
         });
         if (conflict) {
             return NextResponse.json(
@@ -65,20 +70,46 @@ export async function PUT(request: NextRequest,
                 { status: 400 }
             );
         }
+        // If no conflict, updateData.stockId is already set above
     }
+
+    // Handle heldByShipment relation based on status and presence of heldByShipmentId
+    if (data.status === DiamondStatus.AVAILABLE) {
+      // If status is AVAILABLE, always disconnect
+      updateData.heldByShipment = { disconnect: true };
+    } else if ((data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO)) {
+      if (data.heldByShipmentId) {
+        // If status is HOLD/MEMO and an ID is provided, connect
+        updateData.heldByShipment = { connect: { id: data.heldByShipmentId } };
+      } else {
+        // If status is HOLD/MEMO but *no* ID is provided, disconnect (or maybe return error)
+        // Disconnecting seems safer than potentially leaving an old link 
+        updateData.heldByShipment = { disconnect: true }; 
+        // Alternative: return error if ID is mandatory for HOLD/MEMO
+        // return NextResponse.json({ error: "Shipment ID required for HOLD/MEMO status" }, { status: 400 });
+      }
+    }
+    // If status is not changing or not one of the above, the relation is left untouched unless specified
 
     // Update the InventoryItem
     const updatedItem = await prisma.inventoryItem.update({
       where: { id: resolvedParams.id },
-      data: finalData,
+      data: updateData,
+      include: { // Include the relation in the response 
+          heldByShipment: true 
+      }
     });
 
     return NextResponse.json(updatedItem);
 
   } catch (error) {
-    console.error(`Error updating inventory item ${resolvedParams.id}:`, error instanceof Error ? error.message : error);
-    const requestBody = await request.text().catch(() => 'Could not read body');
-    console.error("Request Body:", requestBody);
+    console.error(
+        `Error updating inventory item ${resolvedParams.id}:`, 
+        error instanceof Error ? error.message : String(error)
+    );
+    // Avoid trying to read body again in catch block if parsing failed initially
+    // const requestBody = await request.text().catch(() => 'Could not read body');
+    // console.error("Request Body:", requestBody);
     return NextResponse.json(
       { error: "Failed to update inventory item" },
       { status: 500 }
