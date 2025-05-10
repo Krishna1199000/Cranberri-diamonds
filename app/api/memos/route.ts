@@ -15,21 +15,17 @@ function generateMemoNumber(lastMemoNo: string | null | undefined, date: Date): 
     const dateSuffix = `${day}${month}`;
     const sequencePartRegex = /CDM-(\d+)A\/(\d{4})/; // Regex to extract sequence and date part
 
-    let nextSeq = 5; // Default starting sequence is now 5
+    // Always start with 5 (or increment from last memo number) so that on new memo creation it increments (e.g. CDM-005, CDM-006, CDM-007, and so on)
+    let nextSeq = 5;
 
     if (lastMemoNo) {
         const match = lastMemoNo.match(sequencePartRegex);
         if (match) {
-            const lastDatePart = match[2];
             const lastSeq = parseInt(match[1], 10);
-
-            // If the date part matches today's date, increment the sequence
-            if (lastDatePart === dateSuffix && !isNaN(lastSeq)) {
+            if (!isNaN(lastSeq)) {
                 nextSeq = lastSeq + 1;
             }
-            // Otherwise (different day), sequence resets to 5 (already default)
         }
-        // If format doesn't match, sequence resets to 5 (already default)
     }
 
     // Pad sequence to 3 digits
