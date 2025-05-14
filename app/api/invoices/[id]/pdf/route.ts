@@ -149,13 +149,22 @@ async function generateInvoicePDF(doc: jsPDF, invoice: InvoiceWithItems) {
         const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
         const imgX = (pageWidth - imgWidth) / 2;
         doc.addImage(imgData, 'PNG', imgX, currentY, imgWidth, imgHeight);
-        currentY += imgHeight + 5; // Space after logo
+        currentY += imgHeight + 2; // Reduced spacing after logo from 5 to 2
     } catch (imgError) {
         console.error("Error loading logo image:", imgError);
         doc.setFontSize(10);
         doc.text("Cranberri Logo Placeholder", pageWidth / 2, currentY + 5, { align: 'center' });
         currentY += 10;
     }
+
+    // === Company Address and Website ===
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100); // Gray color for address
+    doc.text("B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India", pageWidth / 2, currentY, { align: 'center' });
+    currentY += 4;
+    doc.text("www.cranberridiamonds.in", pageWidth / 2, currentY, { align: 'center' });
+    doc.setTextColor(0, 0, 0); // Reset to black
+    currentY += 6; // Space after address
 
     // === Header Section (Invoice No Left, Dates Right) ===
     const headerStartY = currentY;

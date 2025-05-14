@@ -104,11 +104,21 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             `}</style>
             <div className="bg-white px-6 pb-6 pt-0 rounded-lg shadow-md print:shadow-none max-w-4xl mx-auto print:max-w-full print:mx-0 print:p-1 print:text-[10px]">
                 {/* Logo Section */}
-                <div className="flex justify-center items-center mb-2 print:mb-0.5">
+                <div className="flex justify-center items-center mb-0 print:mb-0">
                     {/* ... logo ... */} 
                     <div className="w-72 h-28 flex items-center justify-center print:w-40 print:h-auto">
                         <Image src="/IMG_8981[1].png" alt="Cranberri Diamonds Logo" width={240} height={90} className="print:w-[130px] print:h-auto" />
                     </div>
+                </div>
+
+                {/* Company Address and Website */}
+                <div className="text-center -mt-2 mb-2 print:mb-1">
+                    <p className="text-xs print:text-[8px] text-gray-600">B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India</p>
+                    <p className="text-xs print:text-[8px] text-gray-600">
+                        <a href="https://www.cranberridiamonds.in" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            www.cranberridiamonds.in
+                        </a>
+                    </p>
                 </div>
 
                 {/* Top Section: Invoice Details */}
