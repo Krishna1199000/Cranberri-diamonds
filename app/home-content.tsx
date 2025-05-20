@@ -86,7 +86,7 @@ export default function Home() {
     },
     {
       name: "Princess",
-      url: "/Princess-pinterest.JPG",
+      url: "/princess-pinterest.JPG",
     },
     {
       name: "Oval",
@@ -94,7 +94,7 @@ export default function Home() {
     },
     {
       name: "Emerald",
-      url: "/Emerald-pinterest.JPG",
+      url: "/emerald-pinterest.JPG",
     }
   ]
 
