@@ -4,7 +4,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Menu, Home, Search, Package, LogOut } from 'lucide-react'; // Adjusted icons
+import { Menu, Home, Search, Package, LogOut, Box } from 'lucide-react'; // Adjusted icons
 import { toast } from 'sonner';
 import { UserProfileDropdown } from '@/components/UserProfileDropdown';
 import {
@@ -24,6 +24,7 @@ interface CustomerLayoutProps {
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
   { label: 'Search Diamond', icon: Search, href: '/Customer' },
+  { label: 'Inventory', icon: Box, href: '/Customer/inventory' },
   { label: 'Parcel-Goods', icon: Package, href: '/parcel-goods' }, // Assuming customers can see this
 ];
 
