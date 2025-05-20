@@ -233,7 +233,7 @@ const Footer = () => {
           <p className="text-sm text-gray-600">
             Powered by{" "}
             <Link 
-              href="https://portfolio-website-jet-five-89.vercel.app/"
+              href="https://portfolio-krishna-psi.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-primary hover:underline"
