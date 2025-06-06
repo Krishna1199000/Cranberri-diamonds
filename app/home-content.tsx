@@ -325,13 +325,32 @@ export default function Home() {
         className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background"
         onMouseMove={handleMouseMove}
       >
+        {/* Background Video */}
+        <motion.div
+          className="absolute inset-0 w-full h-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 2 }}
+        >
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            <source src="/Background.webm" type="video/webm" />
+            Your browser does not support the video tag.
+          </video>
+        </motion.div>
+
         <motion.div
           className="absolute top-10 left-1/2 transform -translate-x-1/2 z-50"
           style={{ y: logoY }}
         ></motion.div>
 
         {/* Animated background particles for diamond-like sparkles */}
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden z-10">
           {Array.from({ length: 20 }).map((_, i) => (
             <motion.div
               key={i}
@@ -361,11 +380,11 @@ export default function Home() {
           variants={heroVariants}
           initial="hidden"
           animate={isHeroInView ? "visible" : "hidden"}
-          className="text-center px-4 max-w-4xl mx-auto z-10 relative"
+          className="text-center px-4 max-w-4xl mx-auto z-20 relative"
         >
           <motion.h2
             variants={heroChildVariants}
-            className="text-5xl md:text-7xl font-serif mb-6 relative"
+            className="text-5xl md:text-7xl font-serif mb-6 relative text-gray-900"
           >
             Your Journey to Timeless Beauty Begins Here
             <motion.div
@@ -385,55 +404,54 @@ export default function Home() {
 
           <motion.p
             variants={heroChildVariants}
-            className="text-xl text-gray-600 mb-8"
+            className="text-xl text-gray-800 mb-8"
           >
             Whether you&apos;re marking a milestone or creating a bespoke design, our diamonds are the perfect
             expression of love and luxury
           </motion.p>
-<motion.div
-  variants={heroChildVariants}
-  className="inline-block"
->
-  <Link href="/auth/signup" passHref>
-    <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      className="relative overflow-hidden group bg-black text-white px-8 py-4 rounded-md text-lg font-medium"
-    >
-      <motion.span
-        className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20"
-        animate={{
-          x: ["0%", "100%", "0%"],
-        }}
-        transition={{
-          repeat: Infinity,
-          repeatType: "mirror",
-          duration: 2
-        }}
-      />
-      <span className="relative z-10">Get Started</span>
-
-      {/* Sparkle effect */}
-      <motion.span
-        className="absolute top-0 right-0 -mt-1 -mr-1"
-        animate={{
-          scale: [1, 1.5, 1],
-          opacity: [0.5, 1, 0.5]
-        }}
-        transition={{
-          repeat: Infinity,
-          duration: 2
-        }}
-      >
-        <Sparkles className="w-4 h-4 text-yellow-300" />
-      </motion.span>
-    </motion.button>
-  </Link>
-</motion.div>
+          <motion.div
+            variants={heroChildVariants}
+            className="inline-block"
+          >
+            <Link href="/auth/signup" passHref>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative overflow-hidden group bg-black hover:bg-gray-900 text-gray-100 px-8 py-4 rounded-md text-lg font-medium border border-black/20 shadow-2xl"
+              >
+                <motion.span
+                  className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20"
+                  animate={{
+                    x: ["0%", "100%", "0%"],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    repeatType: "mirror",
+                    duration: 2
+                  }}
+                />
+                <span className="relative z-10">Get Started</span>
+                {/* Sparkle effect */}
+                <motion.span
+                  className="absolute top-0 right-0 -mt-1 -mr-1"
+                  animate={{
+                    scale: [1, 1.5, 1],
+                    opacity: [0.5, 1, 0.5]
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 2
+                  }}
+                >
+                  <Sparkles className="w-4 h-4 text-yellow-300" />
+                </motion.span>
+              </motion.button>
+            </Link>
+          </motion.div>
         </motion.div>
 
         <motion.div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 pointer-events-none z-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
