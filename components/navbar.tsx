@@ -37,8 +37,8 @@ export default function Navbar() {
   // Navbar variants
   const navVariants = {
     hidden: { y: -100, opacity: 0 },
-    visible: { 
-      y: 0, 
+    visible: {
+      y: 0,
       opacity: 1,
       transition: {
         type: "spring",
@@ -75,9 +75,9 @@ export default function Navbar() {
   // Logo variants
   const logoVariants = {
     initial: { scale: 0.8, opacity: 0, rotate: -5 },
-    animate: { 
-      scale: 1, 
-      opacity: 1, 
+    animate: {
+      scale: 1,
+      opacity: 1,
       rotate: 0,
       transition: {
         type: "spring",
@@ -123,7 +123,7 @@ export default function Navbar() {
       variants={navVariants}
       initial="hidden"
       animate="visible"
-      style={{ 
+      style={{
         background: navBackground,
         boxShadow: navShadow,
         backdropFilter: "blur(10px)"
@@ -132,40 +132,35 @@ export default function Navbar() {
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          {/* Desktop Menu */}
+          {/* Desktop Left Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            {menuItems.slice(0, 2).map((item, i) => (
-              <motion.div
+            {menuItems.slice(0, 2).map((item,) => (
+              <div
                 key={item.href}
-                custom={i}
-                variants={menuItemVariants}
-                initial="initial"
-                animate="animate"
-                whileHover="hover"
-                whileTap="tap"
-                onHoverStart={() => setHoveredItem(item.href)}
-                onHoverEnd={() => setHoveredItem(null)}
-                className="relative z-20"
+                onMouseEnter={() => setHoveredItem(item.href)}
+                onMouseLeave={() => setHoveredItem(null)}
+                className="relative"
               >
-                <Link href={item.href}>
-                  <span className="font-medium text-black hover:text-black transition-colors relative">
-                    {item.label}
-                    {hoveredItem === item.href && (
-                      <motion.span 
-                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-black rounded-full"
-                        layoutId="underline"
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        exit={{ scaleX: 0 }}
-                      />
-                    )}
-                  </span>
+                <Link 
+                  href={item.href} 
+                  className="font-medium text-black hover:text-black transition-colors relative cursor-pointer block py-2 px-1"
+                >
+                  {item.label}
+                  {hoveredItem === item.href && (
+                    <motion.span
+                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-black rounded-full"
+                      layoutId="underline"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      exit={{ scaleX: 0 }}
+                    />
+                  )}
                 </Link>
-              </motion.div>
+              </div>
             ))}
           </div>
 
-          {/* Logo */}
+          {/* Logo - Centered */}
           <Link href="/" className="absolute left-1/2 transform -translate-x-1/2 md:static md:transform-none z-10">
             <motion.div
               className="flex items-center gap-2 relative"
@@ -202,51 +197,35 @@ export default function Navbar() {
 
           {/* Desktop Right Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            <motion.div
-              custom={2}
-              variants={menuItemVariants}
-              initial="initial"
-              animate="animate"
-              whileHover="hover"
-              whileTap="tap"
-              className="relative z-20"
+            {/* Sign In - Fixed version */}
+            <Link 
+              href="/auth/signin" 
+              className="font-medium text-black hover:text-black transition-colors cursor-pointer block hover:scale-105 transform transition-transform duration-200"
             >
-              <Link href="/auth/signin">
-                <span className="font-medium text-black hover:text-black transition-colors">
-                  Sign In
-                </span>
-              </Link>
-            </motion.div>
-            
-            <motion.div
-              custom={3}
-              variants={menuItemVariants}
-              initial="initial"
-              animate="animate"
-              whileHover={{ 
-                scale: 1.05,
-                boxShadow: "0 10px 25px rgba(0,0,0,0.1)" 
-              }}
-              whileTap={{ scale: 0.95 }}
-              className="relative z-20"
+              Sign In
+            </Link>
+
+            {/* Sign Up - Fixed version */}
+            <Link 
+              href="/auth/signup" 
+              className="font-medium text-white bg-black px-4 py-2 rounded-md hover:bg-gray-800 transition-colors block cursor-pointer hover:scale-105 transform transition-transform duration-200"
             >
-              <Link href="/auth/signup">
-                <span className="font-medium text-white bg-black px-4 py-2 rounded-md hover:bg-black transition-colors block">
-                  Sign Up
-                </span>
-              </Link>
-            </motion.div>
-            
+              Sign Up
+            </Link>
+
             <motion.div
               custom={4}
               variants={menuItemVariants}
               initial="initial"
               animate="animate"
-              className="relative z-20"
+              className="relative"
             >
               <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center font-medium text-black hover:text-black group">
-                  More 
+                <DropdownMenuTrigger 
+                  className="flex items-center font-medium text-black hover:text-black group"
+                  style={{ pointerEvents: 'auto' }}
+                >
+                  More
                   <motion.div
                     initial={{ rotate: 0 }}
                     animate={{ rotate: 0 }}
@@ -264,9 +243,9 @@ export default function Navbar() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.1 }}
                     >
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         className="hover:bg-gray-800 transition-colors duration-200"
-                        onSelect={() => {}}
+                        asChild
                       >
                         <Link href={item.href} className="w-full">
                           {item.label}
@@ -325,7 +304,7 @@ export default function Navbar() {
                   <motion.div
                     initial={{ opacity: 0, y: -30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ 
+                    transition={{
                       delay: 0.2,
                       type: "spring",
                       stiffness: 300,
@@ -335,9 +314,9 @@ export default function Navbar() {
                   >
                     <div className="relative">
                       <Image src="/IMG_8981[1].png" alt="Cranberri Logo" width={200} height={100} className="object-contain" />
-                      <motion.div 
+                      <motion.div
                         className="absolute -top-2 -right-2 w-3 h-3 bg-yellow-300 rounded-full"
-                        animate={{ 
+                        animate={{
                           scale: [1, 1.5, 1],
                           opacity: [0.7, 1, 0.7]
                         }}
@@ -354,13 +333,13 @@ export default function Navbar() {
                       key={item.href}
                       initial={{ opacity: 0, x: -50 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ 
+                      transition={{
                         delay: i * 0.1,
                         type: "spring",
                         stiffness: 300,
                         damping: 20
                       }}
-                      whileHover={{ 
+                      whileHover={{
                         x: 5,
                         transition: { type: "spring", stiffness: 400, damping: 10 }
                       }}
@@ -368,10 +347,9 @@ export default function Navbar() {
                       <Link
                         href={item.href}
                         onClick={() => setIsOpen(false)}
+                        className="block py-3 text-lg font-medium text-black hover:text-black transition-colors"
                       >
-                        <span className="block py-3 text-lg font-medium text-black hover:text-black transition-colors">
-                          {item.label}
-                        </span>
+                        {item.label}
                       </Link>
                     </motion.div>
                   ))}
@@ -379,13 +357,13 @@ export default function Navbar() {
                   <motion.div
                     initial={{ opacity: 0, x: -50 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ 
+                    transition={{
                       delay: menuItems.length * 0.1,
                       type: "spring",
                       stiffness: 300,
                       damping: 20
                     }}
-                    whileHover={{ 
+                    whileHover={{
                       x: 5,
                       transition: { type: "spring", stiffness: 400, damping: 10 }
                     }}
@@ -393,23 +371,22 @@ export default function Navbar() {
                     <Link
                       href="/auth/signin"
                       onClick={() => setIsOpen(false)}
+                      className="block py-3 text-lg font-medium text-black hover:text-black transition-colors"
                     >
-                      <span className="block py-3 text-lg font-medium text-black hover:text-black transition-colors">
-                        Sign In
-                      </span>
+                      Sign In
                     </Link>
                   </motion.div>
 
                   <motion.div
                     initial={{ opacity: 0, x: -50 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ 
+                    transition={{
                       delay: (menuItems.length + 1) * 0.1,
                       type: "spring",
                       stiffness: 300,
                       damping: 20
                     }}
-                    whileHover={{ 
+                    whileHover={{
                       x: 5,
                       transition: { type: "spring", stiffness: 400, damping: 10 }
                     }}
@@ -417,10 +394,9 @@ export default function Navbar() {
                     <Link
                       href="/auth/signup"
                       onClick={() => setIsOpen(false)}
+                      className="block py-3 text-lg font-medium text-black hover:text-black transition-colors"
                     >
-                      <span className="block py-3 text-lg font-medium text-black hover:text-black transition-colors">
-                        Sign Up
-                      </span>
+                      Sign Up
                     </Link>
                   </motion.div>
 
@@ -436,13 +412,13 @@ export default function Navbar() {
                       key={item.href}
                       initial={{ opacity: 0, x: -50 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ 
+                      transition={{
                         delay: (i + menuItems.length + 2) * 0.1,
                         type: "spring",
                         stiffness: 300,
                         damping: 20
                       }}
-                      whileHover={{ 
+                      whileHover={{
                         x: 5,
                         transition: { type: "spring", stiffness: 400, damping: 10 }
                       }}
@@ -450,10 +426,9 @@ export default function Navbar() {
                       <Link
                         href={item.href}
                         onClick={() => setIsOpen(false)}
+                        className="block py-3 text-lg font-medium text-black hover:text-black transition-colors"
                       >
-                        <span className="block py-3 text-lg font-medium text-black hover:text-black transition-colors">
-                          {item.label}
-                        </span>
+                        {item.label}
                       </Link>
                     </motion.div>
                   ))}
@@ -461,7 +436,7 @@ export default function Navbar() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ 
+                    transition={{
                       delay: 0.5,
                       type: "spring",
                       stiffness: 100,

@@ -3,7 +3,7 @@ import { motion, useScroll, useTransform, useMotionValue, useInView } from "fram
 import { useRef } from "react"
 import { Diamond, Sparkles, Facebook, Instagram, Linkedin, Twitter, Star, Award, Gem } from "lucide-react"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
+
 import BusinessHours from "@/components/BusinessHours"
 import Marquee from "react-fast-marquee"
 import Link from "next/link"
@@ -390,50 +390,46 @@ export default function Home() {
             Whether you&apos;re marking a milestone or creating a bespoke design, our diamonds are the perfect
             expression of love and luxury
           </motion.p>
+<motion.div
+  variants={heroChildVariants}
+  className="inline-block"
+>
+  <Link href="/auth/signup" passHref>
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="relative overflow-hidden group bg-black text-white px-8 py-4 rounded-md text-lg font-medium"
+    >
+      <motion.span
+        className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20"
+        animate={{
+          x: ["0%", "100%", "0%"],
+        }}
+        transition={{
+          repeat: Infinity,
+          repeatType: "mirror",
+          duration: 2
+        }}
+      />
+      <span className="relative z-10">Get Started</span>
 
-          <motion.div
-            variants={heroChildVariants}
-            className="inline-block"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Link href="/auth/signup">
-              <motion.div className="inline-block">
-                <Button
-                  size="lg"
-                  className="relative overflow-hidden group"
-                >
-                  <motion.span
-                    className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20"
-                    animate={{
-                      x: ["0%", "100%", "0%"],
-                    }}
-                    transition={{
-                      repeat: Infinity,
-                      repeatType: "mirror",
-                      duration: 2
-                    }}
-                  />
-                  <span className="relative z-10">Get Started</span>
-
-                  {/* Sparkle effect */}
-                  <motion.span
-                    className="absolute top-0 right-0 -mt-1 -mr-1"
-                    animate={{
-                      scale: [1, 1.5, 1],
-                      opacity: [0.5, 1, 0.5]
-                    }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 2
-                    }}
-                  >
-                    <Sparkles className="w-4 h-4 text-yellow-300" />
-                  </motion.span>
-                </Button>
-              </motion.div>
-            </Link>
-          </motion.div>
+      {/* Sparkle effect */}
+      <motion.span
+        className="absolute top-0 right-0 -mt-1 -mr-1"
+        animate={{
+          scale: [1, 1.5, 1],
+          opacity: [0.5, 1, 0.5]
+        }}
+        transition={{
+          repeat: Infinity,
+          duration: 2
+        }}
+      >
+        <Sparkles className="w-4 h-4 text-yellow-300" />
+      </motion.span>
+    </motion.button>
+  </Link>
+</motion.div>
         </motion.div>
 
         <motion.div
@@ -493,7 +489,7 @@ export default function Home() {
 
       {/* Marquee section */}
       <motion.div
-        className="w-full bg-background text-black py-3 overflow-hidden border-t border-b border-gray-200"
+        className="w-full bg-background text-black py-3 overflow-hidden border-t border-b border-gray-800"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
@@ -903,7 +899,7 @@ export default function Home() {
               href="https://wa.me/918452872491"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-slate-600 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded w-full max-w-xs mx-auto no-underline transition-colors duration-300 my-6"
+              className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded w-full max-w-xs mx-auto no-underline transition-colors duration-300 my-6"
               initial={{ opacity: 0, y: 20 }}
               animate={isContactInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               whileHover={{
