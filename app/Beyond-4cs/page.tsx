@@ -1,456 +1,385 @@
-"use client";
+'use client';
 
-import { motion } from "framer-motion";
-import {  Diamond,  Sparkles,  Scale,   Microscope,   BadgeCheck,   Info,   Facebook,   Instagram,   Linkedin,   Twitter } from "lucide-react";
-import Image from "next/image";
-
-const fadeIn = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.6 }
-};
-
-const stagger = {
-  animate: {
-    transition: {
-      staggerChildren: 0.2
-    }
-  }
-};
-
-const diamondAnimation = {
-  initial: { scale: 0.9, rotate: -10 },
-  animate: {
-    scale: 1,
-    rotate: 0,
-    transition: {
-      duration: 0.6,
-      ease: "easeOut"
-    }
-  },
-  hover: {
-    scale: 1.05,
-    rotate: 5,
-    transition: {
-      duration: 0.3
-    }
-  }
-};
-
-const floatAnimation = {
-  animate: {
-    y: [0, -10, 0],
-    transition: {
-      duration: 3,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
-};
+import { useState, useEffect } from 'react';
+import { Eye, Scissors, Scale, Heart, Sparkles, ArrowRight, Star, Award, Gem, Zap } from 'lucide-react';
+import Navbar from "@/components/navbar";
+import { useRouter } from 'next/navigation';
 
 export default function Beyond4Cs() {
+  const [scrollY, setScrollY] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % 3);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const traditional4Cs = [
+    {
+      icon: Scissors,
+      title: 'Cut',
+      description: 'Precision craftsmanship that unleashes brilliance',
+      detail: 'Expert artisans shape each diamond to maximize its fire and scintillation through mathematical precision.',
+      grade: 'Excellent',
+    },
+    {
+      icon: Eye,
+      title: 'Clarity',
+      description: 'Pure transparency revealing natural beauty',
+      detail: 'Each diamond is carefully selected for its exceptional clarity, with inclusions mapped and graded.',
+      grade: 'VVS1-FL',
+    },
+    {
+      icon: Heart,
+      title: 'Color',
+      description: 'Spectrum of elegance from crystal clear to warm hues',
+      detail: 'From colorless D-grade to fancy colors, each diamond tells its unique chromatic story.',
+      grade: 'D-F',
+    },
+    {
+      icon: Scale,
+      title: 'Carat',
+      description: 'Weight that measures dreams and desires',
+      detail: 'Every carat represents moments of joy and milestones of love, precisely measured to 0.01ct.',
+      grade: '0.50-5.00ct',
+    },
+  ];
+
+  const beyondCs = [
+    {
+      icon: Zap,
+      title: 'Light Performance',
+      description: 'Advanced optical analysis beyond traditional grading',
+      detail: 'Using cutting-edge technology to measure brilliance, fire, and scintillation with scientific precision.',
+    },
+    {
+      icon: Star,
+      title: 'Craftsmanship',
+      description: 'Artisan expertise passed through generations',
+      detail: 'Master craftsmen with decades of experience create each piece with unparalleled attention to detail.',
+    },
+    {
+      icon: Award,
+      title: 'Provenance',
+      description: 'Complete traceability from mine to market',
+      detail: 'Every diamond comes with full documentation of its ethical journey and responsible sourcing.',
+    },
+    {
+      icon: Gem,
+      title: 'Character',
+      description: 'The unique personality of each stone',
+      detail: 'Beyond grades and measurements, we celebrate the individual beauty and story of every diamond.',
+    },
+  ];
+
+  const heroSlides = [
+    {
+      image: '/Beyond.png',
+      title: 'Beyond 4Cs',
+      subtitle: 'Redefining diamond excellence through innovation',
+    },
+    {
+      image: '/Beyond1.png',
+      title: 'True Excellence',
+      subtitle: 'Where traditional standards meet modern innovation',
+    },
+    {
+      image: 'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
+      title: 'Perfect Harmony',
+      subtitle: 'Balancing science, art, and ethical responsibility',
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <motion.div
-        initial="initial"
-        animate="animate"
-        variants={stagger}
-        className="max-w-6xl mx-auto px-4 py-16 space-y-16"
-      >
-        {/* Header Section */}
-        <motion.div variants={fadeIn} className="text-center mb-16">
-          <h1 className="text-4xl font-serif mb-4">Diamond Quality Chart</h1>
-          <div className="w-20 h-1 bg-primary mx-auto rounded-full" />
-          <p className="mt-6 text-gray-600 max-w-2xl mx-auto">
-            Understanding the 4 C&apos;s of diamonds - Cut, Color, Clarity, and Carat - is essential for making an informed diamond purchase.
+    <>
+      <Navbar />
+      {/* Hero Section */}
+      <section className="relative h-screen flex items-center justify-center">
+        <div className="absolute inset-0 overflow-hidden">
+          {heroSlides.map((slide, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-1500 ${
+                index === currentSlide ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <img
+                src={slide.image}
+                alt="Diamond Excellence"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-white/70" />
+            </div>
+          ))}
+        </div>
+        
+        <div 
+          className="relative z-10 text-center px-8 max-w-6xl mx-auto"
+          style={{
+            transform: `translateY(${scrollY * 0.2}px)`,
+          }}
+        >
+          <div className="inline-flex items-center gap-3 mb-8 animate-bounce">
+            <Sparkles className="w-10 h-10 text-blue-600 animate-pulse" />
+            <Gem className="w-12 h-12 text-black animate-spin-slow" />
+            <Star className="w-10 h-10 text-blue-600 animate-pulse" />
+          </div>
+          
+          <h1 className="text-8xl md:text-9xl font-light mb-8 tracking-wide animate-fade-in-up">
+            {heroSlides[currentSlide].title.split(' ').map((word, index) => (
+              <span
+                key={index}
+                className="inline-block animate-slide-in-up"
+                style={{ animationDelay: `${index * 0.3}s` }}
+              >
+                {word}&nbsp;
+              </span>
+            ))}
+          </h1>
+          
+          <p className="text-2xl md:text-4xl font-light mb-12 text-black/80 animate-fade-in-up animation-delay-300">
+            {heroSlides[currentSlide].subtitle}
           </p>
-        </motion.div>
-
-        {/* Quality Chart Pyramid */}
-        <motion.div 
-          variants={fadeIn}
-          className="relative w-full max-w-2xl mx-auto"
-        >
-          <Image
-            src="https://images.unsplash.com/photo-1600703136783-bdb5ea365239?auto=format&fit=crop&w=800"
-            alt="Diamond Quality Chart"
-            width={800}
-            height={600}
-            className="w-full rounded-lg shadow-lg"
-          />
-        </motion.div>
-
-        
-        <motion.section variants={fadeIn} className="space-y-8">
-          <div className="flex items-center gap-3 mb-6">
-            <Diamond className="w-8 h-8 text-primary" />
-            <h2 className="text-3xl font-serif">Cut</h2>
-          </div>
           
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-4">
-              <p className="text-gray-600 leading-relaxed">
-                The cut of a diamond refers to how well it has been shaped and faceted, and it affects how light reflects and disperses within the stone. It is the most important factor for determining a diamond&apos;s overall beauty. A well-cut diamond will sparkle more.
-              </p>
-              <p className="text-gray-600">
-                The cut grade includes the proportions, symmetry, and polish of the diamond. The quality of the cut can range from Poor to Excellent.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4">
-              <motion.div
-                variants={diamondAnimation}
-                whileHover="hover"
-                className="bg-white p-4 rounded-lg shadow-md text-center"
-              >
-                <Image
-                  src="https://images.unsplash.com/photo-1615655406736-b37c4fabf923?auto=format&fit=crop&w=300"
-                  alt="Shallow Cut"
-                  width={300}
-                  height={300}
-                  className="w-full rounded"
-                />
-                <p className="mt-2 font-medium">Shallow</p>
-              </motion.div>
-              <motion.div
-                variants={diamondAnimation}
-                whileHover="hover"
-                className="bg-white p-4 rounded-lg shadow-md text-center"
-              >
-                <Image
-                  src="https://images.unsplash.com/photo-1615655406736-b37c4fabf923?auto=format&fit=crop&w=300"
-                  alt="Ideal Cut"
-                  width={300}
-                  height={300}
-                  className="w-full rounded"
-                />
-                <p className="mt-2 font-medium">Ideal</p>
-              </motion.div>
-              <motion.div
-                variants={diamondAnimation}
-                whileHover="hover"
-                className="bg-white p-4 rounded-lg shadow-md text-center"
-              >
-                <Image
-                  src="https://images.unsplash.com/photo-1615655406736-b37c4fabf923?auto=format&fit=crop&w=300"
-                  alt="Deep Cut"
-                  width={300}
-                  height={300}
-                  className="w-full rounded"
-                />
-                <p className="mt-2 font-medium">Deep</p>
-              </motion.div>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Color Section */}
-        <motion.section variants={fadeIn} className="space-y-8">
-          <div className="flex items-center gap-3 mb-6">
-            <Sparkles className="w-8 h-8 text-primary" />
-            <h2 className="text-3xl font-serif">Color</h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-4">
-              <p className="text-gray-600 leading-relaxed">
-                Diamonds come in a range of colors, from colorless to shades of yellow and brown. The color scale typically ranges from D (colorless) to Z (light yellow or brown). Colorless diamonds (D-F) are the most valuable, as they allow more light to pass through them, increasing their brilliance.
-              </p>
-              <p className="text-gray-600">
-                G-J diamonds are near colorless and may have slight traces of color detectable only by an expert. As the scale moves toward K-Z, the presence of color becomes more noticeable.
-              </p>
-            </div>
-            
-            <motion.div
-              variants={fadeIn}
-              className="bg-white p-6 rounded-lg shadow-lg"
-            >
-              <Image
-                src="https://images.unsplash.com/photo-1600703136783-bdb5ea365239?auto=format&fit=crop&w=800"
-                alt="Diamond Color Scale"
-                width={800}
-                height={400}
-                className="w-full rounded"
+          <div className="flex justify-center gap-4 mb-8">
+            {heroSlides.map((_, index) => (
+              <button
+                key={index}
+                className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                  index === currentSlide ? 'bg-blue-600 scale-125' : 'bg-black/30'
+                }`}
+                onClick={() => setCurrentSlide(index)}
               />
-            </motion.div>
+            ))}
           </div>
-        </motion.section>
+        </div>
+      </section>
 
-        {/* Clarity Section */}
-        <motion.section variants={fadeIn} className="space-y-8">
-          <div className="flex items-center gap-3 mb-6">
-            <Microscope className="w-8 h-8 text-primary" />
-            <h2 className="text-3xl font-serif">Clarity</h2>
+      {/* Traditional 4Cs Section */}
+      <section className="py-32 px-8 bg-gradient-to-b from-white to-blue-50/30">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-6xl font-light mb-8">The Traditional 4Cs</h2>
+            <p className="text-xl text-black/70 max-w-3xl mx-auto">
+              The foundation of diamond grading, perfected through decades of expertise and precision.
+            </p>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-4">
-              <p className="text-gray-600 leading-relaxed">
-                Clarity refers to the presence of internal (inclusions) and external (blemishes) imperfections in a diamond. These imperfections can affect the diamond&apos;s appearance and brilliance, but many are microscopic and invisible to the naked eye. The clarity of a diamond is graded on a scale from Flawless (FL), meaning no visible imperfections, to Included (I1, I2, I3).
-              </p>
-              <motion.div 
-                className="bg-white p-4 rounded-lg shadow-md"
-                variants={floatAnimation}
-                animate="animate"
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {traditional4Cs.map((item, index) => (
+              <div
+                key={index}
+                className="group p-8 rounded-3xl bg-white shadow-lg hover:shadow-2xl transform hover:-translate-y-4 transition-all duration-500 border border-black/10"
+                style={{
+                  animationDelay: `${index * 0.1}s`,
+                }}
               >
-                <h3 className="font-semibold mb-2">Clarity Scale:</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2">
-                    <Diamond className="w-4 h-4 text-primary" />
-                    <span>FL (Flawless)</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Diamond className="w-4 h-4 text-primary" />
-                    <span>VVS1-VVS2 (Very Very Slightly Included)</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Diamond className="w-4 h-4 text-primary" />
-                    <span>VS1-VS2 (Very Slightly Included)</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Diamond className="w-4 h-4 text-primary" />
-                    <span>SI1-SI2 (Slightly Included)</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Diamond className="w-4 h-4 text-primary" />
-                    <span>I1-I3 (Included)</span>
-                  </li>
-                </ul>
-              </motion.div>
-            </div>
-            
-            <motion.div
-              variants={fadeIn}
-              className="bg-white p-6 rounded-lg shadow-lg"
-            >
-              <Image
-                src="/clarity-chart.jpg"
-                alt="Diamond Clarity Chart"
-                width={800}
-                height={400}
-                className="w-full rounded"
-              />
-            </motion.div>
-          </div>
-        </motion.section>
-
-        {/* Carat Section */}
-        <motion.section variants={fadeIn} className="space-y-8">
-          <div className="flex items-center gap-3 mb-6">
-            <Scale className="w-8 h-8 text-primary" />
-            <h2 className="text-3xl font-serif">Carat</h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-4">
-              <p className="text-gray-600 leading-relaxed">
-                Carat refers to the weight of a diamond, not its size, though the two are often correlated. One carat equals 200 milligrams (0.2 grams). The term carat is derived from the carob tree&apos;s seeds, which were historically used as a standard for weighing gemstones.
-              </p>
-              <p className="text-gray-600">
-                Larger diamonds are rarer and typically more expensive because of their scarcity, but the price is also influenced by the other 3 Cs—cut, color, and clarity.
-              </p>
-            </div>
-            
-            <motion.div
-              variants={fadeIn}
-              className="bg-white p-6 rounded-lg shadow-lg"
-            >
-              <Image
-                src="https://images.unsplash.com/photo-1600703136783-bdb5ea365239?auto=format&fit=crop&w=800"
-                alt="Diamond Carat Comparison"
-                width={800}
-                height={400}
-                className="w-full rounded"
-              />
-            </motion.div>
-          </div>
-        </motion.section>
-
-        {/* The 5th C - Certification Section */}
-        <motion.section variants={fadeIn} className="space-y-8">
-          <div className="flex items-center gap-3 mb-6">
-            <BadgeCheck className="w-8 h-8 text-primary" />
-            <h2 className="text-3xl font-serif">The 5th C - Certification</h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-4">
-              <p className="text-gray-600 leading-relaxed">
-                While the traditional 4 C&apos;s are crucial, the fifth C - Certification - is equally important. A diamond certificate from a reputable laboratory like GIA provides an unbiased assessment of your diamond&apos;s quality.
-              </p>
-              <motion.div 
-                className="bg-white p-4 rounded-lg shadow-md"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.3 }}
-              >
-                <h3 className="font-semibold mb-2">Why Certification Matters:</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2">
-                    <Info className="w-4 h-4 text-primary" />
-                    <span>Independent verification of quality</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Info className="w-4 h-4 text-primary" />
-                    <span>Protection against misrepresentation</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Info className="w-4 h-4 text-primary" />
-                    <span>Resale value assurance</span>
-                  </li>
-                </ul>
-              </motion.div>
-            </div>
-            
-            <motion.div
-              variants={fadeIn}
-              className="bg-white p-6 rounded-lg shadow-lg"
-            >
-              <Image
-                src="/gia-certificate.jpg"
-                alt="GIA Certificate"
-                width={800}
-                height={400}
-                className="w-full rounded"
-              />
-            </motion.div>
-          </div>
-        </motion.section>
-
-        {/* Diamond Anatomy Section */}
-        <motion.section variants={fadeIn} className="space-y-8">
-          <div className="flex items-center gap-3 mb-6">
-            <Info className="w-8 h-8 text-primary" />
-            <h2 className="text-3xl font-serif">Diamond Anatomy</h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-4">
-              <p className="text-gray-600 leading-relaxed">
-                The anatomy of a diamond refers to its various parts and the way they contribute to the overall appearance, brilliance, and value of the stone. A diamond&apos;s anatomy can be broken down into several key components:
-              </p>
-              <motion.div 
-                className="bg-white p-6 rounded-lg shadow-md space-y-4"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Table:</h3>
-                  <p className="text-gray-600">The flat, top surface of the diamond, which is the largest facet. The table allows light to enter the diamond, and its size and quality influence the stone brilliance.</p>
+                <div className="mb-6">
+                  <div className="w-20 h-20 rounded-2xl bg-blue-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <item.icon className="w-10 h-10 text-blue-600" />
+                  </div>
+                  <div className="text-sm font-medium text-blue-600 mb-2">{item.grade}</div>
                 </div>
                 
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Crown:</h3>
-                  <p className="text-gray-600">The upper portion of the diamond above the girdle, including the table. The crown consists of several facets (usually 32 in total) and plays a significant role in reflecting light.</p>
-                </div>
+                <h3 className="text-2xl font-light mb-4">{item.title}</h3>
+                <p className="text-black/70 mb-4">{item.description}</p>
+                <p className="text-sm text-black/60 leading-relaxed">{item.detail}</p>
                 
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Girdle:</h3>
-                  <p className="text-gray-600">The outer edge or circumference of the diamond, where the crown meets the pavilion. The girdle serves as a band that holds the diamond in its setting.</p>
+                <div className="mt-6 w-full h-1 bg-blue-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-600 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-700" />
                 </div>
-                
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Pavilion:</h3>
-                  <p className="text-gray-600">The lower portion of the diamond, below the girdle. It creates the diamond sparkle through light refraction and dispersion.</p>
-                </div>
-                
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Culet:</h3>
-                  <p className="text-gray-600">The very tip or bottom point of the pavilion. A well-formed culet is important for the overall symmetry of the diamond.</p>
-                </div>
-              </motion.div>
-            </div>
-            
-            <div className="space-y-6">
-              <motion.div
-                variants={fadeIn}
-                className="bg-white p-6 rounded-lg shadow-lg"
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Beyond Section */}
+      <section className="py-32 px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-6xl font-light mb-8">Going Beyond</h2>
+            <p className="text-xl text-black/70 max-w-3xl mx-auto">
+              We&apos;ve expanded the traditional framework to include modern innovations and ethical considerations 
+              that define true diamond excellence in the 21st century.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-16">
+            {beyondCs.map((feature, index) => (
+              <div
+                key={index}
+                className="group flex gap-8 p-8 rounded-3xl bg-gradient-to-br from-white to-blue-50/50 shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-500"
+                style={{
+                  animationDelay: `${index * 0.2}s`,
+                }}
               >
-                <Image
-                  src="/diamond-anatomy.jpg"
-                  alt="Diamond Anatomy"
-                  width={800}
-                  height={400}
-                  className="w-full rounded"
-                />
-              </motion.div>
+                <div className="flex-shrink-0">
+                  <div className="w-20 h-20 rounded-2xl bg-blue-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <feature.icon className="w-10 h-10 text-blue-600" />
+                  </div>
+                </div>
+                
+                <div className="flex-1">
+                  <h3 className="text-2xl font-light mb-3">{feature.title}</h3>
+                  <p className="text-black/70 mb-4 text-lg">{feature.description}</p>
+                  <p className="text-sm text-black/60 leading-relaxed">{feature.detail}</p>
+                  
+                  <div className="mt-6 w-full h-1 bg-blue-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-600 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-700" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Technology & Innovation */}
+      <section className="py-32 px-8 bg-gradient-to-b from-white to-blue-50/30">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div 
+              className="space-y-8"
+              style={{
+                transform: `translateY(${Math.max(0, scrollY - 1600) * -0.1}px)`,
+              }}
+            >
+              <h2 className="text-6xl font-light mb-8">Scientific Precision</h2>
               
-              <motion.div
-                variants={diamondAnimation}
-                whileHover="hover"
-                className="bg-white p-6 rounded-lg shadow-lg"
-              >
-                <Image
-                  src="/diamond-proportions.jpg"
-                  alt="Diamond Proportions"
-                  width={800}
-                  height={400}
-                  className="w-full rounded"
-                />
-              </motion.div>
+              <p className="text-xl leading-relaxed text-black/80">
+                Our advanced gemological laboratory uses cutting-edge technology to analyze every aspect 
+                of diamond performance, from light return to optical symmetry, ensuring each stone meets 
+                our exacting standards.
+              </p>
+              
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 p-6 rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Zap className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">ASET Analysis</div>
+                    <div className="text-sm text-black/60">Advanced light performance measurement</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 p-6 rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                    <Star className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Hearts & Arrows</div>
+                    <div className="text-sm text-black/60">Perfect optical symmetry verification</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 p-6 rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <Award className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Triple Certification</div>
+                    <div className="text-sm text-black/60">GIA, AGS, and internal grading</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div 
+              className="relative"
+              style={{
+                transform: `translateY(${Math.max(0, scrollY - 1600) * 0.05}px)`,
+              }}
+            >
+              <img
+                src="/Beyond1.png"
+                alt="Diamond Technology"
+                className="w-full rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-700"
+              />
+              <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-blue-100 rounded-full shadow-xl flex items-center justify-center animate-float">
+                <Gem className="w-16 h-16 text-blue-600" />
+              </div>
             </div>
           </div>
-        </motion.section>
+        </div>
+      </section>
 
-        {/* Connect With Us Section */}
-        <motion.section variants={fadeIn} className="space-y-8">
-          <h2 className="text-3xl font-serif text-center">Connect With Us</h2>
-          <motion.div 
-            className="flex justify-center gap-8"
-            variants={stagger}
-          >
-            <motion.a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Facebook className="w-6 h-6 text-[#1877F2]" />
-            </motion.a>
-            <motion.a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Instagram className="w-6 h-6 text-[#E4405F]" />
-            </motion.a>
-            <motion.a
-              href="https://linkedin.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Linkedin className="w-6 h-6 text-[#0A66C2]" />
-            </motion.a>
-            <motion.a
-              href="https://twitter.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Twitter className="w-6 h-6 text-black" />
-            </motion.a>
-          </motion.div>
-        </motion.section>
-
-        <motion.footer 
-          variants={fadeIn} 
-          className="text-center text-gray-500 pt-8 border-t space-y-4"
-        >
-          <p>Copyright © 2025 Cranberri Diamonds - All Rights Reserved.</p>
+      {/* Comparison Gallery */}
+      <section className="py-32 px-8">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-6xl font-light text-center mb-20">Excellence Redefined</h2>
           
-            
-        
-        </motion.footer>
-      </motion.div>
-    </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                src: '/Beyond.png',
+                title: 'Traditional Grading',
+                description: 'Classic 4Cs assessment'
+              },
+              {
+                src: '/Beyond1.png',
+                title: 'Advanced Analysis',
+                description: 'Scientific light performance'
+              },
+              {
+                src: 'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=500&h=600&fit=crop',
+                title: 'Beyond Excellence',
+                description: 'Complete quality assurance'
+              }
+            ].map((item, index) => (
+              <div
+                key={index}
+                className="group relative overflow-hidden rounded-3xl shadow-xl transform hover:scale-105 transition-all duration-700"
+                style={{
+                  animationDelay: `${index * 0.2}s`,
+                }}
+              >
+                <img
+                  src={item.src}
+                  alt={item.title}
+                  className="w-full h-96 object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-6 left-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <h3 className="text-xl font-light mb-2">{item.title}</h3>
+                  <p className="text-sm">{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="py-32 px-8 bg-black text-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-6xl font-light mb-8">Experience the Difference</h2>
+          <p className="text-xl mb-12 text-white/80">
+            Discover how our comprehensive approach to diamond grading ensures you receive 
+            not just a beautiful stone, but a masterpiece of nature and craftsmanship.
+          </p>
+          
+          <button 
+            onClick={() => router.push('/auth/signup')}
+            className="group px-12 py-4 bg-blue-600 text-white rounded-full text-lg font-light hover:bg-blue-700 transition-all duration-300 transform hover:scale-105"
+          >
+            <span className="flex items-center gap-3">
+              Explore Our Standards
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+            </span>
+          </button>
+        </div>
+      </section>
+    </>
   );
 }

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Shield, Lock, Bell, Cookie, FileText, Phone } from "lucide-react";
+import Navbar from "@/components/navbar";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -19,6 +20,9 @@ const stagger = {
 
 export default function PrivacyPolicy() {
   return (
+    <>
+      <Navbar />
+      <main className="pt-20">
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <motion.div 
         initial="initial"
@@ -123,5 +127,7 @@ export default function PrivacyPolicy() {
         </motion.footer>
       </motion.div>
     </div>
+      </main>
+    </>
   );
 }

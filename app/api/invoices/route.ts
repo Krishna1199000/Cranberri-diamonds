@@ -2,8 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { numberToWords, generateInvoiceNumber } from '@/lib/utils';
+import { generateInvoicePDFBuffer } from '@/lib/pdf-utils';
+import { sendInvoiceEmail } from '@/lib/email';
+import { createPaymentReminderNotification } from '@/lib/notification-scheduler';
 import { getSession } from '@/lib/session';
 import { invoiceFormSchema } from '@/lib/validators/invoice';
+
 
 const prisma = new PrismaClient();
 
@@ -171,6 +175,7 @@ export async function POST(request: NextRequest) {
                 companyName: selectedShipment.companyName, // From the shipment linked to invoice
                 totalSaleValue: invoice.totalAmount, // Use the invoice's total amount
                 description: `Sale recorded from Invoice ${invoice.invoiceNo}`, // Link description
+                invoiceId: invoice.id, // Link sales entry to the invoice for cascade deletion
                 // trackingId, shipmentCarrier, profit, profitMargin, purchaseValue remain null for now
                 saleItems: {
                   create: invoice.items.map(invItem => ({
@@ -187,12 +192,81 @@ export async function POST(request: NextRequest) {
           }
           // ------> END: Automatically create SalesEntry from Invoice <------
 
-          return invoice;
+          return { invoice, selectedShipment };
         }, {
            timeout: 15000 // Set timeout to 15 seconds (15000 ms)
         });
         
-        return NextResponse.json({ invoice: createdInvoice });
+        // After successful invoice creation, send email with PDF attachment
+        let emailSent = false;
+        
+        console.log('=== INVOICE EMAIL PROCESS START ===');
+        console.log('Created invoice:', createdInvoice.invoice.invoiceNo);
+        console.log('Selected shipment:', createdInvoice.selectedShipment ? 'Found' : 'Not found');
+        console.log('Shipment email:', createdInvoice.selectedShipment?.email || 'No email');
+        console.log('Environment EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Not set');
+        console.log('Environment EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'Set' : 'Not set');
+        console.log('Environment EMAIL_HOST:', process.env.EMAIL_HOST || 'Using default');
+        
+        try {
+          if (createdInvoice.selectedShipment && createdInvoice.selectedShipment.email) {
+            console.log('✅ Starting email process for invoice:', createdInvoice.invoice.invoiceNo);
+            console.log('✅ Recipient email:', createdInvoice.selectedShipment.email);
+            
+            console.log('🔄 Step 1: Generating PDF...');
+            // Generate PDF buffer using the exact same format as invoice-preview.tsx
+            const pdfBuffer = await generateInvoicePDFBuffer(createdInvoice.invoice);
+            console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+            
+            console.log('🔄 Step 2: Sending email...');
+            // Send email with PDF attachment
+            await sendInvoiceEmail({
+              to: createdInvoice.selectedShipment.email,
+              companyName: createdInvoice.invoice.companyName,
+              invoiceNo: createdInvoice.invoice.invoiceNo,
+              totalAmount: createdInvoice.invoice.totalAmount,
+              pdfBuffer
+            });
+            
+            console.log('✅ Invoice email sent successfully to:', createdInvoice.selectedShipment.email);
+            emailSent = true;
+          } else {
+            const reason = !createdInvoice.selectedShipment 
+              ? 'No shipment found' 
+              : 'No email address in shipment';
+            console.log('❌ Email skipped:', reason);
+            console.log('Shipment data:', createdInvoice.selectedShipment);
+          }
+        } catch (emailError) {
+          console.error('❌ FAILED to send invoice email:', emailError);
+          const errorInfo = emailError instanceof Error ? {
+            name: emailError.name,
+            message: emailError.message,
+            stack: emailError.stack
+          } : { message: String(emailError) };
+          console.error('Error details:', errorInfo);
+          // Don't fail the entire operation if email fails
+        }
+        
+        console.log('=== INVOICE EMAIL PROCESS END ===');
+        
+        // Create payment reminder notification (15 days after invoice creation)
+        try {
+          console.log('🔄 Creating payment reminder notification...');
+          await createPaymentReminderNotification(createdInvoice.invoice.id, userId);
+          console.log('✅ Payment reminder notification created successfully');
+        } catch (notificationError) {
+          console.error('❌ Failed to create payment reminder notification:', notificationError);
+          // Don't fail the entire operation if notification creation fails
+        }
+        
+        return NextResponse.json({ 
+          invoice: createdInvoice.invoice,
+          emailSent,
+          message: emailSent 
+            ? `Invoice created successfully and sent to ${createdInvoice.selectedShipment?.email}`
+            : 'Invoice created successfully (email not sent - check shipment email address)'
+        });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error creating invoice:', errorMessage);

@@ -155,6 +155,8 @@ model User {
   otp                String?
   verified           Boolean             @default(false)
   role               Role                @default(customer)
+  approved           Boolean             @default(false)
+  declined           Boolean             @default(false)
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
   invoices           Invoice[]
@@ -163,8 +165,28 @@ model User {
   performanceReports PerformanceReport[]
   remarks            Remark[]
   shipments          Shipment[]
+  requirements       Requirement[]
+  notifications      Notification[]
+  approvalRequests   CustomerApprovalRequest[]
 
   @@map("users")
+}
+
+model CustomerApprovalRequest {
+  id        String   @id @default(uuid())
+  userId    String
+  status    ApprovalStatus @default(PENDING)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("customer_approval_requests")
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  DECLINED
 }
 
 model ChatMessage {
@@ -194,8 +216,10 @@ model SalesEntry {
   profitMargin    Float?
   purchaseValue   Float?
   paymentReceived Boolean    @default(false)
+  invoiceId       String?    @map("invoice_id")
   saleItems       SaleItem[]
   employee        User       @relation(fields: [employeeId], references: [id])
+  invoice         Invoice?   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model SaleItem {
@@ -236,6 +260,21 @@ model ParcelGoods {
   @@map("parcel_goods")
 }
 
+model Requirement {
+  id           String   @id @default(uuid())
+  customerName String   @map("customer_name")
+  description  String
+  state        String
+  country      String
+  isCompleted  Boolean  @default(false) @map("is_completed")
+  employeeId   String   @map("employee_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  employee     User     @relation(fields: [employeeId], references: [id])
+
+  @@map("requirements")
+}
+
 // Added Enum for Invoice/Memo type
 enum InvoiceType {
   INVOICE
@@ -270,6 +309,8 @@ model Invoice {
   shipment      Shipment?     @relation(fields: [shipmentId], references: [id])
   user          User          @relation(fields: [userId], references: [id])
   items         InvoiceItem[]
+  notifications Notification[]
+  salesEntries  SalesEntry[]
 }
 
 model InvoiceItem {
@@ -290,6 +331,7 @@ enum Role {
   admin
   employee
   customer
+  waiting_for_approval
 }
 
 // Updated InventoryItem model
@@ -310,6 +352,8 @@ model InventoryItem {
   videoUrl      String?  @map("video_url")
   imageUrl      String?  @map("image_url")
   certUrl       String?  @map("cert_url")
+  measurement   String?  // New field: Measurement
+  location      String?  // New field: Location
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -366,4 +410,21 @@ model MemoItem {
   memo          Memo   @relation(fields: [memoId], references: [id], onDelete: Cascade) // Added onDelete Cascade
 
   @@map("memo_items") // Added map
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // 'payment_reminder', 'system', etc.
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  invoiceId String?  // Optional reference to invoice
+  dueDate   DateTime? // When this notification should be shown/relevant
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id])
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@map("notifications")
 }

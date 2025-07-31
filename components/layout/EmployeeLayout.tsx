@@ -88,13 +88,14 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
       <header className="sticky top-0 z-50 w-full bg-white dark:bg-gray-800 shadow-md print:hidden">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           {/* Logo/Title */}
-          <Link href="/employee" className="flex items-center space-x-2 text-lg font-bold text-gray-800 dark:text-white">
-            {/* Replace with your logo if needed */}
-            <span>Employee Panel</span>
-          </Link>
+          <div className="flex items-center mr-8">
+            <Link href="/employee" className="flex items-center space-x-2 text-lg font-bold text-gray-800 dark:text-white">
+              <span>Employee Panel</span>
+            </Link>
+          </div>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
+          {/* Desktop Navigation Links - Centered and spaced */}
+          <nav className="hidden md:flex flex-1 justify-center items-center space-x-6">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -102,7 +103,7 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
                   key={item.label}
                   href={item.href}
                   className={clsx(
-                    "flex items-center space-x-1 text-sm font-medium transition-colors",
+                    "flex items-center space-x-1 text-sm font-medium transition-colors whitespace-nowrap",
                     isActive
                       ? "text-primary dark:text-primary-foreground font-semibold"
                       : "text-foreground/70 dark:text-foreground/70 hover:text-primary dark:hover:text-primary-foreground"
@@ -115,21 +116,18 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
             })}
           </nav>
 
-          <div className="flex items-center space-x-4">
-            {/* User Profile Dropdown (always visible) */}
-            <UserProfileDropdown userName={userName} />
-
-             {/* Logout Button (Desktop - Optional, could be in UserProfileDropdown) */}
-             <Button
-                 variant="outline"
-                 size="sm"
-                 className="hidden md:flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
-                 onClick={handleLogout}
-             >
-                 <LogOut className="h-4 w-4" />
-                 <span>Logout</span>
-             </Button>
-
+          {/* Profile/Logout - Right aligned */}
+          <div className="flex items-center space-x-4 ml-8">
+            <UserProfileDropdown userName={userName} userRole="employee" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden md:flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </Button>
             {/* Mobile Navigation Menu Trigger */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

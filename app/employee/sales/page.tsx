@@ -5,6 +5,8 @@ import { SalesAnalytics } from "@/components/employee/sales/SalesAnalytics"
 import { SalesTable } from "@/components/employee/sales/SalesTable"
 import { EmployeeLayout } from "@/components/layout/EmployeeLayout"
 import { SaleEntry } from "@/types/sales"
+import { RequirementsManager } from "@/components/RequirementsManager"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 
 
@@ -12,6 +14,7 @@ export default function EmployeeSalesPage() {
   const [salesData, setSalesData] = useState<SaleEntry[]>([])
   const [period, setPeriod] = useState("7")
   const [customPeriod, setCustomPeriod] = useState({ start: "", end: "" })
+  const [currentUserId, setCurrentUserId] = useState("")
 
   const fetchSalesData = useCallback(async () => {
     try {
@@ -91,6 +94,22 @@ export default function EmployeeSalesPage() {
     fetchSalesData()
   }, [period, customPeriod, fetchSalesData])
 
+  // Fetch current user ID for RequirementsManager
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me', { credentials: 'include' })
+        if (response.ok) {
+          const user = await response.json()
+          setCurrentUserId(user.id)
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error)
+      }
+    }
+    fetchCurrentUser()
+  }, [])
+
   return (
     <EmployeeLayout>
       <div className="max-w-7xl mx-auto">
@@ -98,17 +117,33 @@ export default function EmployeeSalesPage() {
           <h1 className="text-3xl font-bold text-gray-800">Sales Dashboard</h1>
         </div>
 
-          <div className="space-y-6">
-            <SalesAnalytics
-              salesData={salesData}
-              period={period}
-              setPeriod={setPeriod}
-              customPeriod={customPeriod}
-              setCustomPeriod={setCustomPeriod}
-            />
+        <Tabs defaultValue="sales" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="sales">Sales Dashboard</TabsTrigger>
+            <TabsTrigger value="requirements">Requirements</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="sales">
+            <div className="space-y-6">
+              <SalesAnalytics
+                salesData={salesData}
+                period={period}
+                setPeriod={setPeriod}
+                customPeriod={customPeriod}
+                setCustomPeriod={setCustomPeriod}
+              />
 
-            <SalesTable salesData={salesData} />
-        </div>
+              <SalesTable salesData={salesData} />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="requirements">
+            <RequirementsManager 
+              userRole="employee" 
+              currentUserId={currentUserId}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </EmployeeLayout>
   )

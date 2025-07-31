@@ -51,9 +51,11 @@ const inventoryFormSchema = z.object({
   lab: z.string().min(1, "Lab is required"),
   pricePerCarat: z.coerce.number().positive("Price per carat must be positive"),
   finalAmount: z.coerce.number().positive("Final amount must be positive"),
-  videoUrl: z.string().url("Invalid video URL").optional().nullable(),
-  imageUrl: z.string().url("Invalid image URL").optional().nullable(),
-  certUrl: z.string().url("Invalid certificate URL").optional().nullable(),
+  videoUrl: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
+  certUrl: z.string().optional().nullable(),
+  measurement: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
   status: z.nativeEnum(DiamondStatus),
   heldByShipmentId: z.string().optional().nullable(),
 });
@@ -99,6 +101,8 @@ export function AddEditInventoryForm({
       videoUrl: "",
       imageUrl: "",
       certUrl: "",
+      measurement: "",
+      location: "",
       status: DiamondStatus.AVAILABLE,
       heldByShipmentId: undefined,
     },
@@ -136,6 +140,8 @@ export function AddEditInventoryForm({
         videoUrl: item.videoUrl ?? "",
         imageUrl: item.imageUrl ?? "",
         certUrl: item.certUrl ?? "",
+        measurement: (item as Record<string, unknown>).measurement as string ?? "",
+        location: (item as Record<string, unknown>).location as string ?? "",
         status: item.status,
         heldByShipmentId: item.heldByShipmentId ?? undefined,
       });
@@ -436,6 +442,44 @@ export function AddEditInventoryForm({
                         {...field} 
                         value={field.value || ""} 
                         placeholder="Enter certificate URL" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="measurement"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Measurement</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        value={field.value || ""} 
+                        placeholder="Enter measurement" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        value={field.value || ""} 
+                        placeholder="Enter location" 
                       />
                     </FormControl>
                     <FormMessage />

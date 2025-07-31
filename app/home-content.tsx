@@ -1,7 +1,7 @@
 "use client"
 import { motion, useScroll, useTransform, useMotionValue, useInView } from "framer-motion"
 import { useRef } from "react"
-import { Diamond, Sparkles, Facebook, Instagram, Linkedin, Twitter, Star, Award, Gem } from "lucide-react"
+import { Diamond, Sparkles, Facebook, Instagram, Linkedin, Twitter } from "lucide-react"
 import Image from "next/image"
 
 import BusinessHours from "@/components/BusinessHours"
@@ -101,27 +101,24 @@ export default function Home() {
   const aboutItems = [
     {
       title: "OUR STORY",
-      icon: Star,
+      image: "/ourstory.png",
       content:
         "At Cranberri Diamonds, we believe that every diamond tells a story. Our journey began with a passion for exquisite craftsmanship and a commitment to excellence.",
       bgColor: "from-purple-500/10 to-pink-500/10",
-      iconColor: "text-purple-500",
     },
     {
       title: "OUR MISSION",
-      icon: Award,
+      image: "/ourmission.png",
       content:
         "We empower jewelers by providing direct access to premium loose diamonds and custom jewelry at competitive prices, boosting profitability.",
       bgColor: "from-blue-500/10 to-cyan-500/10",
-      iconColor: "text-blue-500",
     },
     {
       title: "OUR PRODUCT",
-      icon: Gem,
+      image: "/ourproduct.png",
       content:
         "We offer an exclusive selection of D-E color, VVS clarity loose diamonds (both natural and lab-grown), custom jewelry, and components—sourced directly from manufacturers.",
       bgColor: "from-amber-500/10 to-yellow-500/10",
-      iconColor: "text-amber-500",
     },
   ]
 
@@ -321,6 +318,7 @@ export default function Home() {
     <div ref={containerRef} className="overflow-x-hidden">
       {/* Hero Section */}
       <section
+        id="hero"
         ref={heroRef}
         className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background"
         onMouseMove={handleMouseMove}
@@ -540,6 +538,7 @@ export default function Home() {
 
       {/* Diamond Shapes */}
       <motion.section
+        id="discover"
         ref={shapesRef}
         className="py-16 md:py-24 bg-background"
         initial="hidden"
@@ -588,6 +587,7 @@ export default function Home() {
 
       {/* About Section */}
       <section
+        id="about"
         ref={aboutRef}
         className="py-32 bg-background relative overflow-hidden"
       >
@@ -698,16 +698,20 @@ export default function Home() {
                   initial="hidden"
                   animate={isAboutInView ? "visible" : "hidden"}
                   whileHover={{
-                    rotate: [0, 10, -10, 0],
+                    scale: 1.05,
                     transition: {
-                      repeat: Infinity,
-                      repeatType: "mirror",
-                      duration: 0.5
+                      duration: 0.3
                     }
                   }}
-                  className={`w-16 h-16 mx-auto mb-6 rounded-xl bg-white shadow-lg flex items-center justify-center ${item.iconColor}`}
+                  className="w-full h-48 mx-auto mb-6 rounded-xl overflow-hidden shadow-lg"
                 >
-                  <item.icon className="w-8 h-8" />
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    width={400}
+                    height={300}
+                    className={`w-full h-full ${item.title === "OUR STORY" || item.title === "OUR PRODUCT" ? "object-cover" : "object-contain"}`}
+                  />
                 </motion.div>
 
                 <motion.h3
@@ -742,6 +746,7 @@ export default function Home() {
 
       {/* Certification Partners */}
       <section
+        id="partners"
         ref={partnersRef}
         className="py-20 bg-background"
       >
@@ -799,11 +804,9 @@ export default function Home() {
             ))}
           </motion.div>
         </div>
-      </section>
 
-      {/* Our Partners */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4">
+        {/* Our Partners */}
+        <div className="container mx-auto px-4 mt-20">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={isPartnersInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -861,6 +864,7 @@ export default function Home() {
 
       {/* Contact Section */}
       <section
+        id="contact"
         ref={contactRef}
         className="py-20 bg-background relative overflow-hidden"
       >

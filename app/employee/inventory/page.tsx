@@ -77,17 +77,20 @@ export default function EmployeeInventoryPage() {
           <CardDescription>Browse available items and check their status.</CardDescription>
         </CardHeader>
         <CardContent>
-          <InventorySearch onSearch={handleSearch} />
-          <InventoryTable 
-            items={inventoryItems} // Pass state directly
-            isLoading={isLoading} 
-            total={totalItems} // Pass correct total state
-            currentPage={currentPage} 
-            pageSize={pageSize}
-            isAdmin={false} // Employee view is not admin
-            onPageChange={handlePageChange}
-            // No onEdit, onStatusChange, onSelect for employee view (as per original code)
-          />
+          <div className="space-y-6">
+            <InventorySearch onSearch={handleSearch} />
+            <InventoryTable 
+              items={inventoryItems} // Pass state directly
+              isLoading={isLoading} 
+              total={totalItems} // Pass correct total state
+              currentPage={currentPage} 
+              pageSize={pageSize}
+              isAdmin={false} // Employee view is not admin
+              userRole="employee"
+              onPageChange={handlePageChange}
+              // No onEdit, onStatusChange, onSelect for employee view (as per original code)
+            />
+          </div>
         </CardContent>
       </Card>
     </EmployeeLayout>

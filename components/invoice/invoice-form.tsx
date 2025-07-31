@@ -173,7 +173,15 @@ export function InvoiceForm() {
                 throw new Error("Invoice created, but failed to retrieve complete details for preview.");
             }
             
-            toast.success("Invoice created successfully: " + result.invoice.invoiceNo);
+            // Show success message with email status
+            if (result.emailSent) {
+                toast.success(`Invoice ${result.invoice.invoiceNo} created and emailed successfully!`);
+            } else {
+                toast.success(`Invoice ${result.invoice.invoiceNo} created successfully!`);
+                if (result.message && result.message.includes('email not sent')) {
+                    toast.warning("Note: Email notification was not sent. Please check the company's email address.");
+                }
+            }
             setLastInvoiceNo(result.invoice.invoiceNo);
             setPreviewData({
                 ...submissionData,

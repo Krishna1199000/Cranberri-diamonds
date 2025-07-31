@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Loader2, Trash2 } from "lucide-react";
-import { cn, calculateTotal, formatCurrency } from "@/lib/utils"; // Remove generateInvoiceNumber if using local generation
+import { cn, calculateTotal, formatCurrency, generateMemoNumber } from "@/lib/utils"; // Import generateMemoNumber from utils
 import { format } from "date-fns";
 import { MemoFormValues, memoFormSchema } from "@/lib/validators/memo"; // Import memo schema and types
 
@@ -32,37 +32,7 @@ interface ShipmentForMemo {
   postalCode: string;
 }
 
-// Function to generate Memo Number (Updated Format: CDM-XXXA/DDMM)
-function generateMemoNumber(lastMemoNo: string | null | undefined, date: Date): string {
-    const prefix = "CDM-";
-    const today = date;
-    const day = String(today.getDate()).padStart(2, '0');
-    const month = String(today.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
-    const dateSuffix = `${day}${month}`;
-    const sequencePartRegex = /CDM-(\d+)A\/(\d{4})/; // Regex to extract sequence and date part
 
-    let nextSeq = 5; // Default starting sequence is now 5
-
-    if (lastMemoNo) {
-        const match = lastMemoNo.match(sequencePartRegex);
-        if (match) {
-            const lastDatePart = match[2];
-            const lastSeq = parseInt(match[1], 10);
-
-            // If the date part matches today's date, increment the sequence
-            if (lastDatePart === dateSuffix && !isNaN(lastSeq)) {
-                nextSeq = lastSeq + 1;
-            }
-            // Otherwise (different day), sequence resets to 5 (already default)
-        }
-        // If format doesn't match, sequence resets to 5 (already default)
-    }
-
-    // Pad sequence to 3 digits
-    const sequenceStr = String(nextSeq).padStart(3, '0');
-
-    return `${prefix}${sequenceStr}A/${dateSuffix}`;
-}
 
 // Add props interface for initialData
 interface MemoFormProps {

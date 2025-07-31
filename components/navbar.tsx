@@ -17,7 +17,7 @@ export default function Navbar() {
 
   const moreItems = [
     { href: "/Beyond-4cs", label: "Beyond 4c's" },
-    { href: "/contact", label: "Nurture Nature" },
+    { href: "/nurture-nature", label: "Nurture Nature" },
   ]
 
   const [isOpen, setIsOpen] = useState(false)

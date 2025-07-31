@@ -50,6 +50,7 @@ interface InventoryTableProps {
   currentPage: number;
   pageSize: number;
   isAdmin?: boolean;
+  userRole?: 'admin' | 'employee' | 'customer';
   onPageChange: (page: number) => void;
   onEdit?: (item: InventoryItemWithShipmentDetails) => void; 
   onStatusChange?: (item: InventoryItemWithShipmentDetails) => void; 
@@ -63,6 +64,7 @@ export function InventoryTable({
   currentPage, 
   pageSize, 
   isAdmin = false,
+  userRole = 'customer',
   onPageChange,
   onEdit,
   onStatusChange,
@@ -212,7 +214,9 @@ export function InventoryTable({
                 </TableHead>
               )}
               <TableHead className="w-14">Sr No.</TableHead>
-              <TableHead>Held By Company</TableHead>
+              {(userRole === 'admin' || userRole === 'employee') && (
+                <TableHead>Held By Company</TableHead>
+              )}
               <TableHead>Status</TableHead>
               <TableHead>Stock ID</TableHead>
               <TableHead>Media</TableHead>
@@ -232,7 +236,11 @@ export function InventoryTable({
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 17 : 16} className="h-24 text-center">
+                <TableCell colSpan={
+                  isAdmin ? 
+                    (userRole === 'customer' ? 16 : 17) : 
+                    (userRole === 'customer' ? 15 : 16)
+                } className="h-24 text-center">
                   No inventory items found.
                 </TableCell>
               </TableRow>
@@ -265,7 +273,9 @@ export function InventoryTable({
                       </TableCell>
                     )}
                     <TableCell>{(currentPage - 1) * pageSize + index + 1}</TableCell>
-                    <TableCell>{companyName}</TableCell>
+                    {(userRole === 'admin' || userRole === 'employee') && (
+                      <TableCell>{companyName}</TableCell>
+                    )}
                     <TableCell className={getStatusColor(currentStatus)}>
                       <Badge variant="outline">
                         {getStatusDisplay(itemToDiamond(item))}

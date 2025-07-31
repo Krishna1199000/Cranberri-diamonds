@@ -113,7 +113,7 @@ export function CustomerLayout({ children }: CustomerLayoutProps) {
 
           <div className="flex items-center space-x-4">
             {/* User Profile Dropdown */}
-            <UserProfileDropdown userName={userName} />
+                          <UserProfileDropdown userName={userName} userRole="customer" />
 
             {/* Logout Button (Desktop) */}
             <Button

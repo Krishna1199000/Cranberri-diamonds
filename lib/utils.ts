@@ -1,174 +1,214 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { format } from 'date-fns';
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+import { format } from 'date-fns'
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number): string {
-  // Format without currency symbol, will be added in PDF/UI manually
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(amount: number | string): string {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(num)) return '0.00';
+  return num.toLocaleString('en-US', {
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+    maximumFractionDigits: 2
+  });
 }
 
-// New date formatter
-export function formatDateWithSuffix(date: Date): string {
-  const day = format(date, 'd');
-  const month = format(date, 'MMM');
-  const year = format(date, 'yyyy');
-
-  let suffix = 'th';
-  if (day === '1' || day === '21' || day === '31') {
-    suffix = 'st';
-  } else if (day === '2' || day === '22') {
-    suffix = 'nd';
-  } else if (day === '3' || day === '23') {
-    suffix = 'rd';
-  }
-
-  return `${day}${suffix} ${month}' ${year}`;
+export function formatDateWithSuffix(date: Date | string): string {
+  const d = new Date(date);
+  const day = d.getDate();
+  const month = d.toLocaleString('default', { month: 'long' });
+  const year = d.getFullYear();
+  
+  // Add ordinal suffix
+  const j = day % 10,
+        k = day % 100;
+  const suffix = (j === 1 && k !== 11) ? 'st' : 
+                 (j === 2 && k !== 12) ? 'nd' : 
+                 (j === 3 && k !== 13) ? 'rd' : 'th';
+  
+  return `${day}${suffix} ${month} ${year}`;
 }
 
-export function calculateTotal(carat: number, pricePerCarat: number): number {
-  return carat * pricePerCarat;
-}
+function convertToWords(num: number): string {
+  const ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+  const teens = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+  const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+  const thousands = ["", "thousand", "million", "billion"];
 
-// Modified numberToWords function for the specific format
-export function numberToWords(num: number): string {
-  const units = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-  const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  if (num === 0) return "zero";
 
-  const convertLessThanOneThousand = (n: number): string => {
-    if (n === 0) return '';
-    let words = '';
+  function convertChunk(n: number): string {
+    let result = "";
+    
     if (n >= 100) {
-      words += units[Math.floor(n / 100)] + ' Hundred';
+      result += ones[Math.floor(n / 100)] + " hundred ";
       n %= 100;
-      if (n > 0) words += ' ';
     }
-    if (n >= 10 && n < 20) {
-      words += teens[n - 10];
-    } else if (n >= 20) {
-      words += tens[Math.floor(n / 10)];
+    
+    if (n >= 20) {
+      result += tens[Math.floor(n / 10)] + " ";
       n %= 10;
-      if (n > 0) words += ' ' + units[n];
-    } else if (n > 0) {
-      words += units[n];
+    } else if (n >= 10) {
+      result += teens[n - 10] + " ";
+      n = 0;
     }
-    return words;
-  };
-
-  const convert = (n: number): string => {
-    if (n === 0) return 'Zero';
-    let words = '';
-    if (n >= 1e9) {
-      words += convertLessThanOneThousand(Math.floor(n / 1e9)) + ' Billion';
-      n %= 1e9;
-      if (n > 0) words += ' ';
+    
+    if (n > 0) {
+      result += ones[n] + " ";
     }
-    if (n >= 1e6) {
-      words += convertLessThanOneThousand(Math.floor(n / 1e6)) + ' Million';
-      n %= 1e6;
-      if (n > 0) words += ' ';
-    }
-    if (n >= 1e3) {
-      words += convertLessThanOneThousand(Math.floor(n / 1e3)) + ' Thousand';
-      n %= 1e3;
-      if (n > 0) words += ' ';
-    }
-    words += convertLessThanOneThousand(n);
-    return words.trim();
-  };
-
-  if (num === 0) return '(US Dollar Zero and Cent Zero)';
-  if (typeof num !== 'number') return ''; // Handle potential invalid input
-
-  const isNegative = num < 0;
-  num = Math.abs(num);
-
-  const decimalStr = num.toFixed(2);
-  const parts = decimalStr.split('.');
-  const dollarPart = parseInt(parts[0], 10);
-  const centPart = parseInt(parts[1], 10);
-
-  const dollarWords = convert(dollarPart);
-  const centWords = centPart === 0 ? 'Zero' : convert(centPart);
-
-  let result = `(US Dollar ${dollarWords} and Cent ${centWords})`;
-
-  if (isNegative) {
-    result = `Negative ${result}`; // Consider how to handle negative if needed
+    
+    return result;
   }
 
-  return result;
+  let result = "";
+  let chunkIndex = 0;
+
+  while (num > 0) {
+    const chunk = num % 1000;
+    if (chunk !== 0) {
+      result = convertChunk(chunk) + thousands[chunkIndex] + " " + result;
+    }
+    num = Math.floor(num / 1000);
+    chunkIndex++;
+  }
+
+  return result.trim();
 }
+
+export function numberToWords(amount: number): string {
+  const dollars = Math.floor(amount);
+  const cents = Math.round((amount - dollars) * 100);
+  
+  let result = convertToWords(dollars) + " dollars";
+  
+  if (cents > 0) {
+    result += " and " + convertToWords(cents) + " cents";
+  }
+  
+  return result.charAt(0).toUpperCase() + result.slice(1) + " only";
+}
+
+export const calculateTotal = (carat: number, pricePerCarat: number): number => {
+  const total = (carat || 0) * (pricePerCarat || 0);
+  return Number(total.toFixed(2));
+};
 
 // Updated invoice number generation logic
 export function generateInvoiceNumber(lastInvoiceNo: string | null | undefined, invoiceDate: Date): string {
-  console.log(`[generateInvoiceNumber] Received lastInvoiceNo: ${lastInvoiceNo}, invoiceDate: ${invoiceDate.toISOString()}`); // Log inputs
+  console.log(`[generateInvoiceNumber] Received lastInvoiceNo: ${lastInvoiceNo}, invoiceDate: ${invoiceDate.toISOString()}`);
 
   const prefix = 'CD-';
   const datePart = format(invoiceDate, 'ddMM');
-  let nextNum = 1; // Default starting number
-  let nextLetterCode = 'A'.charCodeAt(0); // Default starting letter
+  let nextNum = 103; // Always start from 103 if no previous invoice
 
   if (lastInvoiceNo && lastInvoiceNo.startsWith(prefix)) {
     const parts = lastInvoiceNo.substring(prefix.length).split('/');
-    console.log(`[generateInvoiceNumber] Parsed parts: ${JSON.stringify(parts)}`); // Log parts
+    console.log(`[generateInvoiceNumber] Parsed parts: ${JSON.stringify(parts)}`);
 
     if (parts.length > 0) {
         const numericAlphaPart = parts[0];
-        if (numericAlphaPart && numericAlphaPart.length > 1) { 
-            const numStr = numericAlphaPart.substring(0, numericAlphaPart.length - 1);
-            const letter = numericAlphaPart.substring(numericAlphaPart.length - 1);
-            console.log(`[generateInvoiceNumber] Parsed numStr: ${numStr}, letter: ${letter}`); // Log parsed num/letter
+      if (numericAlphaPart && numericAlphaPart.length >= 5) {
+        // Extract the numeric part (first 4 characters)
+            const numericPart = numericAlphaPart.substring(0, 4);
 
-            const currentNum = parseInt(numStr, 10);
-            const currentLetterCode = letter.charCodeAt(0);
+        console.log(`[generateInvoiceNumber] numericPart: "${numericPart}"`);
 
-            if (!isNaN(currentNum) && !isNaN(currentLetterCode) && currentLetterCode >= 'A'.charCodeAt(0) && currentLetterCode <= 'Z'.charCodeAt(0) ) {
-                if (currentNum === 9999) {
-                    nextNum = 1;
-                    nextLetterCode = currentLetterCode + 1;
-                    console.log(`[generateInvoiceNumber] Rollover detected. nextNum: ${nextNum}, nextLetterCode: ${nextLetterCode}`);
-                } else {
-                    nextNum = currentNum + 1;
-                    nextLetterCode = currentLetterCode;
-                    console.log(`[generateInvoiceNumber] Incremented number. nextNum: ${nextNum}, nextLetterCode: ${nextLetterCode}`);
-                }
-            } else {
-                 console.error(`[generateInvoiceNumber] Failed to parse numeric/alpha part: '${numericAlphaPart}'. Defaulting.`);
-                 nextNum = 57; // << CHANGED: Start at 57 if parsing fails
-                 nextLetterCode = 'A'.charCodeAt(0);
-            }
+            const lastNum = parseInt(numericPart, 10);
+        console.log(`[generateInvoiceNumber] lastNum: ${lastNum}`);
+
+        if (!isNaN(lastNum)) {
+          // If the last number is less than 103, start from 103
+          if (lastNum < 103) {
+            nextNum = 103;
+            console.log(`[generateInvoiceNumber] Last number ${lastNum} is less than 103. Starting from 103.`);
+          } else {
+            // Simply increment the number by 1, always use 'A'
+            nextNum = lastNum + 1;
+            console.log(`[generateInvoiceNumber] Incremented: nextNum=${nextNum}`);
+          }
         } else {
-             console.error(`[generateInvoiceNumber] Invalid numericAlphaPart: '${numericAlphaPart}'. Defaulting.`);
-             nextNum = 57; // << CHANGED: Start at 57 if parsing fails
-             nextLetterCode = 'A'.charCodeAt(0);
+          console.log(`[generateInvoiceNumber] Failed to parse number from "${numericPart}". Using default 103.`);
+          nextNum = 103;
+        }
+      } else {
+        console.log(`[generateInvoiceNumber] numericAlphaPart "${numericAlphaPart}" is too short. Using default 103.`);
+        nextNum = 103;
         }
     } else {
-         console.error(`[generateInvoiceNumber] Failed to split lastInvoiceNo by '/'. Defaulting.`);
-         nextNum = 57; // << CHANGED: Start at 57 if parsing fails
-         nextLetterCode = 'A'.charCodeAt(0);
+      console.log(`[generateInvoiceNumber] No parts found after splitting. Using default 103.`);
+      nextNum = 103;
+    }
+} else {
+    console.log(`[generateInvoiceNumber] No valid lastInvoiceNo provided or prefix mismatch. Starting from 103.`);
+    nextNum = 103;
+  }
+
+  // Always use 'A' as the letter suffix
+  const nextLetter = 'A';
+  const paddedNum = nextNum.toString().padStart(4, '0');
+  const result = `${prefix}${paddedNum}${nextLetter}/${datePart}`;
+  console.log(`[generateInvoiceNumber] Generated result: ${result}`);
+  return result;
+}
+
+// Generate memo number
+export function generateMemoNumber(lastMemoNo: string | null | undefined, memoDate: Date): string {
+  const prefix = 'CDM-';
+  const datePart = format(memoDate, 'ddMM');
+  let nextNum = 1;
+  let nextLetterCode = 'A'.charCodeAt(0);
+
+  if (lastMemoNo && lastMemoNo.startsWith(prefix)) {
+    const parts = lastMemoNo.substring(prefix.length).split('/');
+    if (parts.length > 0) {
+      const numericAlphaPart = parts[0];
+      if (numericAlphaPart && numericAlphaPart.length > 1) {
+        const numericPart = numericAlphaPart.substring(0, 4);
+        const letterPart = numericAlphaPart.substring(4);
+        const lastNum = parseInt(numericPart, 10);
+        const lastLetter = letterPart.length > 0 ? letterPart : 'A';
+
+        if (!isNaN(lastNum) && lastLetter) {
+          if (lastLetter === 'Z') {
+            nextNum = lastNum + 1;
+            nextLetterCode = 'A'.charCodeAt(0);
+          } else {
+            nextNum = lastNum;
+            nextLetterCode = lastLetter.charCodeAt(0) + 1;
+          }
+        }
+      }
     }
   } else {
-       console.log(`[generateInvoiceNumber] No valid lastInvoiceNo provided or prefix mismatch. Starting new sequence.`);
-       nextNum = 57; // << CHANGED: Start at 57 for the very first invoice
-       nextLetterCode = 'A'.charCodeAt(0);
+    nextNum = 10; // Start at 10 so next memo will be CDM-010A
+    nextLetterCode = 'A'.charCodeAt(0);
   }
 
   if (nextLetterCode > 'Z'.charCodeAt(0)) {
-      console.error("[generateInvoiceNumber] Invoice letter sequence exceeded 'Z'. Resetting to A.");
-      nextLetterCode = 'A'.charCodeAt(0);
+    nextLetterCode = 'A'.charCodeAt(0);
   }
 
   const nextLetter = String.fromCharCode(nextLetterCode);
   const paddedNum = nextNum.toString().padStart(4, '0');
-  const result = `${prefix}${paddedNum}${nextLetter}/${datePart}`;
-  console.log(`[generateInvoiceNumber] Generated result: ${result}`); // Log final result
-  return result;
+  return `${prefix}${paddedNum}${nextLetter}/${datePart}`;
 }
+
+export function extractTokenFromCookies(request: Request): string | null {
+  const cookieHeader = request.headers.get('cookie');
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    if (key && value) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+
+  return cookies.token || null;
+}
+

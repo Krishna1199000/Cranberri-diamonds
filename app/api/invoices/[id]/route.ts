@@ -170,7 +170,7 @@ export async function DELETE(
             return NextResponse.json({ error: 'Forbidden: Only admins can delete invoices' }, { status: 403 });
         }
 
-        // Use a transaction to delete items first, then the invoice
+        // Use a transaction to delete related data first, then the invoice
         await prisma.$transaction(async (tx) => {
             // Check if invoice exists within the transaction
             const existingInvoice = await tx.invoice.findUnique({
@@ -182,12 +182,23 @@ export async function DELETE(
                 throw new Error('Invoice not found'); 
             }
 
-            // 1. Delete related InvoiceItems
+            // 1. Delete related notifications
+            await tx.notification.deleteMany({
+                where: { invoiceId: invoiceId },
+            });
+
+            // 2. Delete related SalesEntries (and their SaleItems will cascade)
+            // Note: With the new schema, these should cascade automatically, but let's be explicit
+            await tx.salesEntry.deleteMany({
+                where: { invoiceId: invoiceId },
+            });
+
+            // 3. Delete related InvoiceItems
             await tx.invoiceItem.deleteMany({
                 where: { invoiceId: invoiceId },
             });
 
-            // 2. Delete the Invoice itself
+            // 4. Delete the Invoice itself
             await tx.invoice.delete({
                 where: { id: invoiceId },
             });

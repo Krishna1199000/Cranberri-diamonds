@@ -35,7 +35,7 @@ export default function FeaturedCollection() {
   }
 
   return (
-    <section className="py-20">
+    <section id="featured" className="py-20">
       <motion.h2
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -102,4 +102,3 @@ export default function FeaturedCollection() {
     </section>
   )
 }
-

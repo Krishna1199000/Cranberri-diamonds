@@ -93,7 +93,7 @@ export default function VipSignup() {
   }
 
   return (
-    <section className="py-24 bg-gradient-to-br bg-background overflow-hidden relative">
+    <section id="vip" className="py-24 bg-gradient-to-br bg-background overflow-hidden relative">
       {/* Background sparkles */}
       <motion.div 
         className="absolute top-1/4 left-1/4 text-yellow-400"

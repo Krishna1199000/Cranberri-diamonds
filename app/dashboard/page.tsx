@@ -29,11 +29,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { EmployeeLayout } from "@/components/layout/EmployeeLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RemarksDialog } from '@/components/ui/remarks-dialog'
 import { CranberriLoader } from "@/components/ui/CranberriLoader";
+import { CustomerVendorSearch } from "@/components/CustomerVendorSearch";
 
 interface Shipment {
   id: string
@@ -203,7 +205,7 @@ export default function Dashboard() {
   return (
     <LayoutComponent>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Manage Masters</h1>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Customer/Vendor Management</h1>
         {(userRole === 'admin' || userRole === 'employee') && (
              <Link href="/dashboard/create-shipment">
               <Button className="flex items-center gap-2">
@@ -213,7 +215,14 @@ export default function Dashboard() {
         )}
       </div>
 
-      <Card>
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="list">Customer/Vendor List</TabsTrigger>
+          <TabsTrigger value="search">Search Customer/Vendor</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="list">
+          <Card>
         <CardHeader>
             <div className="mb-4 relative max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -331,6 +340,12 @@ export default function Dashboard() {
             )}
         </CardContent>
       </Card>
+        </TabsContent>
+        
+        <TabsContent value="search">
+          <CustomerVendorSearch />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">

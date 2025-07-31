@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { User, Settings, Key } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Settings, Key, Bell } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,22 +12,57 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { ForgotPasswordDialog } from './ForgotPasswordDialog';
+import { NotificationDropdown } from './NotificationDropdown';
 
 interface UserProfileDropdownProps {
   userName: string;
+  userRole?: string;
 }
 
-export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
+export function UserProfileDropdown({ userName, userRole }: UserProfileDropdownProps) {
   const [isUpdateOpen, setIsUpdateOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [newName, setNewName] = useState(userName);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread notification count (admin only)
+  useEffect(() => {
+    if (userRole !== 'admin') return;
+
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch('/api/notifications');
+        const data = await response.json();
+        
+        if (response.ok) {
+          const now = new Date();
+          const dueNotifications = data.notifications.filter((notif: Record<string, unknown>) => {
+            if (notif.dueDate && typeof notif.dueDate === 'string') {
+              return new Date(notif.dueDate) <= now && !notif.read;
+            }
+            return !notif.read;
+          });
+          setUnreadCount(dueNotifications.length);
+        }
+      } catch (error) {
+        console.error('Error fetching notification count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+    // Poll for new notifications every minute
+    const interval = setInterval(fetchUnreadCount, 60000);
+    return () => clearInterval(interval);
+  }, [userRole]);
 
   const handleUpdateProfile = async () => {
     try {
@@ -91,24 +126,54 @@ export function UserProfileDropdown({ userName }: UserProfileDropdownProps) {
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            <span>{userName}</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setIsUpdateOpen(true)}>
-            <Settings className="mr-2 h-4 w-4" />
-            Update Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsPasswordOpen(true)}>
-            <Key className="mr-2 h-4 w-4" />
-            Change Password
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-3">
+        {/* Notification Bell - Admin Only */}
+        {userRole === 'admin' && (
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+              className="relative"
+            >
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Badge>
+              )}
+            </Button>
+            
+            <NotificationDropdown
+              isOpen={isNotificationOpen}
+              onClose={() => setIsNotificationOpen(false)}
+            />
+          </div>
+        )}
+
+        {/* User Profile Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              <span>{userName}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setIsUpdateOpen(true)}>
+              <Settings className="mr-2 h-4 w-4" />
+              Update Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setIsPasswordOpen(true)}>
+              <Key className="mr-2 h-4 w-4" />
+              Change Password
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <Dialog open={isUpdateOpen} onOpenChange={setIsUpdateOpen}>
         <DialogContent>

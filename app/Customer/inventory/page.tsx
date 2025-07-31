@@ -74,19 +74,22 @@ export default function CustomerInventoryPage() {
       <Card>
         <CardHeader>
           <CardTitle>Inventory</CardTitle>
-          <CardDescription>Browse available items and check their status.</CardDescription>
+          <CardDescription>Browse items held by your companies and check their status.</CardDescription>
         </CardHeader>
         <CardContent>
-          <InventorySearch onSearch={handleSearch} />
-          <InventoryTable 
-            items={inventoryItems}
-            isLoading={isLoading} 
-            total={totalItems}
-            currentPage={currentPage} 
-            pageSize={pageSize}
-            isAdmin={false}
-            onPageChange={handlePageChange}
-          />
+          <div className="space-y-6">
+            <InventorySearch onSearch={handleSearch} />
+            <InventoryTable 
+              items={inventoryItems}
+              isLoading={isLoading} 
+              total={totalItems}
+              currentPage={currentPage} 
+              pageSize={pageSize}
+              isAdmin={false}
+              userRole="customer"
+              onPageChange={handlePageChange}
+            />
+          </div>
         </CardContent>
       </Card>
     </CustomerLayout>

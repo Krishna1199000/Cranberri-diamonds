@@ -44,7 +44,8 @@ export async function POST(req: Request) {
 
     const response = NextResponse.json({ 
       success: true,
-      role: user.role 
+      role: user.role,
+      requiresApproval: user.role === 'waiting_for_approval'
     });
     
     response.cookies.set('token', token, {

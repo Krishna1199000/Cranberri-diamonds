@@ -3,11 +3,21 @@
 import { motion } from 'framer-motion';
 import { DiamondSearch } from '@/components/DiamondSearch/index';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import CustomerApprovalNotifications from '@/components/admin/CustomerApprovalNotifications';
 
 export default function AdminDashboard() {
   return (
     <AdminLayout>
       <main className="w-full">
+        {/* Customer Approval Notifications */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow"
+        >
+          <CustomerApprovalNotifications />
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

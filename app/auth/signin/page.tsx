@@ -34,23 +34,29 @@ export default function SignIn() {
       const data = await res.json()
 
       if (data.success) {
-        toast.success("Signed in successfully")
-
-        // Check user role
-        const statusRes = await fetch("/api/auth/status", {
-          credentials: "include",
-        })
-        const statusData = await statusRes.json()
-
-        // Redirect based on role
-        if (statusData.role === "admin") {
-          router.push("/Admins")
-        } else if (statusData.role === "employee") {
-          router.push("/employee")
-        } else if (statusData.role === "customer") {
-          router.push("/Customer")
+        // Check if customer needs approval
+        if (data.requiresApproval) {
+          toast.success("Signed in successfully")
+          router.push("/customer-approval")
         } else {
-          router.push("/dashboard")
+          toast.success("Signed in successfully")
+
+          // Check user role
+          const statusRes = await fetch("/api/auth/status", {
+            credentials: "include",
+          })
+          const statusData = await statusRes.json()
+
+          // Redirect based on role
+          if (statusData.role === "admin") {
+            router.push("/Admins")
+          } else if (statusData.role === "employee") {
+            router.push("/employee")
+          } else if (statusData.role === "customer") {
+            router.push("/Customer")
+          } else {
+            router.push("/dashboard")
+          }
         }
       } else {
         toast.error(data.message || "Invalid email or password")

@@ -55,10 +55,10 @@ const Footer = () => {
     {
       title: "Information",
       links: [
-        { name: "Terms & Condition", href: "/terms" },
-        { name: "About Us", href: "/about" },
-        { name: "Privacy Policy", href: "/privacy" },
-        { name: "Contact Us", href: "/contact" },
+        { name: "Terms & Condition", href: "/terms-and-condition" },
+        { name: "About Us", href: "/#about" },
+        { name: "Privacy Policy", href: "/Privacy-Policy" },
+        { name: "Contact Us", href: "/#contact" },
       ]
     },
     {
@@ -173,19 +173,19 @@ const Footer = () => {
                 <ul className="space-y-2">
                   {section.links.map((link) => (
                     <li key={link.name}>
-                      <motion.div
-                        variants={linkVariants}
-                        whileHover="hover"
-                        whileTap="tap"
+                      <Link 
+                        href={link.href}
+                        className="text-sm text-gray-600 hover:text-primary transition-colors duration-300 relative group inline-block"
                       >
-                        <Link 
-                          href={link.href}
-                          className="text-sm text-gray-600 hover:text-primary transition-colors duration-300 relative group"
+                        <motion.div
+                          variants={linkVariants}
+                          whileHover="hover"
+                          whileTap="tap"
                         >
                           {link.name}
                           <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-                        </Link>
-                      </motion.div>
+                        </motion.div>
+                      </Link>
                     </li>
                   ))}
                 </ul>

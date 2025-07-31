@@ -61,15 +61,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const navItems = [
     { label: 'Dashboard', icon: Gauge, href: '/Admins' },
     { label: 'Sales', icon: BarChart, href: '/Admins/sales' },
-    { label: 'Sales Report', icon: BarChart, href: '/Admins/sales-report' },
+    { label: 'Reports', icon: BarChart, href: '/Admins/sales-report' },
     { label: 'Performance', icon: TrendingUp, href: '/Admins/performance' },
     { label: 'Inventory', icon: Box, href: '/admin/inventory' },
-    { label: 'Manage Users', icon: Users, href: '/admin/users' },
+    { label: 'Users', icon: Users, href: '/admin/users' },
     { label: 'Invoices', icon: FileText, href: '/invoices' },
     { label: 'Memos', icon: FileText, href: '/memos' },
-    { label: 'Sync Database', icon: Database, href: '/sync' },
+    { label: 'Sync', icon: Database, href: '/sync' },
     { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
-    { label: 'Parcel-Goods', icon: Box, href: '/parcel-goods' },
+    { label: 'Parcel', icon: Box, href: '/parcel-goods' },
   ];
 
   if (isLoading) {
@@ -83,7 +83,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
       <nav className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-50 print:hidden">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Link href="/Admins" className="flex items-center gap-2 text-xl font-bold text-primary">
@@ -104,7 +104,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </div>
 
             <div className="flex items-center">
-              <div className="hidden lg:flex items-center space-x-1">
+              <div className="hidden lg:flex items-center space-x-2">
                 {navItems.map((item) => {
                   const isActive = pathname === item.href || 
                                    (pathname.startsWith(item.href) && pathname.charAt(item.href.length) === '/');
@@ -114,7 +114,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         className={cn(
-                          "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out",
+                          "flex items-center space-x-2 px-2 py-2 rounded-md text-[10px] font-medium transition-colors duration-150 ease-in-out whitespace-nowrap",
                           isActive
                             ? "bg-primary/10 text-primary dark:bg-primary/20"
                             : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
@@ -132,7 +132,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                <div className="hidden lg:block w-px h-6 bg-gray-200 dark:bg-gray-700 mx-4"></div>
 
               <div className="flex items-center space-x-3">
-                 <UserProfileDropdown userName={userName} />
+                 <UserProfileDropdown userName={userName} userRole="admin" />
                  <Button
                    variant="outline"
                    size="icon"

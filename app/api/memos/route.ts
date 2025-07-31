@@ -1,38 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient, InvoiceType } from '@prisma/client'; // Import InvoiceType
-import { numberToWords } from '@/lib/utils'; // Keep generateInvoiceNumber, we'll adapt its use
+import { numberToWords, generateMemoNumber } from '@/lib/utils'; // Import generateMemoNumber from utils
 import { getSession } from '@/lib/session';
 import { invoiceFormSchema } from '@/lib/validators/invoice'; // Reuse invoice schema for now, rename/copy later if needed
 
 const prisma = new PrismaClient();
 
-// Function to generate Memo Number (Updated Format: CDM-XXXA/DDMM)
-function generateMemoNumber(lastMemoNo: string | null | undefined, date: Date): string {
-    const prefix = "CDM-";
-    const today = date;
-    const day = String(today.getDate()).padStart(2, '0');
-    const month = String(today.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
-    const dateSuffix = `${day}${month}`;
-    const sequencePartRegex = /CDM-(\d+)A\/(\d{4})/; // Regex to extract sequence and date part
 
-    // Always start with 5 (or increment from last memo number) so that on new memo creation it increments (e.g. CDM-005, CDM-006, CDM-007, and so on)
-    let nextSeq = 5;
-
-    if (lastMemoNo) {
-        const match = lastMemoNo.match(sequencePartRegex);
-        if (match) {
-            const lastSeq = parseInt(match[1], 10);
-            if (!isNaN(lastSeq)) {
-                nextSeq = lastSeq + 1;
-            }
-        }
-    }
-
-    // Pad sequence to 3 digits
-    const sequenceStr = String(nextSeq).padStart(3, '0');
-
-    return `${prefix}${sequenceStr}A/${dateSuffix}`;
-}
 
 export async function GET() {
   try {

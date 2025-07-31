@@ -11,11 +11,17 @@ export async function GET() {
                 createdAt: 'desc'
             },
             select: {
-                invoiceNo: true
+                invoiceNo: true,
+                createdAt: true
             }
         });
 
         const latestInvoiceNo = latestInvoice?.invoiceNo || null;
+
+        console.log('[Latest Invoice API] Latest invoice found:', {
+            invoiceNo: latestInvoiceNo,
+            createdAt: latestInvoice?.createdAt
+        });
 
         // Add cache-control headers to prevent caching
         const headers = new Headers();
@@ -29,6 +35,6 @@ export async function GET() {
         console.error('Error fetching latest invoice number:', error);
         return NextResponse.json({ error: 'Failed to fetch latest invoice number' }, { status: 500 });
     } finally {
-        await prisma.$disconnect(); // Disconnect Prisma client
+        await prisma.$disconnect();
     }
 }

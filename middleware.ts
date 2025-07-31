@@ -26,9 +26,10 @@ export async function middleware(request: NextRequest) {
   const isSyncPage = path.startsWith('/sync');
   const isDashboardPage = path === '/dashboard';
   const isAdminUsersPage = path === '/admin/users';
+  const isCustomerApprovalPage = path === '/customer-approval';
 
   // If no token and trying to access protected routes
-  if (!token && (isAdminPage || isEmployeePage || isCustomerPage || isSyncPage || isDashboardPage || isAdminUsersPage)) {
+  if (!token && (isAdminPage || isEmployeePage || isCustomerPage || isSyncPage || isDashboardPage || isAdminUsersPage || isCustomerApprovalPage)) {
     return NextResponse.redirect(new URL('/auth/signin', request.url));
   }
 
@@ -78,10 +79,24 @@ export async function middleware(request: NextRequest) {
       }
     }
 
+    // Users waiting for approval can only access approval page
+    if (payload.role === 'waiting_for_approval') {
+      if (!isCustomerApprovalPage) {
+        return NextResponse.redirect(new URL('/customer-approval', request.url));
+      }
+    }
+
     // Dashboard access control - restrict customers
     if (isDashboardPage) {
       if (payload.role === 'customer') {
         return NextResponse.redirect(new URL('/Customer', request.url));
+      }
+    }
+
+    // Customer approval page access control
+    if (isCustomerApprovalPage) {
+      if (payload.role !== 'waiting_for_approval') {
+        return NextResponse.redirect(new URL('/auth/signin', request.url));
       }
     }
   }
@@ -98,6 +113,7 @@ export const config = {
     '/sync/:path*',
     '/Admins/:path*',
     '/dashboard',
-    '/admin/users'
+    '/admin/users',
+    '/customer-approval'
   ]
 };

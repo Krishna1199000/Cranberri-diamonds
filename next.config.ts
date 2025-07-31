@@ -13,6 +13,10 @@ const nextConfig = {
       '*'
     ],
     remotePatterns: [
+      // {
+      //   protocol: 'https',
+      //   hostname: '*',
+      // },
       {
         protocol: 'https',
         hostname: 'd360.tech',

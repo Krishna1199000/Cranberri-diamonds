@@ -139,9 +139,8 @@ export async function POST(request: NextRequest) {
         videoUrl: data.videoUrl || null,
         imageUrl: data.imageUrl || null,
         certUrl: data.certUrl || null,
-        // Fields from Diamond model not directly in InventoryItem (like rapPrice, discount, measurement etc.) need to be handled
-        // e.g., decide if they are stored elsewhere or if InventoryItem model needs them.
-        // For now, only mapping fields present in InventoryItem schema.
+        measurement: data.measurement || null,
+        location: data.location || null,
     };
 
     // If status is HOLD or MEMO, expect heldByShipmentId from the client

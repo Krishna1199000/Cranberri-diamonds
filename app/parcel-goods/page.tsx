@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { toast } from "sonner";
 import { Edit2, Trash2 } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
@@ -13,6 +14,7 @@ import { CustomerLayout } from "@/components/layout/CustomerLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { CranberriLoader } from "@/components/ui/CranberriLoader";
+
 
 const SIEVE_SIZES = [
   "0.8", "0.9", "1", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8",
@@ -28,6 +30,7 @@ interface Price {
 export default function ParcelGoods() {
   const [prices, setPrices] = useState<Price[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [, setCurrentUserId] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState("");
   const [formData, setFormData] = useState({
@@ -49,6 +52,7 @@ export default function ParcelGoods() {
         }
         const roleData = await roleResponse.json();
         setUserRole(roleData.role);
+        setCurrentUserId(roleData.id);
 
         if (roleData.role === 'admin' || roleData.role === 'employee' || roleData.role === 'customer') {
            await fetchPrices();
@@ -176,9 +180,10 @@ export default function ParcelGoods() {
 
   return (
     <LayoutComponent>
-        <h1 className="text-3xl font-bold mb-8 text-gray-800 dark:text-gray-100">Parcel Goods Prices</h1>
+        <h1 className="text-3xl font-bold mb-8 text-gray-800 dark:text-gray-100">Parcel Goods Management</h1>
 
-        <div className={`grid grid-cols-1 ${canEdit ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-8`}>
+        <div className="w-full">
+            <div className={`grid grid-cols-1 ${canEdit ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-8`}>
           {canEdit && (
             <Card className="lg:col-span-1">
               <CardHeader>
@@ -303,6 +308,7 @@ export default function ParcelGoods() {
                 </div>
             </CardContent>
           </Card>
+            </div>
         </div>
     </LayoutComponent>
   );

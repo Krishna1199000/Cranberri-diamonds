@@ -7,6 +7,8 @@ import { EmployeeRankings } from "@/components/sales/EmployeeRankings"
 import { Button } from "@/components/ui/button"
 import { Award } from "lucide-react"
 import { AdminLayout } from "@/components/layout/AdminLayout"
+import { RequirementsManager } from "@/components/RequirementsManager"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function SalesPage() {
   const [showRankings, setShowRankings] = useState(false)
@@ -15,6 +17,7 @@ export default function SalesPage() {
   const [period, setPeriod] = useState("7")
   const [customPeriod, setCustomPeriod] = useState({ start: "", end: "" })
   const [selectedEmployee, setSelectedEmployee] = useState("all")
+  const [currentUserId, setCurrentUserId] = useState("")
 
   const refreshData = () => {
     setRefreshTrigger(prev => prev + 1)
@@ -45,6 +48,22 @@ export default function SalesPage() {
     }
   }, [period, customPeriod, selectedEmployee])
 
+  // Fetch current user ID for RequirementsManager
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me', { credentials: 'include' })
+        if (response.ok) {
+          const user = await response.json()
+          setCurrentUserId(user.id)
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error)
+      }
+    }
+    fetchCurrentUser()
+  }, [])
+
   useEffect(() => {
     fetchSalesData()
   }, [fetchSalesData, refreshTrigger])
@@ -63,28 +82,44 @@ export default function SalesPage() {
         </Button>
       </div>
 
-      {showRankings && (
-        <div className="mb-6">
-          <EmployeeRankings salesData={salesData} />
-        </div>
-      )}
+      <Tabs defaultValue="sales" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="sales">Sales Dashboard</TabsTrigger>
+          <TabsTrigger value="requirements">Requirements</TabsTrigger>
+        </TabsList>
         
-        <div className="space-y-6">
-          <SalesAnalytics 
-          data={salesData}
-            period={period}
-            setPeriod={setPeriod}
-            customPeriod={customPeriod}
-            setCustomPeriod={setCustomPeriod}
-            selectedEmployee={selectedEmployee}
-            setSelectedEmployee={setSelectedEmployee}
+        <TabsContent value="sales">
+          {showRankings && (
+            <div className="mb-6">
+              <EmployeeRankings salesData={salesData} />
+            </div>
+          )}
+            
+          <div className="space-y-6">
+            <SalesAnalytics 
+            data={salesData}
+              period={period}
+              setPeriod={setPeriod}
+              customPeriod={customPeriod}
+              setCustomPeriod={setCustomPeriod}
+              selectedEmployee={selectedEmployee}
+              setSelectedEmployee={setSelectedEmployee}
+            />
+            
+            <SalesTable 
+              salesData={salesData} 
+              refreshData={refreshData} 
+            />
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="requirements">
+          <RequirementsManager 
+            userRole="admin" 
+            currentUserId={currentUserId}
           />
-          
-          <SalesTable 
-            salesData={salesData} 
-            refreshData={refreshData} 
-          />
-      </div>
+        </TabsContent>
+      </Tabs>
     </AdminLayout>
   )
 }

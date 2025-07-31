@@ -188,8 +188,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
                         {invoice.items.map((item: DiamondItem, index: number) => { // Use DiamondItem type
                             const itemTotal = calculateTotal(Number(item.carat) || 0, Number(item.pricePerCarat) || 0);
                             return (
-                                <tr key={item.id || index} className="border"> {/* Use item.id if available */} 
-                                    {/* ... tds ... */} 
+                                <tr key={item.id || index} className="border">
                                     <td className="py-0.5 px-1 print:py-0 print:px-0.5 border">{item.description || `Item${index + 1}`}</td>
                                     <td className="py-0.5 px-1 print:py-0 print:px-0.5 text-center border">{Number(item.carat).toFixed(2)}</td>
                                     <td className="py-0.5 px-1 print:py-0 print:px-0.5 border">{`${item.color} ${item.clarity}`}</td>

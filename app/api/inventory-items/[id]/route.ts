@@ -58,6 +58,8 @@ export async function PUT(request: NextRequest,
     if (data.videoUrl !== undefined) updateData.videoUrl = data.videoUrl;
     if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
     if (data.certUrl !== undefined) updateData.certUrl = data.certUrl;
+    if (data.measurement !== undefined) updateData.measurement = data.measurement;
+    if (data.location !== undefined) updateData.location = data.location;
 
     // Check for stockId conflict only if a new, different stockId is provided
     if (data.stockId && data.stockId !== existingItem.stockId) {

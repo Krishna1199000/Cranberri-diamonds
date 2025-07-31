@@ -285,6 +285,7 @@ export default function AdminInventoryPage() {
                 currentPage={currentPage}
                 pageSize={pageSize}
                 isAdmin={true}
+                userRole="admin"
                 onPageChange={handlePageChange}
                 onSelect={setSelectedIds} 
                 onEdit={(item) => { // item here is InventoryItemType
