@@ -169,7 +169,7 @@ export default function Navbar() {
               animate="animate"
               whileHover="hover"
             >
-              <Image src="/IMG_8981[1].png" alt="Cranberri Logo" width={140} height={60} className="object-contain" />
+                              <Image src="/logo.png" alt="Cranberri Logo" width={140} height={60} className="object-contain" />
               
               {/* Sparkle effects */}
               <motion.div 
@@ -313,7 +313,7 @@ export default function Navbar() {
                     className="flex flex-col items-center gap-2 mb-8"
                   >
                     <div className="relative">
-                      <Image src="/IMG_8981[1].png" alt="Cranberri Logo" width={200} height={100} className="object-contain" />
+                      <Image src="/logo.png" alt="Cranberri Logo" width={200} height={100} className="object-contain" />
                       <motion.div
                         className="absolute -top-2 -right-2 w-3 h-3 bg-yellow-300 rounded-full"
                         animate={{

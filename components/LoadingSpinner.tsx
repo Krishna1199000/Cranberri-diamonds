@@ -7,7 +7,7 @@ export function LoadingSpinner() {
       <div className="text-center">
         <div className="relative w-32 h-32 mb-4">
           <Image
-            src="/IMG_8981[1].png"
+            src="/logo.png"
             alt="Cranberri Diamonds"
             width={128}
             height={128}

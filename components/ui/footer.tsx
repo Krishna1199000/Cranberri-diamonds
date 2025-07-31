@@ -122,7 +122,7 @@ const Footer = () => {
             <div className="flex flex-col items-center mb-6">
               <div className="relative w-80 h-60 mb-4">
                 <Image 
-                  src="/IMG_8981[1].png"
+                  src="/logo.png"
                   alt="Cranberri Diamonds Logo"
                   fill
                   className="object-contain"

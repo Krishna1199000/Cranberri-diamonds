@@ -104,7 +104,7 @@ export function MemoPreview({ memo }: MemoPreviewProps) {
         {/* Logo Section (same) */}
         <div className="flex justify-center items-center mb-2 print:mb-0.5">
             <div className="w-72 h-28 flex items-center justify-center print:w-40 print:h-auto">
-              <Image src="/IMG_8981[1].png" alt="Cranberri Diamonds Logo" width={240} height={90} className="print:w-[130px] print:h-auto" />
+              <Image src="/logo.png" alt="Cranberri Diamonds Logo" width={240} height={90} className="print:w-[130px] print:h-auto" />
             </div>
         </div>
 
