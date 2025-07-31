@@ -87,13 +87,15 @@ export async function sendInvoiceEmail({
   companyName,
   invoiceNo,
   totalAmount,
-  pdfBuffer
+  pdfBuffer,
+  isHtmlContent = false
 }: {
   to: string;
   companyName: string;
   invoiceNo: string;
   totalAmount: number;
   pdfBuffer: Buffer;
+  isHtmlContent?: boolean;
 }): Promise<void> {
   console.log('📧 Invoice Email: Starting invoice email process');
   console.log('📧 Invoice Email: Invoice:', invoiceNo);
@@ -216,15 +218,41 @@ export async function sendInvoiceEmail({
   const safeInvoiceNo = invoiceNo.replace(/\/|\?/g, '-');
   
   console.log('📧 Invoice Email: Calling sendEmail function...');
-  await sendEmail({
-    to,
-    subject,
-    html,
-    attachments: [{
-      filename: `Invoice-${safeInvoiceNo}.pdf`,
-      content: pdfBuffer,
-      contentType: 'application/pdf'
-    }]
-  });
+  console.log('📧 Invoice Email: Is HTML content:', isHtmlContent);
+  
+  if (isHtmlContent) {
+    // For serverless method, send HTML content directly in email body
+    await sendEmail({
+      to,
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Invoice ${invoiceNo}</h2>
+          <p>Dear <strong>${companyName}</strong>,</p>
+          <p>Thank you for your purchase from Cranberri Diamonds. Please find your invoice details below:</p>
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3>Invoice Summary:</h3>
+            <p><strong>Invoice Number:</strong> ${invoiceNo}</p>
+            <p><strong>Total Amount:</strong> $${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          </div>
+          <p>For detailed invoice information, please contact us at accounts@cranberridiamonds.in</p>
+          <p>Best regards,<br><strong>Cranberri Diamonds Team</strong></p>
+        </div>
+      `
+    });
+  } else {
+    // For regular method, send PDF attachment
+    await sendEmail({
+      to,
+      subject,
+      html,
+      attachments: [{
+        filename: `Invoice-${safeInvoiceNo}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }]
+    });
+  }
   console.log('✅ Invoice Email: Invoice email sent successfully!');
 }

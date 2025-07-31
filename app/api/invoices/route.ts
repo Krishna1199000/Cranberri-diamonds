@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { numberToWords, generateInvoiceNumber } from '@/lib/utils';
 import { generateInvoicePDFBuffer } from '@/lib/pdf-utils';
+import { generateInvoicePDFBufferServerless } from '@/lib/pdf-utils-serverless';
 import { sendInvoiceEmail } from '@/lib/email';
 import { createPaymentReminderNotification } from '@/lib/notification-scheduler';
 import { getSession } from '@/lib/session';
@@ -214,9 +215,18 @@ export async function POST(request: NextRequest) {
             console.log('✅ Recipient email:', createdInvoice.selectedShipment.email);
             
             console.log('🔄 Step 1: Generating PDF...');
-            // Generate PDF buffer using the exact same format as invoice-preview.tsx
-            const pdfBuffer = await generateInvoicePDFBuffer(createdInvoice.invoice);
-            console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+            // Generate PDF buffer using serverless-compatible method
+            let pdfBuffer: Buffer;
+            let isHtmlContent = false;
+            try {
+              pdfBuffer = await generateInvoicePDFBuffer(createdInvoice.invoice);
+              console.log('✅ PDF generated successfully with Puppeteer, size:', pdfBuffer.length, 'bytes');
+            } catch (puppeteerError) {
+              console.log('⚠️ Puppeteer PDF generation failed, falling back to serverless method');
+              pdfBuffer = await generateInvoicePDFBufferServerless(createdInvoice.invoice);
+              isHtmlContent = true;
+              console.log('✅ PDF generated successfully with serverless method, size:', pdfBuffer.length, 'bytes');
+            }
             
             console.log('🔄 Step 2: Sending email...');
             // Send email with PDF attachment
@@ -225,7 +235,8 @@ export async function POST(request: NextRequest) {
               companyName: createdInvoice.invoice.companyName,
               invoiceNo: createdInvoice.invoice.invoiceNo,
               totalAmount: createdInvoice.invoice.totalAmount,
-              pdfBuffer
+              pdfBuffer,
+              isHtmlContent
             });
             
             console.log('✅ Invoice email sent successfully to:', createdInvoice.selectedShipment.email);
