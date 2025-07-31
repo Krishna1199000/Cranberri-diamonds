@@ -15,14 +15,17 @@ interface EmailOptions {
 
 // Create reusable transporter object using SMTP transport
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  host: process.env.EMAIL_HOST || 'smtpout.secureserver.net', // GoDaddy SMTP
   port: Number(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_SECURE === 'true',
+  secure: false, // Use TLS
   auth: {
-    user: process.env.EMAIL_USER,
+    user: process.env.EMAIL_USER || 'accounts@cranberridiamonds.in',
     pass: process.env.EMAIL_PASSWORD,
   },
   debug: true, // Enable debug logs
+  tls: {
+    rejectUnauthorized: false // Allow self-signed certificates
+  }
 });
 
 export async function sendEmail({ to, subject, html, attachments }: EmailOptions): Promise<void> {
@@ -31,6 +34,11 @@ export async function sendEmail({ to, subject, html, attachments }: EmailOptions
     console.log('📧 Email: Recipient:', to);
     console.log('📧 Email: Subject:', subject);
     console.log('📧 Email: Has attachments:', attachments && attachments.length > 0 ? `Yes (${attachments.length})` : 'No');
+    console.log('📧 Email: Environment check:');
+    console.log('📧 Email: - EMAIL_HOST:', process.env.EMAIL_HOST || 'smtpout.secureserver.net (default)');
+    console.log('📧 Email: - EMAIL_USER:', process.env.EMAIL_USER || 'accounts@cranberridiamonds.in (default)');
+    console.log('📧 Email: - EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'Set' : 'NOT SET');
+    console.log('📧 Email: - EMAIL_PORT:', process.env.EMAIL_PORT || '587 (default)');
     
     // Verify transporter configuration
     console.log('🔄 Email: Verifying transporter configuration...');
@@ -98,10 +106,33 @@ export async function sendInvoiceEmail({
   // Convert logo to base64 for embedding in email
   let logoBase64 = '';
   try {
-    const logoPath = path.join(process.cwd(), 'public', 'logo.png');
-    const logoBuffer = fs.readFileSync(logoPath);
-    logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-    console.log('✅ Email: Logo loaded and converted to base64');
+    // Try multiple possible paths for the logo
+    const possiblePaths = [
+      path.join(process.cwd(), 'public', 'logo.png'),
+      path.join(process.cwd(), 'logo.png'),
+      '/app/public/logo.png', // For some deployment platforms
+      './public/logo.png'
+    ];
+    
+    let logoBuffer: Buffer | null = null;
+    for (const logoPath of possiblePaths) {
+      try {
+        console.log('🔄 Email: Trying logo path:', logoPath);
+        logoBuffer = fs.readFileSync(logoPath);
+        console.log('✅ Email: Logo loaded successfully from:', logoPath);
+        break;
+      } catch (pathError) {
+        console.log('❌ Email: Failed to load logo from:', logoPath, pathError instanceof Error ? pathError.message : 'Unknown error');
+        continue;
+      }
+    }
+    
+    if (logoBuffer) {
+      logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+      console.log('✅ Email: Logo converted to base64 successfully');
+    } else {
+      console.log('⚠️ Email: Could not load logo from any path, proceeding without logo');
+    }
   } catch (error) {
     console.error('❌ Email: Failed to load logo:', error);
     logoBase64 = ''; // Will use placeholder
