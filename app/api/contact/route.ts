@@ -90,7 +90,7 @@ www.cranberridiamonds.in`,
         // 2. Send notification email to admin
         const adminMailOptions = {
             from: `"Contact Form" <${process.env.EMAIL_USER}>`,
-            to: 'info@cranberridiamonds.in',
+            to: 'accounts@cranberridiamonds.in',
             replyTo: email,
             subject: `New Contact Form Submission from ${name}`,
             text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,

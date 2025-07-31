@@ -43,7 +43,7 @@ export async function sendEmail({ to, subject, html, attachments }: EmailOptions
     }
     
     const mailOptions: nodemailer.SendMailOptions = {
-      from: process.env.EMAIL_FROM || '"Cranberri Diamonds" <admin@cranberridiamonds.in>',
+      from: process.env.EMAIL_FROM || '"Cranberri Diamonds" <accounts@cranberridiamonds.in>',
       to,
       subject,
       html,
@@ -160,7 +160,7 @@ export async function sendInvoiceEmail({
                 <h3>Need Assistance?</h3>
                 <p>If you have any questions about your purchase or need additional support, please don't hesitate to contact us:</p>
                 <ul>
-                    <li><strong>Email:</strong> info@cranberridiamonds.in</li>
+                    <li><strong>Email:</strong> accounts@cranberridiamonds.in</li>
                     <li><strong>Website:</strong> www.cranberridiamonds.in</li>
                     <li><strong>Address:</strong> B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India</li>
                 </ul>
