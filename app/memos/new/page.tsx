@@ -1,3 +1,7 @@
+"use client";
+
+export const dynamic = 'force-dynamic';
+
 // app/memos/new/page.tsx
 import { MemoForm } from "@/components/memo/memo-form"; // Import MemoForm (to be created)
 

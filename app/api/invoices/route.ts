@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
             try {
               pdfBuffer = await generateInvoicePDFBuffer(createdInvoice.invoice);
               console.log('✅ PDF generated successfully with Puppeteer, size:', pdfBuffer.length, 'bytes');
-            } catch (puppeteerError) {
+            } catch {
               console.log('⚠️ Puppeteer PDF generation failed, falling back to serverless method');
               pdfBuffer = await generateInvoicePDFBufferServerless(createdInvoice.invoice);
               isHtmlContent = true;
