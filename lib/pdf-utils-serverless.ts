@@ -43,12 +43,14 @@ export async function generateInvoicePDFBufferServerless(invoice: InvoiceData): 
     const html = generateInvoiceHTMLServerless(invoice);
     console.log('✅ Serverless PDF Generation: HTML generated, length:', html.length, 'characters');
     
-    // For serverless environments, we'll return a simple HTML buffer
+    // For serverless environments, we'll use a simple approach
     // In production, you might want to use a service like:
     // - Resend's PDF generation
     // - Puppeteer Lambda
     // - External PDF service
     
+    // For now, return a simple HTML buffer that can be converted to PDF by the client
+    // This is a temporary solution until we implement a proper PDF service
     const buffer = Buffer.from(html, 'utf-8');
     console.log('✅ Serverless PDF Generation: Buffer created, size:', buffer.length, 'bytes');
     

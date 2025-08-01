@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Force dynamic rendering for all pages to avoid cookie-related static generation errors
-  experimental: {
-    serverComponentsExternalPackages: ['puppeteer-core']
-  },
+  serverExternalPackages: ['puppeteer-core'],
   images: {
     domains: [
       'd360.tech',

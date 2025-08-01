@@ -216,22 +216,43 @@ export async function POST(request: NextRequest) {
             console.log('✅ Recipient email:', createdInvoice.selectedShipment.email);
             
             console.log('🔄 Step 1: Generating PDF...');
-            // Generate PDF buffer using serverless-compatible method
+            // Generate PDF buffer with multiple fallback methods
             let pdfBuffer: Buffer;
+            let pdfGenerationMethod = '';
+            
             try {
+              // Try Puppeteer first (most reliable for actual PDF generation)
               pdfBuffer = await generateInvoicePDFBuffer(createdInvoice.invoice);
+              pdfGenerationMethod = 'puppeteer';
               console.log('✅ PDF generated successfully with Puppeteer, size:', pdfBuffer.length, 'bytes');
-            } catch {
+            } catch (puppeteerError) {
               console.log('⚠️ Puppeteer PDF generation failed, trying Resend PDF generation');
               try {
                 pdfBuffer = await generateInvoicePDFBufferResend(createdInvoice.invoice);
+                pdfGenerationMethod = 'resend';
                 console.log('✅ PDF generated successfully with Resend, size:', pdfBuffer.length, 'bytes');
-              } catch {
-                console.log('⚠️ Resend PDF generation failed, falling back to serverless method');
-                pdfBuffer = await generateInvoicePDFBufferServerless(createdInvoice.invoice);
-                console.log('✅ PDF generated successfully with serverless method, size:', pdfBuffer.length, 'bytes');
+              } catch (resendError) {
+                console.log('⚠️ Resend PDF generation failed, trying serverless method');
+                try {
+                  pdfBuffer = await generateInvoicePDFBufferServerless(createdInvoice.invoice);
+                  pdfGenerationMethod = 'serverless';
+                  console.log('✅ PDF generated successfully with serverless method, size:', pdfBuffer.length, 'bytes');
+                } catch (serverlessError) {
+                  console.error('❌ All PDF generation methods failed');
+                  console.error('Puppeteer error:', puppeteerError);
+                  console.error('Resend error:', resendError);
+                  console.error('Serverless error:', serverlessError);
+                  throw new Error('All PDF generation methods failed');
+                }
               }
             }
+            
+            // Validate PDF buffer
+            if (!pdfBuffer || pdfBuffer.length === 0) {
+              throw new Error('Generated PDF buffer is empty');
+            }
+            
+            console.log(`✅ PDF generation completed using ${pdfGenerationMethod} method`);
             
             console.log('🔄 Step 2: Sending email...');
             // Send email with PDF attachment

@@ -217,6 +217,18 @@ export async function sendInvoiceEmail({
   
   console.log('📧 Invoice Email: Calling sendEmail function...');
   
+  // Validate PDF buffer before sending
+  if (!pdfBuffer || pdfBuffer.length === 0) {
+    throw new Error('PDF buffer is empty or invalid');
+  }
+  
+  // Check if buffer starts with PDF magic number
+  const pdfHeader = pdfBuffer.slice(0, 4).toString('hex');
+  if (pdfHeader !== '25504446') { // PDF magic number
+    console.warn('⚠️ Email: PDF buffer does not start with PDF magic number:', pdfHeader);
+    console.warn('⚠️ Email: This might indicate the PDF generation failed');
+  }
+  
   // Always send the full email content with PDF attachment
   await sendEmail({
     to,
