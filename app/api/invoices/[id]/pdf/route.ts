@@ -3,23 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient, Invoice, InvoiceItem } from '@prisma/client';
 import { formatDateWithSuffix, formatCurrency } from '@/lib/utils';
 import { jsPDF } from 'jspdf';
-// Import applyPlugin and UserOptions only
-import { UserOptions, applyPlugin } from 'jspdf-autotable';
 import fs from 'fs'; // Import fs to read the image file
 import path from 'path'; // Import path for constructing file path
-
-// Apply the plugin to jsPDF
-applyPlugin(jsPDF);
-
-// Keep the type declarations
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: UserOptions) => jsPDF;
-    lastAutoTable: {
-      finalY: number;
-    };
-  }
-}
 
 const prisma = new PrismaClient();
 
@@ -210,10 +195,54 @@ async function generateInvoicePDF(doc: jsPDF, invoice: InvoiceWithItems) {
     currentY += 8; // Space after title
 
     // === Items Table ===
-    const tableHeaders = [['Description', 'Carat', 'Color & Clarity', 'Lab', 'Report No.', 'Price/ct (USD)', 'Total (USD)']];
-    const tableBody = invoice.items.map(item => {
+    const tableStartY = currentY;
+    const colWidths = [45, 15, 25, 15, 25, 25, 25]; // Column widths
+    const colPositions = [margin];
+    for (let i = 1; i < colWidths.length; i++) {
+        colPositions.push(colPositions[i-1] + colWidths[i-1]);
+    }
+    
+    // Table headers
+    const headers = ['Description', 'Carat', 'Color & Clarity', 'Lab', 'Report No.', 'Price/ct (USD)', 'Total (USD)'];
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setFillColor(240, 240, 240);
+    
+    // Draw header background
+    doc.rect(margin, tableStartY, colWidths.reduce((a, b) => a + b, 0), 8, 'F');
+    
+    // Draw header text
+    headers.forEach((header, i) => {
+        const x = colPositions[i] + 2;
+        const align = i === 1 || i === 5 || i === 6 ? 'right' : i === 3 || i === 4 ? 'center' : 'left';
+        doc.text(header, x, tableStartY + 5, { align });
+    });
+    
+    // Draw header border
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.1);
+    doc.line(margin, tableStartY, margin + colWidths.reduce((a, b) => a + b, 0), tableStartY);
+    doc.line(margin, tableStartY + 8, margin + colWidths.reduce((a, b) => a + b, 0), tableStartY + 8);
+    
+    let tableY = tableStartY + 8;
+    let grandTotal = 0;
+    
+    // Table rows
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    invoice.items.forEach((item, index) => {
         const itemTotal = (item.carat || 0) * (item.pricePerCarat || 0);
-        return [
+        grandTotal += itemTotal;
+        
+        // Check if we need a new page
+        if (tableY > 250) {
+            doc.addPage();
+            tableY = 20;
+        }
+        
+        // Draw row data
+        const rowData = [
             item.description || '',
             (item.carat || 0).toFixed(2),
             `${item.color || ''} ${item.clarity || ''}`,
@@ -222,60 +251,43 @@ async function generateInvoicePDF(doc: jsPDF, invoice: InvoiceWithItems) {
             `$${formatCurrency(item.pricePerCarat || 0)}`,
             `$${formatCurrency(itemTotal)}`
         ];
+        
+        rowData.forEach((text, i) => {
+            const x = colPositions[i] + 2;
+            const align = i === 1 || i === 5 || i === 6 ? 'right' : i === 3 || i === 4 ? 'center' : 'left';
+            doc.text(text.substring(0, 20), x, tableY + 3, { align });
+        });
+        
+        // Draw row border
+        doc.line(margin, tableY, margin + colWidths.reduce((a, b) => a + b, 0), tableY);
+        doc.line(margin, tableY + 6, margin + colWidths.reduce((a, b) => a + b, 0), tableY + 6);
+        
+        tableY += 6;
     });
-
-    const grandTotal = invoice.items.reduce((sum, item) => {
-         return sum + (item.carat || 0) * (item.pricePerCarat || 0);
-    }, 0);
-
-    doc.autoTable({
-        head: tableHeaders,
-        body: tableBody,
-        startY: currentY,
-        theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1 },
-        headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', fontSize: 8.5, halign: 'center' },
-        columnStyles: {
-            0: { cellWidth: 45 },
-            1: { cellWidth: 15, halign: 'right' },
-            2: { cellWidth: 25 },
-            3: { cellWidth: 15, halign: 'center' },
-            4: { cellWidth: 25, halign: 'center' },
-            5: { cellWidth: 25, halign: 'right' },
-            6: { cellWidth: 25, halign: 'right' }
-        },
-        didDrawPage: (data) => {
-             if (data.table.foot.length) {
-             } else {
-                 const footStyle = { fontStyle: 'bold', fontSize: 9, halign: 'right' as const, fillColor: [240, 240, 240] };
-                 const startX = data.settings.margin.left;
-                 const colWidths = data.table.columns.map(c => c.width);
-                 const spanWidth = colWidths.slice(0, -1).reduce((a, b) => a + b, 0);
-
-                 doc.setFillColor(footStyle.fillColor[0], footStyle.fillColor[1], footStyle.fillColor[2]);
-                 doc.rect(startX, data.cursor?.y ?? 0, spanWidth, 8, 'F');
-                 doc.rect(startX + spanWidth, data.cursor?.y ?? 0, colWidths[colWidths.length - 1], 8, 'F');
-
-                 doc.setFont('helvetica', 'bold');
-                 doc.setFontSize(footStyle.fontSize);
-                 doc.setTextColor(0);
-                 doc.text('Grand Total:', startX + spanWidth - 2, (data.cursor?.y ?? 0) + 5.5, { align: 'right' });
-                 doc.text(`$${formatCurrency(grandTotal)}`, startX + spanWidth + colWidths[colWidths.length - 1] - 2, (data.cursor?.y ?? 0) + 5.5, { align: 'right' });
-
-                 doc.setDrawColor(200, 200, 200);
-                 doc.setLineWidth(0.1);
-                 doc.line(startX, data.cursor?.y ?? 0, startX + spanWidth + colWidths[colWidths.length-1], data.cursor?.y ?? 0);
-                 doc.line(startX, (data.cursor?.y ?? 0) + 8, startX + spanWidth + colWidths[colWidths.length-1], (data.cursor?.y ?? 0) + 8);
-                 doc.line(startX, data.cursor?.y ?? 0, startX, (data.cursor?.y ?? 0) + 8);
-                 doc.line(startX + spanWidth, data.cursor?.y ?? 0, startX + spanWidth, (data.cursor?.y ?? 0) + 8);
-                 doc.line(startX + spanWidth + colWidths[colWidths.length -1], data.cursor?.y ?? 0, startX + spanWidth + colWidths[colWidths.length -1], (data.cursor?.y ?? 0) + 8);
-
-                 if(data.cursor) data.cursor.y += 8;
-             }
-        }
-    });
-
-    currentY = doc.lastAutoTable.finalY + 8;
+    
+    // Grand total row
+    const totalRowY = tableY;
+    doc.setFillColor(240, 240, 240);
+    const spanWidth = colWidths.slice(0, -1).reduce((a, b) => a + b, 0);
+    doc.rect(margin, totalRowY, spanWidth, 8, 'F');
+    doc.rect(margin + spanWidth, totalRowY, colWidths[colWidths.length - 1], 8, 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(0);
+    doc.text('Grand Total:', margin + spanWidth - 2, totalRowY + 5.5, { align: 'right' });
+    doc.text(`$${formatCurrency(grandTotal)}`, margin + spanWidth + colWidths[colWidths.length - 1] - 2, totalRowY + 5.5, { align: 'right' });
+    
+    // Draw total row borders
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.1);
+    doc.line(margin, totalRowY, margin + spanWidth + colWidths[colWidths.length-1], totalRowY);
+    doc.line(margin, totalRowY + 8, margin + spanWidth + colWidths[colWidths.length-1], totalRowY + 8);
+    doc.line(margin, totalRowY, margin, totalRowY + 8);
+    doc.line(margin + spanWidth, totalRowY, margin + spanWidth, totalRowY + 8);
+    doc.line(margin + spanWidth + colWidths[colWidths.length -1], totalRowY, margin + spanWidth + colWidths[colWidths.length -1], totalRowY + 8);
+    
+    currentY = totalRowY + 8 + 8;
 
     // === Two Column Layout (Account Details & Totals) ===
     const twoColStartY = currentY;
