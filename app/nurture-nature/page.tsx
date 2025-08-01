@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Leaf, Heart, Shield, Sparkles, ArrowRight, Globe, Recycle, Award } from 'lucide-react';
 import Navbar from "@/components/navbar";
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function NurtureNature() {
   const [scrollY, setScrollY] = useState(0);
@@ -81,10 +82,11 @@ export default function NurtureNature() {
                 index === currentSlide ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              <img
+              <Image
                 src={slide.image}
                 alt="Nature Diamond"
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
               <div className="absolute inset-0 bg-white/70" />
             </div>
@@ -270,9 +272,11 @@ export default function NurtureNature() {
                 transform: `translateY(${Math.max(0, scrollY - 1600) * 0.05}px)`,
               }}
             >
-              <img
+              <Image
                 src="/tree.png"
                 alt="Environmental Impact"
+                width={800}
+                height={600}
                 className="w-full rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-700"
               />
               <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-green-100 rounded-full shadow-xl flex items-center justify-center animate-float">

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Eye, Scissors, Scale, Heart, Sparkles, ArrowRight, Star, Award, Gem, Zap } from 'lucide-react';
 import Navbar from "@/components/navbar";
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function Beyond4Cs() {
   const [scrollY, setScrollY] = useState(0);
@@ -112,10 +113,11 @@ export default function Beyond4Cs() {
                 index === currentSlide ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              <img
+              <Image
                 src={slide.image}
                 alt="Diamond Excellence"
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
               <div className="absolute inset-0 bg-white/70" />
             </div>
@@ -301,9 +303,11 @@ export default function Beyond4Cs() {
                 transform: `translateY(${Math.max(0, scrollY - 1600) * 0.05}px)`,
               }}
             >
-              <img
+              <Image
                 src="/Beyond1.png"
                 alt="Diamond Technology"
+                width={800}
+                height={600}
                 className="w-full rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-700"
               />
               <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-blue-100 rounded-full shadow-xl flex items-center justify-center animate-float">
@@ -344,9 +348,11 @@ export default function Beyond4Cs() {
                   animationDelay: `${index * 0.2}s`,
                 }}
               >
-                <img
+                <Image
                   src={item.src}
                   alt={item.title}
+                  width={400}
+                  height={384}
                   className="w-full h-96 object-cover group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

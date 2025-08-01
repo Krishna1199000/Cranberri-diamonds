@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,11 +18,7 @@ export default function CustomerApprovalPage() {
   const [loading, setLoading] = useState(true)
   const [requesting, setRequesting] = useState(false)
 
-  useEffect(() => {
-    checkApprovalStatus()
-  }, [])
-
-  const checkApprovalStatus = async () => {
+  const checkApprovalStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/auth/approval-status', {
         credentials: 'include'
@@ -46,7 +42,11 @@ export default function CustomerApprovalPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    checkApprovalStatus()
+  }, [checkApprovalStatus])
 
   const sendApprovalRequest = async () => {
     setRequesting(true)
