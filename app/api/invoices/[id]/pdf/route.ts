@@ -127,33 +127,37 @@ async function generateInvoicePDF(doc: jsPDF, invoice: InvoiceWithItems) {
 
     // === Logo ===
     try {
-        const imgPath = path.join(process.cwd(), 'public', 'IMG_8981[1].png');
+        const imgPath = path.join(process.cwd(), 'public', 'logo.png');
         const imgData = fs.readFileSync(imgPath);
         const imgProps = doc.getImageProperties(imgData);
-        const imgWidth = 60; // Adjust width as needed
+        const imgWidth = 40; // Smaller width to match preview
         const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
         const imgX = (pageWidth - imgWidth) / 2;
         doc.addImage(imgData, 'PNG', imgX, currentY, imgWidth, imgHeight);
-        currentY += imgHeight + 2; // Reduced spacing after logo from 5 to 2
+        currentY += imgHeight + 1; // Minimal spacing after logo
     } catch (imgError) {
         console.error("Error loading logo image:", imgError);
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Cranberri", pageWidth / 2, currentY + 5, { align: 'center' });
         doc.setFontSize(10);
-        doc.text("Cranberri Logo Placeholder", pageWidth / 2, currentY + 5, { align: 'center' });
-        currentY += 10;
+        doc.setFont('helvetica', 'normal');
+        doc.text("Diamonds", pageWidth / 2, currentY + 12, { align: 'center' });
+        currentY += 15;
     }
 
     // === Company Address and Website ===
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100); // Gray color for address
     doc.text("B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India", pageWidth / 2, currentY, { align: 'center' });
-    currentY += 4;
+    currentY += 3;
     doc.text("www.cranberridiamonds.in", pageWidth / 2, currentY, { align: 'center' });
     doc.setTextColor(0, 0, 0); // Reset to black
-    currentY += 6; // Space after address
+    currentY += 4; // Reduced space after address
 
     // === Header Section (Invoice No Left, Dates Right) ===
     const headerStartY = currentY;
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text(`Invoice No: ${invoice.invoiceNo}`, margin, headerStartY);
     doc.setFont('helvetica', 'normal');
@@ -161,29 +165,30 @@ async function generateInvoicePDF(doc: jsPDF, invoice: InvoiceWithItems) {
     doc.setFontSize(9);
     const rightColX = pageWidth - margin;
     doc.text(`Date: ${formatDateWithSuffix(invoice.date)}`, rightColX, headerStartY, { align: 'right' });
-    doc.text(`Due Date: ${formatDateWithSuffix(invoice.dueDate)}`, rightColX, headerStartY + 5, { align: 'right' });
-    doc.text(`Payment Terms: ${invoice.paymentTerms} days`, rightColX, headerStartY + 10, { align: 'right' });
-    currentY = headerStartY + 15; // Move below dates
+    doc.text(`Due Date: ${formatDateWithSuffix(invoice.dueDate)}`, rightColX, headerStartY + 4, { align: 'right' });
+    doc.text(`Payment Terms: ${invoice.paymentTerms} days`, rightColX, headerStartY + 8, { align: 'right' });
+    currentY = headerStartY + 12; // Reduced space below dates
 
     // === Billing Address ('To:') Section ===
-    currentY += 5; // Add space before address
-    doc.setFontSize(9);
-    doc.text('To:', margin, currentY);
-    currentY += 5;
+    currentY += 3; // Reduced space before address
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
+    doc.text('To:', margin, currentY);
+    currentY += 4;
     doc.text(invoice.companyName, margin, currentY);
-    currentY += 5;
+    currentY += 4;
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
     doc.text(invoice.addressLine1, margin, currentY);
-    currentY += 5;
+    currentY += 4;
     if (invoice.addressLine2) {
         doc.text(invoice.addressLine2, margin, currentY);
-        currentY += 5;
+        currentY += 4;
     }
     doc.text(`${invoice.city}, ${invoice.state} ${invoice.postalCode}`, margin, currentY);
-    currentY += 5;
+    currentY += 4;
     doc.text(invoice.country, margin, currentY);
-    currentY += 10; // Space after address
+    currentY += 6; // Reduced space after address
 
     // === Annexure Title ===
     doc.setFontSize(11);
@@ -192,7 +197,7 @@ async function generateInvoicePDF(doc: jsPDF, invoice: InvoiceWithItems) {
     const annexureTextWidth = doc.getTextWidth('Annexure');
     doc.line(pageWidth / 2 - annexureTextWidth / 2, currentY + 1, pageWidth / 2 + annexureTextWidth / 2, currentY + 1);
     doc.setFont('helvetica', 'normal');
-    currentY += 8; // Space after title
+    currentY += 6; // Reduced space after title
 
     // === Items Table ===
     const tableStartY = currentY;
@@ -204,27 +209,27 @@ async function generateInvoicePDF(doc: jsPDF, invoice: InvoiceWithItems) {
     
     // Table headers
     const headers = ['Description', 'Carat', 'Color & Clarity', 'Lab', 'Report No.', 'Price/ct (USD)', 'Total (USD)'];
-    doc.setFontSize(8.5);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.setFillColor(240, 240, 240);
+    doc.setFillColor(219, 234, 254); // Light blue background to match preview
     
     // Draw header background
-    doc.rect(margin, tableStartY, colWidths.reduce((a, b) => a + b, 0), 8, 'F');
+    doc.rect(margin, tableStartY, colWidths.reduce((a, b) => a + b, 0), 6, 'F');
     
     // Draw header text
     headers.forEach((header, i) => {
         const x = colPositions[i] + 2;
         const align = i === 1 || i === 5 || i === 6 ? 'right' : i === 3 || i === 4 ? 'center' : 'left';
-        doc.text(header, x, tableStartY + 5, { align });
+        doc.text(header, x, tableStartY + 4, { align });
     });
     
     // Draw header border
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.1);
     doc.line(margin, tableStartY, margin + colWidths.reduce((a, b) => a + b, 0), tableStartY);
-    doc.line(margin, tableStartY + 8, margin + colWidths.reduce((a, b) => a + b, 0), tableStartY + 8);
+    doc.line(margin, tableStartY + 6, margin + colWidths.reduce((a, b) => a + b, 0), tableStartY + 6);
     
-    let tableY = tableStartY + 8;
+    let tableY = tableStartY + 6;
     let grandTotal = 0;
     
     // Table rows
@@ -255,128 +260,119 @@ async function generateInvoicePDF(doc: jsPDF, invoice: InvoiceWithItems) {
         rowData.forEach((text, i) => {
             const x = colPositions[i] + 2;
             const align = i === 1 || i === 5 || i === 6 ? 'right' : i === 3 || i === 4 ? 'center' : 'left';
-            doc.text(text.substring(0, 20), x, tableY + 3, { align });
+            doc.text(text.substring(0, 20), x, tableY + 2.5, { align });
         });
         
         // Draw row border
         doc.line(margin, tableY, margin + colWidths.reduce((a, b) => a + b, 0), tableY);
-        doc.line(margin, tableY + 6, margin + colWidths.reduce((a, b) => a + b, 0), tableY + 6);
+        doc.line(margin, tableY + 5, margin + colWidths.reduce((a, b) => a + b, 0), tableY + 5);
         
-        tableY += 6;
+        tableY += 5;
     });
     
     // Grand total row
     const totalRowY = tableY;
-    doc.setFillColor(240, 240, 240);
+    doc.setFillColor(243, 244, 246); // Light gray background to match preview
     const spanWidth = colWidths.slice(0, -1).reduce((a, b) => a + b, 0);
-    doc.rect(margin, totalRowY, spanWidth, 8, 'F');
-    doc.rect(margin + spanWidth, totalRowY, colWidths[colWidths.length - 1], 8, 'F');
+    doc.rect(margin, totalRowY, spanWidth, 6, 'F');
+    doc.rect(margin + spanWidth, totalRowY, colWidths[colWidths.length - 1], 6, 'F');
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(0);
-    doc.text('Grand Total:', margin + spanWidth - 2, totalRowY + 5.5, { align: 'right' });
-    doc.text(`$${formatCurrency(grandTotal)}`, margin + spanWidth + colWidths[colWidths.length - 1] - 2, totalRowY + 5.5, { align: 'right' });
+    doc.text('Grand Total:', margin + spanWidth - 2, totalRowY + 4, { align: 'right' });
+    doc.text(`$${formatCurrency(grandTotal)}`, margin + spanWidth + colWidths[colWidths.length - 1] - 2, totalRowY + 4, { align: 'right' });
     
     // Draw total row borders
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.1);
     doc.line(margin, totalRowY, margin + spanWidth + colWidths[colWidths.length-1], totalRowY);
-    doc.line(margin, totalRowY + 8, margin + spanWidth + colWidths[colWidths.length-1], totalRowY + 8);
-    doc.line(margin, totalRowY, margin, totalRowY + 8);
-    doc.line(margin + spanWidth, totalRowY, margin + spanWidth, totalRowY + 8);
-    doc.line(margin + spanWidth + colWidths[colWidths.length -1], totalRowY, margin + spanWidth + colWidths[colWidths.length -1], totalRowY + 8);
+    doc.line(margin, totalRowY + 6, margin + spanWidth + colWidths[colWidths.length-1], totalRowY + 6);
+    doc.line(margin, totalRowY, margin, totalRowY + 6);
+    doc.line(margin + spanWidth, totalRowY, margin + spanWidth, totalRowY + 6);
+    doc.line(margin + spanWidth + colWidths[colWidths.length -1], totalRowY, margin + spanWidth + colWidths[colWidths.length -1], totalRowY + 6);
     
-    currentY = totalRowY + 8 + 8;
+    currentY = totalRowY + 6 + 4;
 
     // === Two Column Layout (Account Details & Totals) ===
     const twoColStartY = currentY;
-    const accountBoxWidth = contentWidth * 0.6;
-    const totalsWidth = contentWidth * 0.38;
+    const accountBoxWidth = contentWidth * 0.45;
+    const totalsWidth = contentWidth * 0.53;
     const totalsX = margin + accountBoxWidth + (contentWidth * 0.02);
 
     // --- Account Details (Left) ---
-    const accountLineHeight = 4.5;
-    let accountY = twoColStartY + 10;
+    const accountLineHeight = 3.5;
+    let accountY = twoColStartY + 6;
 
-    doc.setDrawColor(150, 150, 150);
-    doc.setLineWidth(0.2);
-    doc.rect(margin, twoColStartY, accountBoxWidth, 45);
+    doc.setDrawColor(209, 213, 219);
+    doc.setLineWidth(0.5);
+    doc.rect(margin, twoColStartY, accountBoxWidth, 32);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ACCOUNT DETAILS', margin + accountBoxWidth / 2, twoColStartY + 4, { align: 'center' });
+    doc.line(margin + 1, twoColStartY + 6, margin + accountBoxWidth - 1, twoColStartY + 6);
 
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ACCOUNT DETAILS', margin + accountBoxWidth / 2, twoColStartY + 5, { align: 'center' });
-    doc.line(margin + 1, twoColStartY + 7, margin + accountBoxWidth - 1, twoColStartY + 7);
-
-    doc.setFontSize(8);
-    const addAccountDetail = (label: string, value: string | null | undefined, indent = false) => {
+    const addAccountDetail = (label: string, value: string | null | undefined) => {
         const textValue = value ?? '';
-        doc.setFont('helvetica', 'bold');
-        const labelX = margin + 3;
-        doc.text(`${label}`, labelX, accountY);
-        const labelWidth = doc.getTextWidth(`${label}`);
         doc.setFont('helvetica', 'normal');
-        const valueX = labelX + labelWidth + 1;
-         if (indent) {
-            doc.text(textValue, labelX + 10, accountY);
-         } else {
-             doc.text(`- ${textValue}`, valueX, accountY);
-         }
+        const labelX = margin + 2;
+        doc.text(`${label} - ${textValue}`, labelX, accountY);
         accountY += accountLineHeight;
     };
 
-    addAccountDetail('BENEFICIARY NAME', invoice.companyName);
+    addAccountDetail('BENEFICIARY NAME', 'CRANBERRI DIAMONDS');
     addAccountDetail('BANK NAME', 'CITIBANK');
-    addAccountDetail('ADDRESS', invoice.addressLine1);
-    
-    if (invoice.addressLine2) {
-        doc.setFont('helvetica', 'normal');
-        doc.text(invoice.addressLine2, margin + 15, accountY);
-        accountY += accountLineHeight;
-    }
+    addAccountDetail('ADDRESS', '111 WALL STREET,');
     doc.setFont('helvetica', 'normal');
-    doc.text(`${invoice.city ?? ''}, ${invoice.state ?? ''} ${invoice.postalCode ?? ''}`, margin + 15, accountY);
+    doc.text('NEW YORK, NY 10043 USA', margin + accountBoxWidth / 2, accountY, { align: 'center' });
     accountY += accountLineHeight;
     addAccountDetail('SWIFT', 'CITIUS33');
     addAccountDetail('ACCOUNT NUMBER', '70588170001126150');
     addAccountDetail('ACCOUNT TYPE', 'CHECKING');
-    const accountBoxEndY = twoColStartY + 45;
+    const accountBoxEndY = twoColStartY + 32;
 
     // --- Totals (Right) ---
-    let totalsY = twoColStartY;
+    doc.setDrawColor(209, 213, 219);
+    doc.setLineWidth(0.5);
+    doc.rect(totalsX - 2, twoColStartY, totalsWidth + 2, 32);
+    
+    let totalsY = twoColStartY + 4;
     doc.setFontSize(9);
     const addTotalRow = (label: string, amount: number, isBold = false) => {
         if (isBold) doc.setFont('helvetica', 'bold');
         else doc.setFont('helvetica', 'normal');
         doc.text(label, totalsX, totalsY);
-        doc.text(`$${formatCurrency(amount)}`, margin + contentWidth, totalsY, { align: 'right' }); // Add $
-        totalsY += 5.5;
+        doc.text(`${formatCurrency(amount)}`, margin + contentWidth - 2, totalsY, { align: 'right' });
+        totalsY += 4;
     };
 
     addTotalRow('Subtotal:', invoice.subtotal || 0);
     addTotalRow('Discount:', invoice.discount || 0);
     addTotalRow('CR/Payment:', invoice.crPayment || 0);
     addTotalRow('Shipping:', invoice.shipmentCost || 0);
-    totalsY += 1;
-    doc.setDrawColor(150, 150, 150);
-    doc.line(totalsX, totalsY, margin + contentWidth, totalsY);
-    totalsY += 4;
+    
+    doc.setDrawColor(209, 213, 219);
+    doc.line(totalsX, totalsY, margin + contentWidth - 2, totalsY);
+    totalsY += 2;
+    doc.setFontSize(10);
     addTotalRow('Total Due:', invoice.totalAmount, true);
 
     // Amount in Words
-    totalsY += 2;
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
+    totalsY += 1;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
     doc.text('Amount in words:', totalsX, totalsY);
-    totalsY += 4;
+    totalsY += 3;
     doc.setFont('helvetica', 'italic');
     const amountText = numberToWords(invoice.totalAmount);
-    const amountLines = doc.splitTextToSize(amountText, totalsWidth);
+    const amountLines = doc.splitTextToSize(amountText, totalsWidth - 5);
     doc.text(amountLines, totalsX, totalsY);
-    totalsY += amountLines.length * 3.5;
+    totalsY += amountLines.length * 3;
     doc.setFont('helvetica', 'normal');
 
-    currentY = Math.max(accountBoxEndY, totalsY) + 10;
+    currentY = Math.max(accountBoxEndY, totalsY) + 6;
 
     // === Disclaimer ===
     doc.setFontSize(8);
