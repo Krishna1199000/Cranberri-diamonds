@@ -113,15 +113,15 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
       <style>
         @page {
           size: A4;
-          margin: 0.3cm;
+          margin: 0.5cm;
         }
         
         body {
           margin: 0;
-          padding: 2px;
+          padding: 4px;
           font-family: system-ui, -apple-system, sans-serif;
-          font-size: 12px;
-          line-height: 1.3;
+          font-size: 10px;
+          line-height: 1.2;
           color: #333;
           background: white;
         }
@@ -188,7 +188,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         
         .company-address p {
           margin: 0;
-          font-size: 12px;
+          font-size: 8px;
           color: #6b7280;
           line-height: 1.3;
         }
@@ -207,14 +207,14 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         }
         
         .invoice-no {
-          font-size: 14px;
+          font-size: 11px;
           font-weight: bold;
           color: #1f2937;
         }
         
         .dates-section {
           text-align: right;
-          font-size: 14px;
+          font-size: 9px;
           color: #6b7280;
           line-height: 1.3;
         }
@@ -228,18 +228,18 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         .bill-to-label {
           font-weight: bold;
           color: #374151;
-          font-size: 14px;
-          margin-bottom: 4px;
+          font-size: 10px;
+          margin-bottom: 0px;
         }
         
         .company-name {
           font-weight: 600;
-          font-size: 14px;
+          font-size: 10px;
           margin-bottom: 2px;
         }
         
         .address-line {
-          font-size: 14px;
+          font-size: 9px;
           margin-bottom: 1px;
           line-height: 1.2;
         }
@@ -252,7 +252,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         
         .annexure-title h2 {
           font-weight: bold;
-          font-size: 16px;
+          font-size: 11px;
           text-decoration: underline;
           margin: 0;
           color: #000;
@@ -262,13 +262,13 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         .items-table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 8px;
-          font-size: 12px;
+          margin-bottom: 4px;
+          font-size: 9px;
         }
         
         .items-table th,
         .items-table td {
-          padding: 2px 4px;
+          padding: 0px 2px;
           border: 1px solid #d1d5db;
           line-height: 1.2;
         }
@@ -277,7 +277,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
           background-color: #dbeafe !important;
           color: #000 !important;
           font-weight: bold;
-          font-size: 12px;
+          font-size: 9px;
           text-align: center;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
@@ -342,18 +342,18 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         
         .account-details {
           width: 45%;
-          font-size: 14px;
+          font-size: 9px;
           border: 1px solid #d1d5db;
-          padding: 4px;
+          padding: 2px;
         }
         
         .account-header {
           font-weight: bold;
           text-align: center;
           border-bottom: 1px solid #d1d5db;
-          padding-bottom: 2px;
-          margin-bottom: 3px;
-          font-size: 14px;
+          padding-bottom: 0px;
+          margin-bottom: 2px;
+          font-size: 10px;
         }
         
         .account-detail {
@@ -372,7 +372,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         
         .totals-section {
           width: 53%;
-          font-size: 14px;
+          font-size: 9px;
         }
         
         .totals-table {
@@ -396,7 +396,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         .total-due {
           border-top: 1px solid #d1d5db;
           font-weight: bold;
-          font-size: 14px;
+          font-size: 10px;
         }
         
         .amount-words {
@@ -405,20 +405,20 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         
         .amount-words-label {
           font-weight: 500;
-          font-size: 14px;
+          font-size: 9px;
           margin-bottom: 2px;
         }
         
         .amount-words-text {
           font-style: italic;
-          font-size: 12px;
+          font-size: 9px;
           line-height: 1.2;
         }
         
         /* Disclaimer */
         .disclaimer {
-          margin-bottom: 8px;
-          font-size: 12px;
+          margin-bottom: 4px;
+          font-size: 8px;
         }
         
         .disclaimer-title {
@@ -457,15 +457,15 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         }
         
         .signature-text {
-          font-size: 14px;
+          font-size: 10px;
           padding-top: 2px;
         }
         
         /* Legal Text */
         .legal-text {
-          margin-top: 8px;
+          margin-top: 4px;
           margin-bottom: 2px;
-          font-size: 9px;
+          font-size: 8px;
           color: #6b7280;
           line-height: 1.2;
         }
