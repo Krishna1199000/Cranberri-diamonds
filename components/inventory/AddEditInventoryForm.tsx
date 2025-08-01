@@ -121,7 +121,7 @@ export function AddEditInventoryForm({
     } else {
       form.setValue("finalAmount", 0, { shouldValidate: true });
     }
-  }, [watchedSize, watchedPricePerCarat, form.setValue]);
+  }, [watchedSize, watchedPricePerCarat, form.setValue, form]);
   
   useEffect(() => {
     if (item) {
@@ -151,7 +151,7 @@ export function AddEditInventoryForm({
       form.reset(); // Reset to defaultValues
       setIsShipmentRequired(false);
     }
-  }, [item, form.reset, form.setValue]);
+  }, [item, form.reset, form.setValue, form]);
   
   const handleStatusChange = (value: string) => {
     form.setValue("status", value as "AVAILABLE" | "HOLD" | "MEMO");

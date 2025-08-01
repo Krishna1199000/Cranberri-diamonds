@@ -231,7 +231,7 @@ async function generateInvoicePDF(doc: jsPDF, invoice: InvoiceWithItems) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     
-    invoice.items.forEach((item, index) => {
+    invoice.items.forEach((item) => {
         const itemTotal = (item.carat || 0) * (item.pricePerCarat || 0);
         grandTotal += itemTotal;
         
