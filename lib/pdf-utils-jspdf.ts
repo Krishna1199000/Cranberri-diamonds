@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 
 interface InvoiceItem {
   id: string;
@@ -89,46 +88,47 @@ export async function generateInvoicePDFBufferJsPDF(invoice: InvoiceData): Promi
     doc.text(`${invoice.city}, ${invoice.state} ${invoice.postalCode}`, 20, 141);
     doc.text(invoice.country, 20, 148);
     
-    // Add items table
-    const tableData = invoice.items.map(item => [
-      item.description,
-      item.carat.toString(),
-      item.color,
-      item.clarity,
-      item.lab,
-      item.reportNo,
-      formatCurrency(item.pricePerCarat),
-      formatCurrency(item.total)
-    ]);
+    // Add items table manually (without autoTable plugin)
+    let currentY = 170;
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (doc as any).autoTable({
-      startY: 170,
-      head: [['Description', 'Carat', 'Color', 'Clarity', 'Lab', 'Report #', 'Price/Carat', 'Total']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: {
-        fillColor: [0, 0, 0],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold'
-      },
-      styles: {
-        fontSize: 8,
-        cellPadding: 3
-      },
-      columnStyles: {
-        1: { halign: 'center' }, // Carat
-        2: { halign: 'center' }, // Color
-        3: { halign: 'center' }, // Clarity
-        4: { halign: 'center' }, // Lab
-        5: { halign: 'center' }, // Report #
-        6: { halign: 'right' },  // Price/Carat
-        7: { halign: 'right' }   // Total
+    // Table header
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Description', 20, currentY);
+    doc.text('Carat', 80, currentY);
+    doc.text('Color', 100, currentY);
+    doc.text('Clarity', 120, currentY);
+    doc.text('Lab', 140, currentY);
+    doc.text('Report #', 160, currentY);
+    doc.text('Price/Carat', 180, currentY);
+    doc.text('Total', 200, currentY);
+    
+    currentY += 10;
+    
+    // Table rows
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    invoice.items.forEach((item) => {
+      if (currentY > 250) {
+        // Add new page if needed
+        doc.addPage();
+        currentY = 20;
       }
+      
+      doc.text(item.description.substring(0, 15), 20, currentY);
+      doc.text(item.carat.toString(), 80, currentY);
+      doc.text(item.color, 100, currentY);
+      doc.text(item.clarity, 120, currentY);
+      doc.text(item.lab, 140, currentY);
+      doc.text(item.reportNo.substring(0, 8), 160, currentY);
+      doc.text(formatCurrency(item.pricePerCarat), 180, currentY);
+      doc.text(formatCurrency(item.total), 200, currentY);
+      
+      currentY += 8;
     });
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    const finalY = currentY + 10;
     
     // Add totals
     doc.setFontSize(10);
