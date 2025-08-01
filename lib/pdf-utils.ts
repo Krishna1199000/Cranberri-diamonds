@@ -98,8 +98,8 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
     // Fallback placeholder as requested
     logoElement = `
       <div class="logo-placeholder">
-        <div class="placeholder-text">💎 Cranberri Diamonds</div>
-        <div class="placeholder-subtitle">Logo Placeholder</div>
+        <div class="placeholder-text">Cranberri</div>
+        <div class="placeholder-subtitle">Diamonds</div>
       </div>
     `;
   }
@@ -160,16 +160,18 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         }
         
         .placeholder-text {
-          font-size: 18px;
+          font-size: 24px;
           font-weight: bold;
           color: #333;
           margin-bottom: 4px;
+          font-family: 'Brush Script MT', cursive;
         }
         
         .placeholder-subtitle {
-          font-size: 12px;
+          font-size: 14px;
           color: #666;
-          font-style: italic;
+          font-style: normal;
+          font-weight: 500;
         }
         
         /* Company Address */
@@ -292,6 +294,34 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
           font-weight: bold;
           background-color: #f3f4f6 !important;
           color: #000 !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        /* Account details border */
+        .account-details {
+          border: 1px solid #d1d5db !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        /* Totals section styling */
+        .totals-section {
+          border: 1px solid #d1d5db !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        .total-due {
+          border-top: 1px solid #d1d5db !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        /* Disclaimer border */
+        .disclaimer {
+          border: 1px solid #d1d5db !important;
+          padding: 4px !important;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
