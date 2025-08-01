@@ -68,7 +68,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
     console.log('📄 PDF: Starting logo loading process...');
     
     // Use the proper path with logo.png as requested
-    const logoPath = path.join(process.cwd(), 'public', 'imp.png');
+    const logoPath = path.join(process.cwd(), 'public', 'logo.png');
     console.log(`📄 PDF: Attempting to load logo from: ${logoPath}`);
     
     // Check if file exists first
@@ -131,33 +131,30 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
           display: flex;
           justify-content: center;
           align-items: center;
-          margin-bottom: 0;
-          padding: 5px 0;
+          margin-bottom: -8px;
+          padding: 0;
         }
         
         .logo-container {
-          width: 240px;
-          height: 90px;
+          width: 130px;
+          height: auto;
           display: flex;
           align-items: center;
           justify-content: center;
         }
         
         .logo-img {
-          width: 240px;
-          height: 90px;
+          width: 130px;
+          height: auto;
           object-fit: contain;
         }
         
         /* Fallback placeholder styling */
         .logo-placeholder {
           text-align: center;
-          padding: 10px;
-          border: 2px solid #e5e5e5;
-          border-radius: 8px;
-          background-color: #f9f9f9;
-          width: 240px;
-          height: 90px;
+          padding: 5px;
+          width: 130px;
+          height: auto;
           display: flex;
           flex-direction: column;
           justify-content: center;
@@ -182,8 +179,8 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         /* Company Address */
         .company-address {
           text-align: center;
-          margin-top: -8px;
-          margin-bottom: 8px;
+          margin-top: -2px;
+          margin-bottom: 4px;
         }
         
         .company-address p {
@@ -203,7 +200,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 12px;
+          margin-bottom: 4px;
         }
         
         .invoice-no {
@@ -221,8 +218,8 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         
         /* Bill To Section */
         .bill-to {
-          margin-bottom: 8px;
-          min-height: 70px;
+          margin-bottom: 4px;
+          min-height: 60px;
         }
         
         .bill-to-label {
@@ -247,7 +244,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         /* Annexure Title */
         .annexure-title {
           text-align: center;
-          margin-bottom: 4px;
+          margin-bottom: 2px;
         }
         
         .annexure-title h2 {
@@ -262,7 +259,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         .items-table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 4px;
+          margin-bottom: 2px;
           font-size: 9px;
         }
         
@@ -335,9 +332,9 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         .bottom-section {
           display: flex;
           justify-content: space-between;
-          margin-top: 8px;
-          margin-bottom: 8px;
-          gap: 8px;
+          margin-top: 2px;
+          margin-bottom: 4px;
+          gap: 4px;
         }
         
         .account-details {
@@ -417,7 +414,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         
         /* Disclaimer */
         .disclaimer {
-          margin-bottom: 4px;
+          margin-bottom: 2px;
           font-size: 8px;
         }
         
@@ -441,8 +438,8 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         .signature-section {
           display: flex;
           justify-content: flex-end;
-          margin-top: 8px;
-          margin-bottom: 4px;
+          margin-top: 4px;
+          margin-bottom: 2px;
         }
         
         .signature-box {
@@ -463,11 +460,11 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
         
         /* Legal Text */
         .legal-text {
-          margin-top: 4px;
-          margin-bottom: 2px;
+          margin-top: 2px;
+          margin-bottom: 0px;
           font-size: 8px;
           color: #6b7280;
-          line-height: 1.2;
+          line-height: 1.1;
         }
         
         .legal-text p {
