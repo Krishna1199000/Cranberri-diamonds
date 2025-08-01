@@ -225,9 +225,12 @@ export async function sendInvoiceEmail({
   // Check if buffer starts with PDF magic number
   const pdfHeader = pdfBuffer.slice(0, 4).toString('hex');
   if (pdfHeader !== '25504446') { // PDF magic number
-    console.warn('⚠️ Email: PDF buffer does not start with PDF magic number:', pdfHeader);
-    console.warn('⚠️ Email: This might indicate the PDF generation failed');
+    console.error('❌ Email: PDF buffer does not start with PDF magic number:', pdfHeader);
+    console.error('❌ Email: This indicates the PDF generation failed - buffer is not a valid PDF');
+    throw new Error('Generated buffer is not a valid PDF file');
   }
+  
+  console.log('✅ Email: PDF validation passed - buffer is a valid PDF file');
   
   // Always send the full email content with PDF attachment
   await sendEmail({

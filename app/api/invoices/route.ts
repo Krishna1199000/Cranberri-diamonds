@@ -221,28 +221,37 @@ export async function POST(request: NextRequest) {
             let pdfGenerationMethod = '';
             
             try {
-              // Try Puppeteer first (most reliable for actual PDF generation)
-              pdfBuffer = await generateInvoicePDFBuffer(createdInvoice.invoice);
-              pdfGenerationMethod = 'puppeteer';
-              console.log('✅ PDF generated successfully with Puppeteer, size:', pdfBuffer.length, 'bytes');
-            } catch (puppeteerError) {
-              console.log('⚠️ Puppeteer PDF generation failed, trying Resend PDF generation');
+              // Try jsPDF first (most reliable in production environments)
+              const { generateInvoicePDFBufferJsPDF } = await import('@/lib/pdf-utils-jspdf');
+              pdfBuffer = await generateInvoicePDFBufferJsPDF(createdInvoice.invoice);
+              pdfGenerationMethod = 'jspdf';
+              console.log('✅ PDF generated successfully with jsPDF, size:', pdfBuffer.length, 'bytes');
+            } catch (jspdfError) {
+              console.log('⚠️ jsPDF generation failed, trying Puppeteer');
               try {
-                pdfBuffer = await generateInvoicePDFBufferResend(createdInvoice.invoice);
-                pdfGenerationMethod = 'resend';
-                console.log('✅ PDF generated successfully with Resend, size:', pdfBuffer.length, 'bytes');
-              } catch (resendError) {
-                console.log('⚠️ Resend PDF generation failed, trying serverless method');
+                pdfBuffer = await generateInvoicePDFBuffer(createdInvoice.invoice);
+                pdfGenerationMethod = 'puppeteer';
+                console.log('✅ PDF generated successfully with Puppeteer, size:', pdfBuffer.length, 'bytes');
+              } catch (puppeteerError) {
+                console.log('⚠️ Puppeteer PDF generation failed, trying Resend PDF generation');
                 try {
-                  pdfBuffer = await generateInvoicePDFBufferServerless(createdInvoice.invoice);
-                  pdfGenerationMethod = 'serverless';
-                  console.log('✅ PDF generated successfully with serverless method, size:', pdfBuffer.length, 'bytes');
-                } catch (serverlessError) {
-                  console.error('❌ All PDF generation methods failed');
-                  console.error('Puppeteer error:', puppeteerError);
-                  console.error('Resend error:', resendError);
-                  console.error('Serverless error:', serverlessError);
-                  throw new Error('All PDF generation methods failed');
+                  pdfBuffer = await generateInvoicePDFBufferResend(createdInvoice.invoice);
+                  pdfGenerationMethod = 'resend';
+                  console.log('✅ PDF generated successfully with Resend, size:', pdfBuffer.length, 'bytes');
+                } catch (resendError) {
+                  console.log('⚠️ Resend PDF generation failed, trying serverless method');
+                  try {
+                    pdfBuffer = await generateInvoicePDFBufferServerless(createdInvoice.invoice);
+                    pdfGenerationMethod = 'serverless';
+                    console.log('✅ PDF generated successfully with serverless method, size:', pdfBuffer.length, 'bytes');
+                  } catch (serverlessError) {
+                    console.error('❌ All PDF generation methods failed');
+                    console.error('jsPDF error:', jspdfError);
+                    console.error('Puppeteer error:', puppeteerError);
+                    console.error('Resend error:', resendError);
+                    console.error('Serverless error:', serverlessError);
+                    throw new Error('All PDF generation methods failed');
+                  }
                 }
               }
             }

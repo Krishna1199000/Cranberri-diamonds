@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { generateInvoicePDFBuffer } from '@/lib/pdf-utils';
 
 export async function GET() {
   try {
@@ -41,8 +40,9 @@ export async function GET() {
       ]
     };
     
-    // Generate PDF
-    const pdfBuffer = await generateInvoicePDFBuffer(testInvoice);
+    // Generate PDF using jsPDF
+    const { generateInvoicePDFBufferJsPDF } = await import('@/lib/pdf-utils-jspdf');
+    const pdfBuffer = await generateInvoicePDFBufferJsPDF(testInvoice);
     
     // Validate PDF
     if (!pdfBuffer || pdfBuffer.length === 0) {

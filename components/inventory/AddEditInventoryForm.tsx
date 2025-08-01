@@ -151,7 +151,7 @@ export function AddEditInventoryForm({
       form.reset(); // Reset to defaultValues
       setIsShipmentRequired(false);
     }
-  }, [item, form.reset]);
+  }, [item, form.reset, form.setValue]);
   
   const handleStatusChange = (value: string) => {
     form.setValue("status", value as "AVAILABLE" | "HOLD" | "MEMO");
