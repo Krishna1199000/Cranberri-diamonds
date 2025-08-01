@@ -50,59 +50,59 @@ export async function generateInvoicePDFBufferJsPDF(invoice: InvoiceData): Promi
       creator: 'Cranberri Diamonds Invoice System'
     });
     
-    // Add header with logo styling
-    doc.setFontSize(28);
+    // Add header with logo styling (matching invoice preview)
+    doc.setFontSize(32);
     doc.setFont('helvetica', 'bold');
-    doc.text('Cranberri', 105, 20, { align: 'center' });
+    doc.text('Cranberri', 105, 25, { align: 'center' });
+    
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Diamonds', 105, 35, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India', 105, 45, { align: 'center' });
+    doc.text('www.cranberridiamonds.in', 105, 52, { align: 'center' });
+    
+    // Add invoice details (matching invoice preview)
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Invoice No: ${invoice.invoiceNo}`, 20, 65);
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'normal');
-    doc.text('Diamonds', 105, 30, { align: 'center' });
+    doc.text(`Date: ${formatDate(invoice.date)}`, 140, 65);
+    doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, 140, 72);
+    doc.text(`Payment Terms: ${invoice.paymentTerms} days`, 140, 79);
     
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India', 105, 40, { align: 'center' });
-    doc.text('www.cranberridiamonds.in', 105, 47, { align: 'center' });
-    
-    // Add invoice details
-    doc.setFontSize(12);
+    // Add bill to information (matching invoice preview)
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Invoice No: ${invoice.invoiceNo}`, 20, 60);
+    doc.text('To:', 20, 90);
     
-    doc.setFontSize(10);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Date: ${formatDate(invoice.date)}`, 140, 60);
-    doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, 140, 67);
-    doc.text(`Payment Terms: ${invoice.paymentTerms} days`, 140, 74);
-    
-    // Add bill to information
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('To:', 20, 85);
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(invoice.companyName, 20, 95);
-    doc.text(invoice.addressLine1, 20, 102);
+    doc.text(invoice.companyName, 20, 100);
+    doc.text(invoice.addressLine1, 20, 107);
     if (invoice.addressLine2) {
-      doc.text(invoice.addressLine2, 20, 109);
+      doc.text(invoice.addressLine2, 20, 114);
     }
-    doc.text(`${invoice.city}, ${invoice.state} ${invoice.postalCode}`, 20, 116);
-    doc.text(invoice.country, 20, 123);
+    doc.text(`${invoice.city}, ${invoice.state} ${invoice.postalCode}`, 20, 121);
+    doc.text(invoice.country, 20, 128);
     
-    // Add Annexure title
-    doc.setFontSize(12);
+    // Add Annexure title (matching invoice preview)
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Annexure', 105, 140, { align: 'center' });
+    doc.text('Annexure', 105, 145, { align: 'center' });
     
     // Add items table manually (without autoTable plugin)
-    let currentY = 150;
+    let currentY = 155;
     
-    // Table header with background color
+    // Table header with background color (matching invoice preview)
     doc.setFillColor(219, 234, 254); // Light blue background
     doc.rect(20, currentY - 8, 170, 8, 'F'); // Fill header background
     
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0); // Black text
     doc.text('Description', 20, currentY);
@@ -120,9 +120,9 @@ export async function generateInvoicePDFBufferJsPDF(invoice: InvoiceData): Promi
     doc.setLineWidth(0.5);
     doc.rect(20, currentY - 18, 170, 8); // Header border
     
-    // Table rows
+    // Table rows (matching invoice preview)
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(12);
     doc.setTextColor(0, 0, 0); // Reset text color
     
     invoice.items.forEach((item) => {
@@ -143,17 +143,17 @@ export async function generateInvoicePDFBufferJsPDF(invoice: InvoiceData): Promi
       doc.text(formatCurrency(item.pricePerCarat), 150, currentY);
       doc.text(formatCurrency(item.total), 170, currentY);
       
-      currentY += 8;
+      currentY += 10;
     });
     
     const finalY = currentY + 10;
     
-    // Add Grand Total row with background
+    // Add Grand Total row with background (matching invoice preview)
     doc.setFillColor(243, 244, 246); // Light gray background
     doc.rect(20, finalY - 8, 170, 8, 'F'); // Fill footer background
     doc.rect(20, finalY - 8, 170, 8); // Add border
     
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0); // Black text
     doc.text('Grand Total:', 150, finalY);
@@ -162,18 +162,18 @@ export async function generateInvoicePDFBufferJsPDF(invoice: InvoiceData): Promi
     // Add account details and totals side by side
     const accountY = finalY + 20;
     
-    // Account Details (left side) with border
+    // Account Details (left side) with border (matching invoice preview)
     doc.setDrawColor(209, 213, 219); // Light gray border
     doc.setLineWidth(0.5);
     doc.rect(20, accountY - 8, 80, 58); // Account details border
     
-    doc.setFontSize(10);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
     doc.text('ACCOUNT DETAILS', 60, accountY, { align: 'center' });
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(14);
     doc.text('BENEFICIARY NAME - CRANBERRI DIAMONDS', 20, accountY + 8);
     doc.text('BANK NAME - CITIBANK', 20, accountY + 15);
     doc.text('ADDRESS - 111 WALL STREET,', 20, accountY + 22);
@@ -182,10 +182,10 @@ export async function generateInvoicePDFBufferJsPDF(invoice: InvoiceData): Promi
     doc.text('ACCOUNT NUMBER - 70588170001126150', 20, accountY + 43);
     doc.text('ACCOUNT TYPE - CHECKING', 20, accountY + 50);
     
-    // Totals (right side) with border
+    // Totals (right side) with border (matching invoice preview)
     doc.rect(110, accountY - 8, 80, 58); // Totals border
     
-    doc.setFontSize(10);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.text('Subtotal:', 150, accountY);
@@ -205,34 +205,34 @@ export async function generateInvoicePDFBufferJsPDF(invoice: InvoiceData): Promi
     doc.text('Total Due:', 150, accountY + 32);
     doc.text(formatCurrency(invoice.totalAmount), 170, accountY + 32);
     
-    // Add amount in words
-    doc.setFontSize(10);
+    // Add amount in words (matching invoice preview)
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'normal');
     doc.text('Amount in words:', 150, accountY + 40);
-    doc.setFontSize(8);
+    doc.setFontSize(12);
     doc.text(invoice.amountInWords, 150, accountY + 47);
     
-    // Add disclaimer with border
+    // Add disclaimer with border (matching invoice preview)
     const disclaimerY = accountY + 60;
     doc.setDrawColor(209, 213, 219);
     doc.setLineWidth(0.5);
     doc.rect(20, disclaimerY - 8, 170, 40); // Disclaimer border
     
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
     doc.text('DISCLAIMER:', 20, disclaimerY);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(12);
     doc.text('1. The goods invoiced herein above are LABORATORY GROWN DIAMONDS. These laboratory grown diamonds are optically, chemically physically identical to mined diamonds.', 20, disclaimerY + 8);
     doc.text('2. All subsequent future sale of these diamonds must be accompanies by disclosure of their origin as LABORATORY GROWN DIAMONDS.', 20, disclaimerY + 16);
     doc.text('3. These goods remain the property of the seller until full payment is received. Full payment only transfers the ownership, regardless the conditions of this invoice.', 20, disclaimerY + 24);
     
-    // Add signature section with line
+    // Add signature section with line (matching invoice preview)
     const signatureY = disclaimerY + 40;
     doc.setDrawColor(209, 213, 219);
     doc.line(150, signatureY - 2, 190, signatureY - 2); // Signature line
-    doc.setFontSize(10);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.text('For Cranberri Diamonds', 170, signatureY, { align: 'center' });
