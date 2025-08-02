@@ -241,15 +241,8 @@ export async function sendEmail({ to, subject, html, attachments }: EmailOptions
     logger.log('📧 Email: - EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'Set' : 'NOT SET');
     logger.log('📧 Email: - EMAIL_PORT:', process.env.EMAIL_PORT || '587 (default)');
     
-    // Verify transporter configuration
-    logger.log('🔄 Email: Verifying transporter configuration...');
-    try {
-      await transporter.verify();
-      logger.log('✅ Email: Transporter verified successfully');
-    } catch (verifyError) {
-      criticalLogger.error('❌ Email: Transporter verification failed:', verifyError);
-      throw new Error(`Email configuration error: ${verifyError instanceof Error ? verifyError.message : String(verifyError)}`);
-    }
+    // Skip transporter verification for faster email sending
+    logger.log('🔄 Email: Skipping transporter verification for speed');
     
     const mailOptions: nodemailer.SendMailOptions = {
       from: process.env.EMAIL_FROM || '"Cranberri Diamonds" <accounts@cranberridiamonds.in>',

@@ -157,8 +157,7 @@ export function generateInvoiceNumber(lastInvoiceNo: string | null | undefined, 
 export function generateMemoNumber(lastMemoNo: string | null | undefined, memoDate: Date): string {
   const prefix = 'CDM-';
   const datePart = format(memoDate, 'ddMM');
-  let nextNum = 1;
-  let nextLetterCode = 'A'.charCodeAt(0);
+  let nextNum = 10; // Start at 10 so next memo will be CDM-0010A
 
   if (lastMemoNo && lastMemoNo.startsWith(prefix)) {
     const parts = lastMemoNo.substring(prefix.length).split('/');
@@ -166,31 +165,20 @@ export function generateMemoNumber(lastMemoNo: string | null | undefined, memoDa
       const numericAlphaPart = parts[0];
       if (numericAlphaPart && numericAlphaPart.length > 1) {
         const numericPart = numericAlphaPart.substring(0, 4);
-        const letterPart = numericAlphaPart.substring(4);
         const lastNum = parseInt(numericPart, 10);
-        const lastLetter = letterPart.length > 0 ? letterPart : 'A';
 
-        if (!isNaN(lastNum) && lastLetter) {
-          if (lastLetter === 'Z') {
-            nextNum = lastNum + 1;
-            nextLetterCode = 'A'.charCodeAt(0);
-          } else {
-            nextNum = lastNum;
-            nextLetterCode = lastLetter.charCodeAt(0) + 1;
-          }
+        if (!isNaN(lastNum)) {
+          // Simply increment the number by 1, always use 'A'
+          nextNum = lastNum + 1;
+        } else {
+          nextNum = 10; // Default fallback
         }
       }
     }
-  } else {
-    nextNum = 10; // Start at 10 so next memo will be CDM-010A
-    nextLetterCode = 'A'.charCodeAt(0);
   }
 
-  if (nextLetterCode > 'Z'.charCodeAt(0)) {
-    nextLetterCode = 'A'.charCodeAt(0);
-  }
-
-  const nextLetter = String.fromCharCode(nextLetterCode);
+  // Always use 'A' as the letter suffix (like invoice numbers)
+  const nextLetter = 'A';
   const paddedNum = nextNum.toString().padStart(4, '0');
   return `${prefix}${paddedNum}${nextLetter}/${datePart}`;
 }

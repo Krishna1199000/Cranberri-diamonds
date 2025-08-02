@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
           console.log('❌ Email skipped:', reason);
         }
         
-        // Create payment reminder notification (15 days after invoice creation)
+        // Create payment reminder notification (15 days after invoice creation) - Move to background
         try {
           console.log('🔄 Creating payment reminder notification...');
           await createPaymentReminderNotification(createdInvoice.invoice.id, userId);

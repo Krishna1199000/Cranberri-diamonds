@@ -38,37 +38,52 @@ interface InvoiceData {
   items: InvoiceItem[];
 }
 
-// Function to load logo for PDF
+// Function to load logo for PDF - Optimized for speed
 function loadLogoForPDF(): { logoData: string | null; logoProps: { width: number; height: number } | null } {
   try {
-    // Try multiple possible paths for the logo
-    const possiblePaths = [
-      path.join(process.cwd(), 'public', 'logo.png'),
-      path.join(process.cwd(), 'public', 'imp.png'),
-      path.join(process.cwd(), 'logo.png'),
-      '/app/public/logo.png', // For some deployment platforms
-      './public/logo.png'
-    ];
+    // Try the most likely path first (production path)
+    const logoPath = '/var/task/public/logo.png';
     
-    for (const logoPath of possiblePaths) {
-      try {
-        console.log('🔄 PDF: Trying logo path for PDF:', logoPath);
-        const logoBuffer = fs.readFileSync(logoPath);
-        console.log('✅ PDF: Logo loaded successfully from:', logoPath, 'Size:', logoBuffer.length, 'bytes');
-        
-        // Convert to base64 for jsPDF
-        const logoData = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-        
-        // Create a simple properties object (jsPDF will handle the image)
-        const logoProps = {
-          width: 200, // Default width, will be adjusted
-          height: 100 // Default height, will be adjusted
-        };
-        
-        return { logoData, logoProps };
-      } catch (pathError) {
-        console.log('❌ PDF: Failed to load logo from:', logoPath, pathError instanceof Error ? pathError.message : 'Unknown error');
-        continue;
+    try {
+      const logoBuffer = fs.readFileSync(logoPath);
+      console.log('✅ PDF: Logo loaded successfully from:', logoPath, 'Size:', logoBuffer.length, 'bytes');
+      
+      // Convert to base64 for jsPDF
+      const logoData = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+      
+      // Create a simple properties object (jsPDF will handle the image)
+      const logoProps = {
+        width: 200, // Default width, will be adjusted
+        height: 100 // Default height, will be adjusted
+      };
+      
+      return { logoData, logoProps };
+          } catch {
+        console.log('❌ PDF: Failed to load logo from primary path:', logoPath);
+      
+      // Fallback to other paths only if primary fails
+      const fallbackPaths = [
+        path.join(process.cwd(), 'public', 'logo.png'),
+        path.join(process.cwd(), 'public', 'imp.png'),
+        path.join(process.cwd(), 'logo.png'),
+        './public/logo.png'
+      ];
+      
+      for (const fallbackPath of fallbackPaths) {
+        try {
+          const logoBuffer = fs.readFileSync(fallbackPath);
+          console.log('✅ PDF: Logo loaded successfully from fallback:', fallbackPath, 'Size:', logoBuffer.length, 'bytes');
+          
+          const logoData = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+          const logoProps = {
+            width: 200,
+            height: 100
+          };
+          
+          return { logoData, logoProps };
+        } catch {
+          continue;
+        }
       }
     }
     
