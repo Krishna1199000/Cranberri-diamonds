@@ -199,92 +199,87 @@ export async function POST(request: NextRequest) {
            timeout: 15000 // Set timeout to 15 seconds (15000 ms)
         });
         
-        // Return the response immediately after invoice creation
-        const responseData = { 
-          invoice: createdInvoice.invoice,
-          emailSent: false, // Will be updated by background process
-          message: 'Invoice created successfully. Email will be sent shortly.'
-        };
-
-        // Send email asynchronously (don't wait for it)
+        // Send email with PDF attachment
+        let emailSent = false;
+        let emailError: Error | null = null;
+        
         if (createdInvoice.selectedShipment && createdInvoice.selectedShipment.email) {
-          // Start email process in background
-          (async () => {
+          try {
+            console.log('=== INVOICE EMAIL PROCESS START ===');
+            console.log('Created invoice:', createdInvoice.invoice.invoiceNo);
+            console.log('Recipient email:', createdInvoice.selectedShipment.email);
+            
+            console.log('🔄 Step 1: Generating PDF...');
+            // Generate PDF buffer with multiple fallback methods
+            let pdfBuffer: Buffer;
+            let pdfGenerationMethod = '';
+            
             try {
-              console.log('=== INVOICE EMAIL PROCESS START (Background) ===');
-              console.log('Created invoice:', createdInvoice.invoice.invoiceNo);
-              console.log('Recipient email:', createdInvoice.selectedShipment.email);
-              
-                             console.log('🔄 Step 1: Generating PDF...');
-               // Generate PDF buffer with multiple fallback methods
-               let pdfBuffer: Buffer;
-               let pdfGenerationMethod = '';
-               
-               try {
-                 // Try jsPDF first (most reliable in production environments)
-                 const { generateInvoicePDFBufferJsPDF } = await import('@/lib/pdf-utils-jspdf');
-                 pdfBuffer = await generateInvoicePDFBufferJsPDF(createdInvoice.invoice);
-                 pdfGenerationMethod = 'jspdf';
-                 console.log('✅ PDF generated successfully with jsPDF, size:', pdfBuffer.length, 'bytes');
-               } catch (jspdfError) {
-                 console.log('⚠️ jsPDF generation failed, trying Puppeteer');
-                 try {
-                   pdfBuffer = await generateInvoicePDFBuffer(createdInvoice.invoice);
-                   pdfGenerationMethod = 'puppeteer';
-                   console.log('✅ PDF generated successfully with Puppeteer, size:', pdfBuffer.length, 'bytes');
-                 } catch (puppeteerError) {
-                   console.log('⚠️ Puppeteer PDF generation failed, trying Resend PDF generation');
-                   try {
-                     pdfBuffer = await generateInvoicePDFBufferResend(createdInvoice.invoice);
-                     pdfGenerationMethod = 'resend';
-                     console.log('✅ PDF generated successfully with Resend, size:', pdfBuffer.length, 'bytes');
-                   } catch (resendError) {
-                     console.log('⚠️ Resend PDF generation failed, trying serverless method');
-                     try {
-                       pdfBuffer = await generateInvoicePDFBufferServerless(createdInvoice.invoice);
-                       pdfGenerationMethod = 'serverless';
-                       console.log('✅ PDF generated successfully with serverless method, size:', pdfBuffer.length, 'bytes');
-                     } catch (serverlessError) {
-                       console.error('❌ All PDF generation methods failed');
-                       console.error('jsPDF error:', jspdfError);
-                       console.error('Puppeteer error:', puppeteerError);
-                       console.error('Resend error:', resendError);
-                       console.error('Serverless error:', serverlessError);
-                       throw new Error('All PDF generation methods failed');
-                     }
-                   }
-                 }
-               }
-              
-              // Validate PDF buffer
-              if (!pdfBuffer || pdfBuffer.length === 0) {
-                throw new Error('Generated PDF buffer is empty');
+              // Try jsPDF first (most reliable in production environments)
+              const { generateInvoicePDFBufferJsPDF } = await import('@/lib/pdf-utils-jspdf');
+              pdfBuffer = await generateInvoicePDFBufferJsPDF(createdInvoice.invoice);
+              pdfGenerationMethod = 'jspdf';
+              console.log('✅ PDF generated successfully with jsPDF, size:', pdfBuffer.length, 'bytes');
+            } catch (jspdfError) {
+              console.log('⚠️ jsPDF generation failed, trying Puppeteer');
+              try {
+                pdfBuffer = await generateInvoicePDFBuffer(createdInvoice.invoice);
+                pdfGenerationMethod = 'puppeteer';
+                console.log('✅ PDF generated successfully with Puppeteer, size:', pdfBuffer.length, 'bytes');
+              } catch (puppeteerError) {
+                console.log('⚠️ Puppeteer PDF generation failed, trying Resend PDF generation');
+                try {
+                  pdfBuffer = await generateInvoicePDFBufferResend(createdInvoice.invoice);
+                  pdfGenerationMethod = 'resend';
+                  console.log('✅ PDF generated successfully with Resend, size:', pdfBuffer.length, 'bytes');
+                } catch (resendError) {
+                  console.log('⚠️ Resend PDF generation failed, trying serverless method');
+                  try {
+                    pdfBuffer = await generateInvoicePDFBufferServerless(createdInvoice.invoice);
+                    pdfGenerationMethod = 'serverless';
+                    console.log('✅ PDF generated successfully with serverless method, size:', pdfBuffer.length, 'bytes');
+                  } catch (serverlessError) {
+                    console.error('❌ All PDF generation methods failed');
+                    console.error('jsPDF error:', jspdfError);
+                    console.error('Puppeteer error:', puppeteerError);
+                    console.error('Resend error:', resendError);
+                    console.error('Serverless error:', serverlessError);
+                    throw new Error('All PDF generation methods failed');
+                  }
+                }
               }
-              
-              console.log(`✅ PDF generation completed using ${pdfGenerationMethod} method`);
-              
-              console.log('🔄 Step 2: Sending email...');
-              // Send email with PDF attachment
-              await sendInvoiceEmail({
-                to: createdInvoice.selectedShipment.email,
-                companyName: createdInvoice.invoice.companyName,
-                invoiceNo: createdInvoice.invoice.invoiceNo,
-                totalAmount: createdInvoice.invoice.totalAmount,
-                pdfBuffer
-              });
-              
-              console.log('✅ Invoice email sent successfully to:', createdInvoice.selectedShipment.email);
-            } catch (emailError) {
-              console.error('❌ FAILED to send invoice email (background):', emailError);
-              const errorInfo = emailError instanceof Error ? {
-                name: emailError.name,
-                message: emailError.message,
-                stack: emailError.stack
-              } : { message: String(emailError) };
-              console.error('Error details:', errorInfo);
             }
-            console.log('=== INVOICE EMAIL PROCESS END (Background) ===');
-          })();
+            
+            // Validate PDF buffer
+            if (!pdfBuffer || pdfBuffer.length === 0) {
+              throw new Error('Generated PDF buffer is empty');
+            }
+            
+            console.log(`✅ PDF generation completed using ${pdfGenerationMethod} method`);
+            
+            console.log('🔄 Step 2: Sending email...');
+            // Send email with PDF attachment
+            await sendInvoiceEmail({
+              to: createdInvoice.selectedShipment.email,
+              companyName: createdInvoice.invoice.companyName,
+              invoiceNo: createdInvoice.invoice.invoiceNo,
+              totalAmount: createdInvoice.invoice.totalAmount,
+              pdfBuffer
+            });
+            
+            console.log('✅ Invoice email sent successfully to:', createdInvoice.selectedShipment.email);
+            emailSent = true;
+          } catch (error) {
+            console.error('❌ FAILED to send invoice email:', error);
+            emailError = error instanceof Error ? error : new Error(String(error));
+            const errorInfo = error instanceof Error ? {
+              name: error.name,
+              message: error.message,
+              stack: error.stack
+            } : { message: String(error) };
+            console.error('Error details:', errorInfo);
+          }
+          console.log('=== INVOICE EMAIL PROCESS END ===');
         } else {
           const reason = !createdInvoice.selectedShipment 
             ? 'No shipment found' 
@@ -302,7 +297,15 @@ export async function POST(request: NextRequest) {
           // Don't fail the entire operation if notification creation fails
         }
         
-        return NextResponse.json(responseData);
+        return NextResponse.json({ 
+          invoice: createdInvoice.invoice,
+          emailSent,
+          message: emailSent 
+            ? `Invoice created successfully and sent to ${createdInvoice.selectedShipment?.email}`
+            : emailError 
+              ? `Invoice created successfully but email failed: ${emailError instanceof Error ? emailError.message : 'Unknown error'}`
+              : 'Invoice created successfully (email not sent - check shipment email address)'
+        });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error creating invoice:', errorMessage);
