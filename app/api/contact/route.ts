@@ -48,19 +48,31 @@ export async function POST(request: NextRequest) {
             content: customerContent
         });
 
-        // 2. Send notification email to admin (simple format)
-        const adminHtml = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #333;">New Contact Form Submission</h2>
-                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <p><strong>Name:</strong> ${name}</p>
-                    <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-                    <p><strong>Message:</strong></p>
-                    <p style="white-space: pre-wrap;">${message}</p>
-                </div>
-                <p><em>This is an automated notification from the Cranberri Diamonds website contact form.</em></p>
+        // 2. Send notification email to admin (with logo)
+        const adminContent = `
+            <p>Hello,</p>
+            
+            <p>A new contact form submission has been received from the Cranberri Diamonds website.</p>
+            
+            <div class="highlight">
+                <h3>Contact Details</h3>
+                <p><strong>Name:</strong> ${name}</p>
+                <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+                <p><strong>Message:</strong></p>
+                <p style="white-space: pre-wrap; background: #f8f9fa; padding: 10px; border-radius: 4px;">${message}</p>
             </div>
+            
+            <p>Please respond to this inquiry as soon as possible to maintain our high customer service standards.</p>
+            
+            <p>Best regards,<br>
+            <strong>Cranberri Diamonds System</strong></p>
         `;
+
+        const adminHtml = createEmailTemplate({
+            logoUrl,
+            title: 'New Contact Form Submission',
+            content: adminContent
+        });
 
         // Send both emails
         console.log('Attempting to send emails...');
