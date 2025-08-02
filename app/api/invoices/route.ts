@@ -2,7 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { numberToWords, generateInvoiceNumber } from '@/lib/utils';
-
+import { generateInvoicePDFBuffer } from '@/lib/pdf-utils';
+import { generateInvoicePDFBufferServerless } from '@/lib/pdf-utils-serverless';
+import { generateInvoicePDFBufferResend } from '@/lib/pdf-utils-resend';
 import { sendInvoiceEmail } from '@/lib/email';
 import { createPaymentReminderNotification } from '@/lib/notification-scheduler';
 import { getSession } from '@/lib/session';
@@ -213,21 +215,46 @@ export async function POST(request: NextRequest) {
               console.log('Created invoice:', createdInvoice.invoice.invoiceNo);
               console.log('Recipient email:', createdInvoice.selectedShipment.email);
               
-              console.log('🔄 Step 1: Generating PDF...');
-              // Generate PDF buffer with optimized method selection
-              let pdfBuffer: Buffer;
-              let pdfGenerationMethod = '';
-              
-              try {
-                // Use jsPDF directly (fastest and most reliable)
-                const { generateInvoicePDFBufferJsPDF } = await import('@/lib/pdf-utils-jspdf');
-                pdfBuffer = await generateInvoicePDFBufferJsPDF(createdInvoice.invoice);
-                pdfGenerationMethod = 'jspdf';
-                console.log('✅ PDF generated successfully with jsPDF, size:', pdfBuffer.length, 'bytes');
-              } catch (error) {
-                console.error('❌ PDF generation failed:', error);
-                throw new Error('PDF generation failed');
-              }
+                             console.log('🔄 Step 1: Generating PDF...');
+               // Generate PDF buffer with multiple fallback methods
+               let pdfBuffer: Buffer;
+               let pdfGenerationMethod = '';
+               
+               try {
+                 // Try jsPDF first (most reliable in production environments)
+                 const { generateInvoicePDFBufferJsPDF } = await import('@/lib/pdf-utils-jspdf');
+                 pdfBuffer = await generateInvoicePDFBufferJsPDF(createdInvoice.invoice);
+                 pdfGenerationMethod = 'jspdf';
+                 console.log('✅ PDF generated successfully with jsPDF, size:', pdfBuffer.length, 'bytes');
+               } catch (jspdfError) {
+                 console.log('⚠️ jsPDF generation failed, trying Puppeteer');
+                 try {
+                   pdfBuffer = await generateInvoicePDFBuffer(createdInvoice.invoice);
+                   pdfGenerationMethod = 'puppeteer';
+                   console.log('✅ PDF generated successfully with Puppeteer, size:', pdfBuffer.length, 'bytes');
+                 } catch (puppeteerError) {
+                   console.log('⚠️ Puppeteer PDF generation failed, trying Resend PDF generation');
+                   try {
+                     pdfBuffer = await generateInvoicePDFBufferResend(createdInvoice.invoice);
+                     pdfGenerationMethod = 'resend';
+                     console.log('✅ PDF generated successfully with Resend, size:', pdfBuffer.length, 'bytes');
+                   } catch (resendError) {
+                     console.log('⚠️ Resend PDF generation failed, trying serverless method');
+                     try {
+                       pdfBuffer = await generateInvoicePDFBufferServerless(createdInvoice.invoice);
+                       pdfGenerationMethod = 'serverless';
+                       console.log('✅ PDF generated successfully with serverless method, size:', pdfBuffer.length, 'bytes');
+                     } catch (serverlessError) {
+                       console.error('❌ All PDF generation methods failed');
+                       console.error('jsPDF error:', jspdfError);
+                       console.error('Puppeteer error:', puppeteerError);
+                       console.error('Resend error:', resendError);
+                       console.error('Serverless error:', serverlessError);
+                       throw new Error('All PDF generation methods failed');
+                     }
+                   }
+                 }
+               }
               
               // Validate PDF buffer
               if (!pdfBuffer || pdfBuffer.length === 0) {
