@@ -77,7 +77,10 @@ export function InventoryTable({
     let newSelected = [...selected];
     
     if (checked) {
-      newSelected.push(id);
+      // Prevent duplicate selections
+      if (!newSelected.includes(id)) {
+        newSelected.push(id);
+      }
     } else {
       newSelected = newSelected.filter(item => item !== id);
     }

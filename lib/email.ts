@@ -1,6 +1,5 @@
 import nodemailer from 'nodemailer';
-import fs from 'fs';
-import path from 'path';
+import { logger, criticalLogger } from './logger';
 
 interface EmailOptions {
   to: string;
@@ -11,6 +10,208 @@ interface EmailOptions {
     content: Buffer;
     contentType: string;
   }>;
+}
+
+// Function to get logo as base64 OR URL
+export function getLogoForEmail(): string {
+  // First try to use the direct URL which is more reliable for emails
+  const logoUrl = 'https://www.cranberridiamonds.in/logo.png';
+  
+  // For emails, it's better to use direct URLs rather than base64
+  // as base64 images can be blocked by email clients
+  logger.log('📧 Email: Using logo URL for better email compatibility:', logoUrl);
+  return logoUrl;
+}
+
+// Function to create a professional email template with proper logo
+export function createEmailTemplate({
+  logoUrl,
+  title,
+  content,
+  footerContent = ''
+}: {
+  logoUrl: string;
+  title: string;
+  content: string;
+  footerContent?: string;
+}): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+                line-height: 1.6; 
+                color: #333333; 
+                background-color: #f8f9fa;
+            }
+            .container { 
+                max-width: 600px; 
+                margin: 0 auto; 
+                background-color: #ffffff;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            .header { 
+                background: #ffffff; 
+                color: #333333; 
+                padding: 40px 30px; 
+                text-align: center; 
+                border-bottom: 2px solid #e2e8f0;
+            }
+            .logo { 
+                max-width: 180px; 
+                height: auto; 
+                margin-bottom: 20px; 
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .header h1 {
+                font-size: 28px;
+                font-weight: 600;
+                margin-bottom: 8px;
+                color: #1a1a1a;
+            }
+            .header p {
+                font-size: 16px;
+                color: #4a5568;
+            }
+            .content { 
+                padding: 40px 30px; 
+                color: #333333; 
+            }
+            .content h2, .content h3 { 
+                color: #1a1a1a; 
+                margin-bottom: 16px;
+            }
+            .content p { 
+                color: #4a5568; 
+                margin-bottom: 16px;
+                font-size: 16px;
+            }
+            .content ul, .content ol {
+                padding-left: 20px;
+                margin-bottom: 16px;
+            }
+            .content li {
+                color: #4a5568;
+                margin-bottom: 8px;
+            }
+            .highlight { 
+                background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); 
+                padding: 24px; 
+                border-radius: 12px; 
+                margin: 24px 0; 
+                border-left: 4px solid #3182ce; 
+            }
+            .highlight h3 {
+                color: #1a202c;
+                margin-bottom: 12px;
+            }
+            .highlight p {
+                color: #2d3748;
+                margin-bottom: 8px;
+            }
+            .amount { 
+                font-size: 32px; 
+                font-weight: 700; 
+                color: #38a169; 
+                display: inline-block;
+            }
+            .otp-code {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px;
+                border-radius: 12px;
+                text-align: center;
+                margin: 24px 0;
+                font-size: 32px;
+                font-weight: 700;
+                letter-spacing: 4px;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .footer { 
+                background: white; 
+                color: #333333; 
+                padding: 30px; 
+                text-align: center; 
+                border-top: 2px solid #e2e8f0;
+            }
+            .footer-logo {
+                max-width: 140px;
+                height: auto;
+                margin-bottom: 16px;
+                filter: brightness(1.1);
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .footer p {
+                color: #4a5568;
+                margin-bottom: 8px;
+                font-size: 14px;
+            }
+            .footer a {
+                color: #3182ce;
+                text-decoration: none;
+            }
+            .footer a:hover {
+                text-decoration: underline;
+                color: #2c5282;
+            }
+            .btn { 
+                display: inline-block; 
+                background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); 
+                color: white; 
+                padding: 14px 28px; 
+                text-decoration: none; 
+                border-radius: 8px; 
+                margin: 16px 0; 
+                font-weight: 600;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                ${logoUrl ? `<img src="${logoUrl}" alt="Cranberri Diamonds Logo" class="logo">` : `
+                    <div style="margin-bottom: 20px;">
+                        <h1 style="font-size: 36px; margin-bottom: 8px;">Cranberri</h1>
+                        <p style="font-size: 18px; opacity: 0.9;">Diamonds</p>
+                    </div>
+                `}
+                <h1>${title}</h1>
+                <p>Premium Lab-Grown Diamonds | Certified | Ethical</p>
+            </div>
+            
+            <div class="content">
+                ${content}
+            </div>
+            
+            <div class="footer">
+                ${logoUrl ? `<img src="${logoUrl}" alt="Cranberri Diamonds Logo" class="footer-logo">` : `
+                    <div style="margin-bottom: 16px;">
+                        <h3 style="color: #1a1a1a; margin-bottom: 4px;">Cranberri Diamonds</h3>
+                    </div>
+                `}
+                <p><strong style="color: #1a1a1a;">Cranberri Diamonds</strong></p>
+                <p>B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India</p>
+                <p>Email: <a href="mailto:accounts@cranberridiamonds.in">accounts@cranberridiamonds.in</a></p>
+                <p>Website: <a href="https://www.cranberridiamonds.in" target="_blank">www.cranberridiamonds.in</a></p>
+                ${footerContent}
+            </div>
+        </div>
+    </body>
+    </html>
+  `;
 }
 
 // Create reusable transporter object using SMTP transport
@@ -30,23 +231,23 @@ const transporter = nodemailer.createTransport({
 
 export async function sendEmail({ to, subject, html, attachments }: EmailOptions): Promise<void> {
   try {
-    console.log('📧 Email: Starting email send process');
-    console.log('📧 Email: Recipient:', to);
-    console.log('📧 Email: Subject:', subject);
-    console.log('📧 Email: Has attachments:', attachments && attachments.length > 0 ? `Yes (${attachments.length})` : 'No');
-    console.log('📧 Email: Environment check:');
-    console.log('📧 Email: - EMAIL_HOST:', process.env.EMAIL_HOST || 'smtpout.secureserver.net (default)');
-    console.log('📧 Email: - EMAIL_USER:', process.env.EMAIL_USER || 'accounts@cranberridiamonds.in (default)');
-    console.log('📧 Email: - EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'Set' : 'NOT SET');
-    console.log('📧 Email: - EMAIL_PORT:', process.env.EMAIL_PORT || '587 (default)');
+    logger.log('📧 Email: Starting email send process');
+    logger.log('📧 Email: Recipient:', to);
+    logger.log('📧 Email: Subject:', subject);
+    logger.log('📧 Email: Has attachments:', attachments && attachments.length > 0 ? `Yes (${attachments.length})` : 'No');
+    logger.log('📧 Email: Environment check:');
+    logger.log('📧 Email: - EMAIL_HOST:', process.env.EMAIL_HOST || 'smtpout.secureserver.net (default)');
+    logger.log('📧 Email: - EMAIL_USER:', process.env.EMAIL_USER || 'accounts@cranberridiamonds.in (default)');
+    logger.log('📧 Email: - EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'Set' : 'NOT SET');
+    logger.log('📧 Email: - EMAIL_PORT:', process.env.EMAIL_PORT || '587 (default)');
     
     // Verify transporter configuration
-    console.log('🔄 Email: Verifying transporter configuration...');
+    logger.log('🔄 Email: Verifying transporter configuration...');
     try {
       await transporter.verify();
-      console.log('✅ Email: Transporter verified successfully');
+      logger.log('✅ Email: Transporter verified successfully');
     } catch (verifyError) {
-      console.error('❌ Email: Transporter verification failed:', verifyError);
+      criticalLogger.error('❌ Email: Transporter verification failed:', verifyError);
       throw new Error(`Email configuration error: ${verifyError instanceof Error ? verifyError.message : String(verifyError)}`);
     }
     
@@ -59,21 +260,21 @@ export async function sendEmail({ to, subject, html, attachments }: EmailOptions
 
     if (attachments && attachments.length > 0) {
       mailOptions.attachments = attachments;
-      console.log('📧 Email: Added', attachments.length, 'attachment(s)');
+      logger.log('📧 Email: Added', attachments.length, 'attachment(s)');
       attachments.forEach((att, index) => {
-        console.log(`📧 Email: Attachment ${index + 1}: ${att.filename} (${att.content.length} bytes, ${att.contentType})`);
+        logger.log(`📧 Email: Attachment ${index + 1}: ${att.filename} (${att.content.length} bytes, ${att.contentType})`);
       });
     }
 
-    console.log('🔄 Email: Sending email via SMTP...');
+    logger.log('🔄 Email: Sending email via SMTP...');
     const info = await transporter.sendMail(mailOptions);
 
-    console.log('✅ Email: Email sent successfully!');
-    console.log('✅ Email: Message ID:', info.messageId);
-    console.log('✅ Email: Response:', info.response);
+    logger.log('✅ Email: Email sent successfully!');
+    logger.log('✅ Email: Message ID:', info.messageId);
+    logger.log('✅ Email: Response:', info.response);
   } catch (error) {
-    console.error('❌ Email: Detailed email sending error:', error);
-    console.error('❌ Email: Error details:', {
+    criticalLogger.error('❌ Email: Detailed email sending error:', error);
+    criticalLogger.error('❌ Email: Error details:', {
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
@@ -95,127 +296,64 @@ export async function sendInvoiceEmail({
   totalAmount: number;
   pdfBuffer: Buffer;
 }): Promise<void> {
-  console.log('📧 Invoice Email: Starting invoice email process');
-  console.log('📧 Invoice Email: Invoice:', invoiceNo);
-  console.log('📧 Invoice Email: Company:', companyName);
-  console.log('📧 Invoice Email: Amount:', totalAmount);
-  console.log('📧 Invoice Email: PDF size:', pdfBuffer.length, 'bytes');
+  logger.log('📧 Invoice Email: Starting invoice email process');
+  logger.log('📧 Invoice Email: Invoice:', invoiceNo);
+  logger.log('📧 Invoice Email: Company:', companyName);
+  logger.log('📧 Invoice Email: Amount:', totalAmount);
+  logger.log('📧 Invoice Email: PDF size:', pdfBuffer.length, 'bytes');
   
   const subject = `Invoice ${invoiceNo} - Thank you for your purchase from Cranberri Diamonds`;
   
-  // Convert logo to base64 for embedding in email
-  let logoBase64 = '';
-  try {
-    // Try multiple possible paths for the logo
-    const possiblePaths = [
-      path.join(process.cwd(), 'public', 'logo.png'),
-      path.join(process.cwd(), 'logo.png'),
-      '/app/public/logo.png', // For some deployment platforms
-      './public/logo.png'
-    ];
-    
-    let logoBuffer: Buffer | null = null;
-    for (const logoPath of possiblePaths) {
-      try {
-        console.log('🔄 Email: Trying logo path:', logoPath);
-        logoBuffer = fs.readFileSync(logoPath);
-        console.log('✅ Email: Logo loaded successfully from:', logoPath);
-        break;
-      } catch (pathError) {
-        console.log('❌ Email: Failed to load logo from:', logoPath, pathError instanceof Error ? pathError.message : 'Unknown error');
-        continue;
-      }
-    }
-    
-    if (logoBuffer) {
-      logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-      console.log('✅ Email: Logo converted to base64 successfully');
-    } else {
-      console.log('⚠️ Email: Could not load logo from any path, proceeding without logo');
-    }
-  } catch (error) {
-    console.error('❌ Email: Failed to load logo:', error);
-    logoBase64 = ''; // Will use placeholder
-  }
+  // Get logo as base64
+  const logoUrl = getLogoForEmail();
   
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #000000; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #000000, #333333); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .logo { max-width: 150px; height: auto; margin-bottom: 20px; }
-            .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; color: #000000; }
-            .highlight { background: #fff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff6b6b; color: #000000; }
-            .footer { text-align: center; margin-top: 30px; padding: 20px; background: #2c3e50; color: white; border-radius: 10px; }
-            .btn { display: inline-block; background: #ff6b6b; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
-            .amount { font-size: 24px; font-weight: bold; color: #27ae60; }
-            h3 { color: #000000; }
-            p, li { color: #000000; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                ${logoBase64 ? `<img src="${logoBase64}" alt="Cranberri Diamonds Logo" class="logo">` : ''}
-                <h1>Thank You for Your Purchase!</h1>
-                <p>From Cranberri Diamonds</p>
-            </div>
-            
-            <div class="content">
-                <p>Dear <strong>${companyName}</strong>,</p>
-                
-                <p>Thank you for choosing Cranberri Diamonds for your premium diamond needs. We are delighted to confirm your recent purchase and have attached your invoice for your records.</p>
-                
-                <div class="highlight">
-                    <h3>Invoice Details:</h3>
-                    <p><strong>Invoice Number:</strong> ${invoiceNo}</p>
-                    <p><strong>Total Amount:</strong> <span class="amount">$${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
-                    <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}</p>
-                </div>
-                
-                
-                <h3>What's Next?</h3>
-                <ul>
-                    <li>Your invoice is attached to this email as a PDF</li>
-                    <li>Our team will process your order and arrange shipping</li>
-                    <li>Our customer service team is available for any questions</li>
-                </ul>
-                
-                <h3>Need Assistance?</h3>
-                <p>If you have any questions about your purchase or need additional support, please don't hesitate to contact us:</p>
-                <ul>
-                    <li><strong>Email:</strong> accounts@cranberridiamonds.in</li>
-                    <li><strong>Website:</strong> www.cranberridiamonds.in</li>
-                    <li><strong>Address:</strong> B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India</li>
-                </ul>
-                
-                <p>We truly appreciate your business and look forward to serving you again. Thank you for trusting Cranberri Diamonds with your diamond needs.</p>
-                
-                <p>Warm regards,<br>
-                <strong>The Cranberri Diamonds Team</strong></p>
-            </div>
-            
-            <div class="footer">
-                ${logoBase64 ? `<img src="${logoBase64}" alt="Cranberri Diamonds Logo" class="logo" style="max-width: 120px; margin-bottom: 10px;">` : ''}
-                <p><strong>Cranberri Diamonds</strong></p>
-                <p>Premium Lab-Grown Diamonds | Sustainable | Certified | Ethical</p>
-                <p>www.cranberridiamonds.in</p>
-            </div>
-        </div>
-    </body>
-    </html>
+  // Create email content using the new template
+  const content = `
+    <p>Dear <strong>${companyName}</strong>,</p>
+    
+    <p>Thank you for choosing Cranberri Diamonds for your premium diamond needs. We are delighted to confirm your recent purchase and have attached your invoice for your records.</p>
+    
+    <div class="highlight">
+        <h3>Invoice Details</h3>
+        <p><strong>Invoice Number:</strong> ${invoiceNo}</p>
+        <p><strong>Total Amount:</strong> <span class="amount">$${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+        <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })}</p>
+    </div>
+    
+    <h3>What's Next?</h3>
+    <ul>
+        <li>Your invoice is attached to this email as a PDF</li>
+        <li>Our team will process your order and arrange shipping</li>
+        <li>Our customer service team is available for any questions</li>
+    </ul>
+    
+    <h3>Need Assistance?</h3>
+    <p>If you have any questions about your purchase or need additional support, please don't hesitate to contact us:</p>
+    <ul>
+        <li><strong>Email:</strong> <a href="mailto:accounts@cranberridiamonds.in">accounts@cranberridiamonds.in</a></li>
+        <li><strong>Website:</strong> <a href="https://www.cranberridiamonds.in" target="_blank">www.cranberridiamonds.in</a></li>
+        <li><strong>Address:</strong> B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India</li>
+    </ul>
+    
+    <p>We truly appreciate your business and look forward to serving you again. Thank you for trusting Cranberri Diamonds with your diamond needs.</p>
+    
+    <p>Warm regards,<br>
+    <strong>The Cranberri Diamonds Team</strong></p>
   `;
+
+  const html = createEmailTemplate({
+    logoUrl,
+    title: 'Thank You for Your Purchase!',
+    content
+  });
 
   const safeInvoiceNo = invoiceNo.replace(/\/|\?/g, '-');
   
-  console.log('📧 Invoice Email: Calling sendEmail function...');
+  logger.log('📧 Invoice Email: Calling sendEmail function...');
   
   // Validate PDF buffer before sending
   if (!pdfBuffer || pdfBuffer.length === 0) {
@@ -225,12 +363,12 @@ export async function sendInvoiceEmail({
   // Check if buffer starts with PDF magic number
   const pdfHeader = pdfBuffer.slice(0, 4).toString('hex');
   if (pdfHeader !== '25504446') { // PDF magic number
-    console.error('❌ Email: PDF buffer does not start with PDF magic number:', pdfHeader);
-    console.error('❌ Email: This indicates the PDF generation failed - buffer is not a valid PDF');
+    criticalLogger.error('❌ Email: PDF buffer does not start with PDF magic number:', pdfHeader);
+    criticalLogger.error('❌ Email: This indicates the PDF generation failed - buffer is not a valid PDF');
     throw new Error('Generated buffer is not a valid PDF file');
   }
   
-  console.log('✅ Email: PDF validation passed - buffer is a valid PDF file');
+  logger.log('✅ Email: PDF validation passed - buffer is a valid PDF file');
   
   // Always send the full email content with PDF attachment
   await sendEmail({
@@ -243,5 +381,5 @@ export async function sendInvoiceEmail({
       contentType: 'application/pdf'
     }]
   });
-  console.log('✅ Invoice Email: Invoice email sent successfully!');
+  logger.log('✅ Invoice Email: Invoice email sent successfully!');
 }

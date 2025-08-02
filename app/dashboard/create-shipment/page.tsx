@@ -58,6 +58,7 @@ const defaultReferences = [
 
 export default function CreateShipment() {
   const router = useRouter()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     companyName: '',
     ownerName: '',
@@ -129,6 +130,7 @@ export default function CreateShipment() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
 
     try {
       const response = await fetch('/api/shipments', {
@@ -148,7 +150,9 @@ export default function CreateShipment() {
         toast.error(data.message || 'Failed to create shipment')
       }
     } catch {
-      toast.error('Something went wrong')
+      toast.error('An error occurred while creating the shipment')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -680,8 +684,8 @@ export default function CreateShipment() {
             >
               Cancel
             </Button>
-            <Button type="submit">
-              Submit
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </Button>
           </div>
         </form>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { generateOTP } from '@/lib/OTP';
-import { sendEmail } from '@/lib/email';
+import { sendEmail, getLogoForEmail, createEmailTemplate } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +16,8 @@ export async function POST(request: Request) {
       select: {
         id: true,
         email: true,
-        role: true
+        role: true,
+        name: true
       }
     });
 
@@ -47,7 +48,8 @@ export async function POST(request: Request) {
       where: { email },
       select: {
         id: true,
-        email: true
+        email: true,
+        name: true
       }
     });
 
@@ -73,14 +75,44 @@ export async function POST(request: Request) {
 
       // Send OTP to admin's email
       try {
+        // Get logo URL for email
+        const logoUrl = getLogoForEmail();
+
+        // Create email content using the new template
+        const content = `
+          <p>Dear ${admin.name || 'Admin'},</p>
+          
+          <p>You have requested to change the role of user <strong>${userToUpdate.name || userToUpdate.email}</strong>.</p>
+          
+          <p>Please use the following OTP to verify this action:</p>
+          
+          <div class="otp-code">
+            ${otp}
+          </div>
+          
+          <div class="highlight">
+            <h3>Action Details</h3>
+            <p><strong>Target User:</strong> ${userToUpdate.name || userToUpdate.email}</p>
+            <p><strong>Email:</strong> ${userToUpdate.email}</p>
+            <p><strong>Requested by:</strong> ${admin.name || admin.email}</p>
+          </div>
+          
+          <p><strong>Security Note:</strong> This OTP will expire in 10 minutes. If you didn't request this action, please contact support immediately.</p>
+          
+          <p>Best regards,<br>
+          <strong>Cranberri Diamonds System</strong></p>
+        `;
+
+        const html = createEmailTemplate({
+          logoUrl,
+          title: 'OTP for User Role Management',
+          content
+        });
+
         await sendEmail({
           to: adminEmail,
-          subject: 'OTP for User Role Management',
-          html: `
-            <h1>OTP Verification for Role Change</h1>
-            <p>Your OTP for changing the role of user ${email} is: <strong>${otp}</strong></p>
-            <p>This OTP will expire in 10 minutes.</p>
-          `,
+          subject: 'Cranberri Diamonds - Admin Action Verification Required',
+          html,
         });
         console.log('Email sent successfully to admin:', adminEmail);
       } catch (emailError) {

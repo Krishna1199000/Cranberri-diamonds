@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { generateOTP } from '@/lib/OTP';
-import { sendEmail } from '@/lib/email';
+import { sendEmail, getLogoForEmail, createEmailTemplate } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
@@ -24,19 +24,39 @@ export async function POST(request: Request) {
       data: { otp },
     });
 
-    // Send email with OTP
-    const emailContent = `
-      <h2>Password Reset Request</h2>
-      <p>You have requested to reset your password. Please use the following OTP to proceed:</p>
-      <h3 style="color: #4F46E5; font-size: 24px; letter-spacing: 2px;">${otp}</h3>
-      <p>This OTP will expire in 10 minutes.</p>
-      <p>If you didn't request this password reset, please ignore this email.</p>
+    // Get logo URL for email
+    const logoUrl = getLogoForEmail();
+
+    // Create email content using the new template
+    const content = `
+      <p>Dear ${user.name || 'User'},</p>
+      
+      <p>You have requested to reset your password for your Cranberri Diamonds account. Please use the following OTP to proceed:</p>
+      
+      <div class="otp-code">
+        ${otp}
+      </div>
+      
+      <p><strong>Important:</strong> This OTP will expire in 10 minutes for your security.</p>
+      
+      <p>If you didn't request this password reset, please ignore this email and your password will remain unchanged.</p>
+      
+      <p>For any assistance, feel free to contact our support team.</p>
+      
+      <p>Best regards,<br>
+      <strong>The Cranberri Diamonds Team</strong></p>
     `;
+
+    const html = createEmailTemplate({
+      logoUrl,
+      title: 'Password Reset Request',
+      content
+    });
 
     await sendEmail({
       to: email,
-      subject: 'Password Reset Request',
-      html: emailContent,
+      subject: 'Reset Your Cranberri Diamonds Password',
+      html,
     });
 
     return new NextResponse('OTP sent successfully', { status: 200 });

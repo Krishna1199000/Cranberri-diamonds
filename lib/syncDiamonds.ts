@@ -1,6 +1,6 @@
 import prisma from '@/lib/db';
 import { SyncStatus } from '@prisma/client';
-
+import { logger, criticalLogger } from './logger';
 
 // Define a batch size for periodic updates and stop checks
 const BATCH_SIZE = 10;
@@ -15,7 +15,7 @@ export async function syncDiamonds() {
         message: 'Diamond sync process initializing...',
       },
     });
-    console.log(`Sync started with log ID: ${syncLog.id}`);
+    logger.log(`Sync started with log ID: ${syncLog.id}`);
 
     // Your external API endpoint
     const apiUrl = process.env.DIAMOND_API_URL;
@@ -37,7 +37,7 @@ export async function syncDiamonds() {
     // Fetch diamonds from external API
     let response: Response;
     try {
-      console.log(`[Sync ${syncLog.id}] Attempting to fetch from API: ${apiUrl}`);
+      logger.log(`[Sync ${syncLog.id}] Attempting to fetch from API: ${apiUrl}`);
       response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -45,9 +45,9 @@ export async function syncDiamonds() {
         },
         body: JSON.stringify(authData),
       });
-      console.log(`[Sync ${syncLog.id}] API fetch completed with status: ${response.status}`);
+      logger.log(`[Sync ${syncLog.id}] API fetch completed with status: ${response.status}`);
     } catch (fetchError) {
-      console.error(`[Sync ${syncLog.id}] Error during fetch call:`, fetchError);
+      criticalLogger.error(`[Sync ${syncLog.id}] Error during fetch call:`, fetchError);
       throw new Error(`Network error during fetch: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
     }
 
@@ -55,9 +55,9 @@ export async function syncDiamonds() {
       let errorBody = 'unknown error';
       try {
         errorBody = await response.text();
-        console.log(`[Sync ${syncLog.id}] API fetch failed. Response body: ${errorBody}`);
+        logger.log(`[Sync ${syncLog.id}] API fetch failed. Response body: ${errorBody}`);
       } catch (textError) {
-        console.error(`[Sync ${syncLog.id}] Error reading error response body:`, textError);
+        criticalLogger.error(`[Sync ${syncLog.id}] Error reading error response body:`, textError);
       }
       throw new Error(`Failed to fetch diamonds from API (Status: ${response.status}): ${errorBody}`);
     }
@@ -65,13 +65,13 @@ export async function syncDiamonds() {
     let rawData: unknown;
     try {
       rawData = await response.json();
-      console.log(`[Sync ${syncLog.id}] API response parsed successfully.`);
+      logger.log(`[Sync ${syncLog.id}] API response parsed successfully.`);
     } catch (jsonError) {
-      console.error(`[Sync ${syncLog.id}] Error parsing API response JSON:`, jsonError);
+      criticalLogger.error(`[Sync ${syncLog.id}] Error parsing API response JSON:`, jsonError);
       // Optionally, try to log the raw text body if JSON parsing fails
       try {
          const textBody = await response.text(); 
-         console.error(`[Sync ${syncLog.id}] Raw response body (failed JSON parse): ${textBody}`);
+         criticalLogger.error(`[Sync ${syncLog.id}] Raw response body (failed JSON parse): ${textBody}`);
       } catch {}
       throw new Error(`Failed to parse API response JSON: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`);
     }
@@ -84,34 +84,74 @@ export async function syncDiamonds() {
       throw new Error('Invalid or empty API response');
     }
     
-    // Extract diamonds array with type guard
+    // Extract diamonds array with type guard and better debugging
     let diamonds: unknown = null;
+    
+    // Log the structure of the response for debugging
+    logger.log(`[Sync ${syncLog.id}] Raw response type:`, typeof rawData);
+    logger.log(`[Sync ${syncLog.id}] Raw response keys:`, Array.isArray(rawData) ? 'Array' : Object.keys(rawData as object));
+    
     if (Array.isArray(rawData)) {
       diamonds = rawData;
+      logger.log(`[Sync ${syncLog.id}] Found diamonds in root array`);
     } else if (rawData && typeof rawData === 'object') {
       const obj = rawData as Record<string, unknown>;
-      if (Array.isArray(obj.data)) {
-        diamonds = obj.data;
-      } else if ('diamonds' in obj && Array.isArray((obj as Record<string, unknown>).diamonds)) {
-        diamonds = (obj as Record<string, unknown>).diamonds;
-      } else if (Array.isArray(obj.results)) {
-        diamonds = obj.results;
+      
+      // Check all possible keys where diamonds might be stored
+      const possibleKeys = ['data', 'diamonds', 'results', 'items', 'records', 'content'];
+      
+      for (const key of possibleKeys) {
+        if (key in obj && Array.isArray(obj[key])) {
+          diamonds = obj[key];
+          logger.log(`[Sync ${syncLog.id}] Found diamonds in key: ${key}`);
+          break;
+        }
+      }
+      
+      // If no standard keys found, check if the object itself contains diamond-like data
+      if (!diamonds && obj.StockID) {
+        // Single diamond object
+        diamonds = [obj];
+        logger.log(`[Sync ${syncLog.id}] Found single diamond object`);
+      } else if (!diamonds && Array.isArray(obj)) {
+        // Array of objects
+        diamonds = obj;
+        logger.log(`[Sync ${syncLog.id}] Found array of objects`);
       }
     }
 
     if (!diamonds || !Array.isArray(diamonds)) {
-      throw new Error('API response does not contain an array of diamonds');
+      // Log the actual response structure for debugging
+      criticalLogger.error(`[Sync ${syncLog.id}] Failed to extract diamonds. Response structure:`, JSON.stringify(rawData, null, 2));
+      
+      // Try to provide a more helpful error message
+      if (rawData && typeof rawData === 'object') {
+        const obj = rawData as Record<string, unknown>;
+        const availableKeys = Object.keys(obj);
+        criticalLogger.error(`[Sync ${syncLog.id}] Available keys in response:`, availableKeys);
+        
+        // Check if there's a message or error field
+        if (obj.message) {
+          throw new Error(`API Error: ${obj.message}`);
+        } else if (obj.error) {
+          throw new Error(`API Error: ${obj.error}`);
+        } else if (obj.status) {
+          throw new Error(`API returned status: ${obj.status}`);
+        }
+      }
+      
+      throw new Error('API response does not contain an array of diamonds. Please check the API response format.');
     }
 
-    console.log(`[Sync ${syncLog.id}] Diamonds array extracted. Length: ${diamonds.length}`); // Log length
-    console.log(`[Sync ${syncLog.id}] Attempting to update log before processing. ID: ${syncLog?.id}`); // Log before update
+    logger.log(`[Sync ${syncLog.id}] Diamonds array extracted. Length: ${diamonds.length}`); // Log length
+    logger.log(`[Sync ${syncLog.id}] Attempting to update log before processing. ID: ${syncLog?.id}`); // Log before update
 
     await prisma.syncLog.update({ // Update status before processing
         where: { id: syncLog.id },
         data: { message: `Processing ${diamonds.length} diamonds...` },
     });
 
-    console.log(`[Sync ${syncLog.id}] Successfully updated log message before processing.`); // Log after update
+    logger.log(`[Sync ${syncLog.id}] Successfully updated log message before processing.`); // Log after update
     
     // Process each diamond
     let count = 0;
@@ -122,17 +162,17 @@ export async function syncDiamonds() {
       // --- Check for Stop Request --- 
       if (processedInBatch >= BATCH_SIZE) {
         // Added detailed logging for status check
-        console.log(`[Sync ${syncLog.id}] Checking status (processed batch: ${processedInBatch})...`);
+        logger.log(`[Sync ${syncLog.id}] Checking status (processed batch: ${processedInBatch})...`);
         const currentSyncLog = await prisma.syncLog.findUnique({ 
           where: { id: syncLog.id },
           select: { status: true }
         });
         
         // Log the status found
-        console.log(`[Sync ${syncLog.id}] Current DB status: ${currentSyncLog?.status}`);
+        logger.log(`[Sync ${syncLog.id}] Current DB status: ${currentSyncLog?.status}`);
 
         if (currentSyncLog?.status === SyncStatus.STOPPING) {
-          console.log(`[Sync ${syncLog.id}] Stop request detected. Cancelling.`); // Updated log
+          logger.log(`[Sync ${syncLog.id}] Stop request detected. Cancelling.`); // Updated log
           await prisma.syncLog.update({
             where: { id: syncLog.id },
             data: {
@@ -144,7 +184,7 @@ export async function syncDiamonds() {
           return { success: false, message: 'Sync cancelled by user', count }; 
         }
         // Update progress if not stopping
-        console.log(`[Sync ${syncLog.id}] Status is not STOPPING. Updating progress.`); // Added log
+        logger.log(`[Sync ${syncLog.id}] Status is not STOPPING. Updating progress.`); // Added log
         await prisma.syncLog.update({ 
             where: { id: syncLog.id },
             data: { count: count, message: `Processing ${count}/${diamonds.length}...` }
@@ -154,7 +194,7 @@ export async function syncDiamonds() {
       // --- End Check for Stop Request ---
 
       if (!diamond.StockID) {
-        console.warn('Skipping diamond without StockID:', diamond);
+        logger.warn('Skipping diamond without StockID:', diamond);
         continue;
       }
 
@@ -211,12 +251,12 @@ export async function syncDiamonds() {
         processedInBatch++;
       } catch (error) {
         // Log the error safely before trying to access properties
-        console.error('[Sync] Caught error during diamond processing. Raw error:', String(error)); 
+        criticalLogger.error('[Sync] Caught error during diamond processing. Raw error:', String(error)); 
         // Log diamond details if possible
         try {
-            console.error(`[Sync] Error occurred while processing diamond with StockID: ${diamond?.StockID || 'UNKNOWN'}. Diamond data:`, JSON.stringify(diamond));
+            criticalLogger.error(`[Sync] Error occurred while processing diamond with StockID: ${diamond?.StockID || 'UNKNOWN'}. Diamond data:`, JSON.stringify(diamond));
         } catch {
-            console.error('[Sync] Could not stringify the diamond object causing the error.');
+            criticalLogger.error('[Sync] Could not stringify the diamond object causing the error.');
         }
         
         const errorMessage = error instanceof Error ? error.message : 'Unknown error during processing';
@@ -239,13 +279,13 @@ export async function syncDiamonds() {
         count: count, // Final count
       },
     });
-    console.log(`Sync finished for log ID: ${syncLog.id}. Status: ${finalStatus}, Count: ${count}`);
+    logger.log(`Sync finished for log ID: ${syncLog.id}. Status: ${finalStatus}, Count: ${count}`);
     return { success: true, status: finalStatus, message: finalMessage, count };
     
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    console.error(`Diamond sync failed for log ID ${syncLog?.id}:`, errorMessage);
-    console.error(`[Sync ${syncLog?.id}] Original error trace:`, error); // Log the full error object
+    criticalLogger.error(`Diamond sync failed for log ID ${syncLog?.id}:`, errorMessage);
+    criticalLogger.error(`[Sync ${syncLog?.id}] Original error trace:`, error); // Log the full error object
     
     // Update sync log with error
     if (syncLog) {

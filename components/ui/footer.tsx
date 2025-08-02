@@ -74,7 +74,7 @@ const Footer = () => {
 
   return (
     <motion.footer 
-      className="bg-gradient-to-b from-background to-slate-100 pt-16 border-t border-slate-200 relative overflow-hidden print:hidden"
+      className="bg-white pt-16 border-t border-slate-200 relative overflow-hidden print:hidden"
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true }}

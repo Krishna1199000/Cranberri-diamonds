@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Share2, FileText, Video, Info} from 'lucide-react';
+import { Share2, FileText, Video, Info, Mail, MessageCircle} from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Diamond {
@@ -193,7 +193,7 @@ export default function DiamondDetails() {
                     className="flex items-center gap-2"
                     onClick={() => handleShare('whatsapp')}
                   >
-                    <Image src="/whatsapp.svg" alt="WhatsApp" width={24} height={24} />
+                    <MessageCircle className="h-6 w-6" />
                     WhatsApp
                   </Button>
                   <Button
@@ -201,7 +201,7 @@ export default function DiamondDetails() {
                     className="flex items-center gap-2"
                     onClick={() => handleShare('email')}
                   >
-                    <Image src="/email.svg" alt="Email" width={24} height={24} />
+                    <Mail className="h-6 w-6" />
                     Email
                   </Button>
                   <Button
