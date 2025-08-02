@@ -2,9 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { numberToWords, generateInvoiceNumber } from '@/lib/utils';
-import { generateInvoicePDFBuffer } from '@/lib/pdf-utils';
-import { generateInvoicePDFBufferServerless } from '@/lib/pdf-utils-serverless';
-import { generateInvoicePDFBufferResend } from '@/lib/pdf-utils-resend';
+
 import { sendInvoiceEmail } from '@/lib/email';
 import { createPaymentReminderNotification } from '@/lib/notification-scheduler';
 import { getSession } from '@/lib/session';
