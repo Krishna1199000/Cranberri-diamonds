@@ -260,7 +260,7 @@ export function InventoryTable({
                       <TableCell>
                         <Checkbox 
                           checked={selected.includes(item.id)}
-                          onChange={(checked) => handleSelect(item.id, !!checked)}
+                          onChange={e => handleSelect(item.id, e.target.checked)}
                         />
                       </TableCell>
                     )}
