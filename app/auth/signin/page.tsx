@@ -1,29 +1,22 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { ForgotPasswordDialog } from "@/components/ForgotPasswordDialog"
 
-function SignInInner() {
+export default function SignIn() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
   const [loading, setLoading] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
-
-  useEffect(() => {
-    if (searchParams.get("forcedLogout") === "1") {
-      toast.error("You were logged out because your account was signed in from another device.")
-    }
-  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -129,13 +122,5 @@ function SignInInner() {
         onClose={() => setShowForgotPassword(false)}
       />
     </div>
-  )
-}
-
-export default function SignIn() {
-  return (
-    <Suspense>
-      <SignInInner />
-    </Suspense>
   )
 }

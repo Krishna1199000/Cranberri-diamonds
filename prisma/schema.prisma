@@ -157,7 +157,6 @@ model User {
   role               Role                @default(customer)
   approved           Boolean             @default(false)
   declined           Boolean             @default(false)
-  currentSessionId   String?             // For single active session enforcement
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
   invoices           Invoice[]

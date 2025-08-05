@@ -1,8 +1,5 @@
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 
 export async function getSession() {
   try {
@@ -27,20 +24,10 @@ export async function getSession() {
         token,
         new TextEncoder().encode(secret)
       );
-
+      
       if (process.env.NODE_ENV === 'development') {
         console.log('Session payload:', payload);
       }
-
-      // Single active session enforcement
-      if (payload && payload.userId && payload.sessionId) {
-        const user = await prisma.user.findUnique({ where: { id: payload.userId as string } });
-        if (!user || user.currentSessionId !== payload.sessionId) {
-          // Session is invalidated due to another login
-          return { forcedLogout: true };
-        }
-      }
-
       return payload;
     } catch (jwtError) {
       console.error('JWT verification error:', jwtError);
