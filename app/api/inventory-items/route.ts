@@ -50,8 +50,10 @@ export async function GET(request: NextRequest) {
       prisma.inventoryItem.count({ where })
     ]);
     
-    // Add console log to verify data fetched by *this* route
-    console.log("Fetched inventory items in /api/inventory-items (first 5):", JSON.stringify(items.slice(0, 5), null, 2));
+    // Remove sensitive logging in production
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Fetched inventory items in /api/inventory-items (first 5):", JSON.stringify(items.slice(0, 5), null, 2));
+    }
 
     return NextResponse.json({
       items,

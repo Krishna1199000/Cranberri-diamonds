@@ -49,8 +49,10 @@ export async function GET(request: NextRequest) {
 
     const total = await prisma.inventoryItem.count({ where });
     
-    // Log the fetched inventory items to check for heldByShipment details
-    console.log("Fetched inventory items in API route (first 5):", JSON.stringify(inventoryItems.slice(0, 5), null, 2));
+    // Remove sensitive logging in production
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Fetched inventory items in API route (first 5):", JSON.stringify(inventoryItems.slice(0, 5), null, 2));
+    }
 
     return NextResponse.json({ 
       diamonds: inventoryItems, // Keep 'diamonds' key for frontend compatibility for now, or update frontend

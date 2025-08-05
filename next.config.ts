@@ -11,8 +11,8 @@ const nextConfig = {
       'www.gia.edu',
       'images.unsplash.com',
       'video.gem360.in',
-       // Add this domain
-      '*'
+       // Remove wildcard domain for security
+      // '*'
     ],
     remotePatterns: [
       // {
@@ -47,10 +47,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'video.gem360.in', // Add this explicitly
       },
-      {
-        protocol: 'https',
-        hostname: '*',
-      },
+      // Remove wildcard hostname for security
+      // {
+      //   protocol: 'https',
+      //   hostname: '*',
+      // },
     ],
   }
 }

@@ -23,10 +23,17 @@ export async function syncDiamonds() {
       throw new Error('DIAMOND_API_URL is not defined in environment variables');
     }
     
-    // Prepare authentication data (Consider moving to env vars)
+    // Get authentication data from environment variables
+    const username = process.env.DIAMOND_API_USERNAME;
+    const password = process.env.DIAMOND_API_PASSWORD;
+    
+    if (!username || !password) {
+      throw new Error('DIAMOND_API_USERNAME and DIAMOND_API_PASSWORD must be defined in environment variables');
+    }
+    
     const authData = {
-      USERNAME: 'CRANBERRI',
-      PASSWORD: 'CRADIA@123'
+      USERNAME: username,
+      PASSWORD: password
     };
     
     await prisma.syncLog.update({ // Update status after setup

@@ -12,8 +12,8 @@ async function fetchDiamondsFromAPI() {
         Accept: "application/json",
       },
       body: JSON.stringify({
-        USERNAME: "CRANBERRI",
-        PASSWORD: "CRADIA@123",
+        USERNAME: process.env.DIAMOND_API_USERNAME || "CRANBERRI",
+        PASSWORD: process.env.DIAMOND_API_PASSWORD || "CRADIA@123",
       }),
     });
 

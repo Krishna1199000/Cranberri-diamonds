@@ -253,17 +253,6 @@ export function InventoryTable({
                 const companyName = (currentStatus === DiamondStatus.MEMO || currentStatus === DiamondStatus.HOLD) 
                                     ? item.heldByShipment?.companyName || "-" 
                                     : "-";
-                
-                // Log individual item and its heldByShipment details
-                if (index < 5) { // Log first 5 items to avoid flooding console
-                  console.log(`Item ${index} (Stock ID: ${item.stockId}):`, JSON.parse(JSON.stringify(item))); // Deep copy for logging
-                  // Safer logging for heldByShipment:
-                  console.log(
-                    `Item ${index} (Stock ID: ${item.stockId}) heldByShipment:`, 
-                    item.heldByShipment ? JSON.parse(JSON.stringify(item.heldByShipment)) : item.heldByShipment
-                  );
-                  console.log(`Item ${index} (Stock ID: ${item.stockId}) status: ${currentStatus}, companyName derived:`, companyName);
-                }
 
                 return (
                   <TableRow key={item.id}>

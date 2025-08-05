@@ -11,13 +11,22 @@ const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export async function POST(req: Request) {
-  console.log('POST /api/sales - Starting request processing');
+  // Remove sensitive logging in production
+  if (process.env.NODE_ENV === 'development') {
+    console.log('POST /api/sales - Starting request processing');
+  }
+  
   try {
     const session = await getSession();
-    console.log('Session data:', session);
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Session data:', session);
+    }
     
     if (!session || (session.role !== 'employee' && session.role !== 'admin')) {
-      console.log('Unauthorized access attempt:', { session });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Unauthorized access attempt:', { session });
+      }
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -25,18 +34,25 @@ export async function POST(req: Request) {
     }
 
     const data = await req.json();
-    console.log('Received form data:', data);
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Received form data:', data);
+    }
     
     // Validate required fields for non-no-sale entries
     if (!data.isNoSale) {
-      console.log('Validating required fields for regular sale');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Validating required fields for regular sale');
+      }
       if (!data.companyName || !data.totalSaleValue || !data.saleItems || data.saleItems.length === 0) {
-        console.log('Missing required fields:', {
-          hasCompanyName: !!data.companyName,
-          hasTotalSaleValue: !!data.totalSaleValue,
-          hasSaleItems: !!data.saleItems,
-          saleItemsLength: data.saleItems?.length || 0
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Missing required fields:', {
+            hasCompanyName: !!data.companyName,
+            hasTotalSaleValue: !!data.totalSaleValue,
+            hasSaleItems: !!data.saleItems,
+            saleItemsLength: data.saleItems?.length || 0
+          });
+        }
         return NextResponse.json(
           { success: false, message: 'Missing required fields' },
           { status: 400 }
