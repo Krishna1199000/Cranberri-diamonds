@@ -91,7 +91,7 @@ export function StatusChangeDialog({
   shipments,
 }: StatusChangeDialogProps) {
   const [isShipmentRequired, setIsShipmentRequired] = useState(
-    item.status === DiamondStatus.HOLD || item.status === DiamondStatus.MEMO
+    item.status === DiamondStatus.HOLD || item.status === DiamondStatus.MEMO || item.status === DiamondStatus.SOLD
   );
   
   const form = useForm<z.infer<typeof statusChangeSchema>>({
@@ -105,17 +105,17 @@ export function StatusChangeDialog({
   const handleStatusChange = (value: string) => {
     const newStatus = value as DiamondStatus;
     form.setValue("status", newStatus);
-    setIsShipmentRequired(newStatus === DiamondStatus.HOLD || newStatus === DiamondStatus.MEMO);
+    setIsShipmentRequired(newStatus === DiamondStatus.HOLD || newStatus === DiamondStatus.MEMO || newStatus === DiamondStatus.SOLD);
     if (newStatus === DiamondStatus.AVAILABLE) {
       form.setValue("heldByShipmentId", null);
     }
   };
   
   const handleSubmit = async (data: z.infer<typeof statusChangeSchema>) => {
-    if ((data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO) && !data.heldByShipmentId) {
+    if ((data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO || data.status === DiamondStatus.SOLD) && !data.heldByShipmentId) {
       form.setError("heldByShipmentId", {
         type: "manual",
-        message: "Company is required for Hold or Memo status",
+        message: "Company is required for Hold, Memo, or Sold status",
       });
       return;
     }

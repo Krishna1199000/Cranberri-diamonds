@@ -145,7 +145,7 @@ export function AddEditInventoryForm({
         status: item.status,
         heldByShipmentId: item.heldByShipmentId ?? undefined,
       });
-      setIsShipmentRequired(item.status === DiamondStatus.HOLD || item.status === DiamondStatus.MEMO);
+      setIsShipmentRequired(item.status === DiamondStatus.HOLD || item.status === DiamondStatus.MEMO || item.status === DiamondStatus.SOLD);
     } else {
       // Reset form for Add mode
       form.reset(); // Reset to defaultValues
@@ -154,18 +154,18 @@ export function AddEditInventoryForm({
   }, [item, form.reset, form.setValue, form]);
   
   const handleStatusChange = (value: string) => {
-    form.setValue("status", value as "AVAILABLE" | "HOLD" | "MEMO");
-    setIsShipmentRequired(value === "HOLD" || value === "MEMO");
+    form.setValue("status", value as "AVAILABLE" | "HOLD" | "MEMO" | "SOLD");
+    setIsShipmentRequired(value === "HOLD" || value === "MEMO" || value === "SOLD");
     if (value === "AVAILABLE") {
       form.setValue("heldByShipmentId", null);
     }
   };
   
   const handleSubmit = async (data: z.infer<typeof inventoryFormSchema>) => {
-    if ((data.status === "HOLD" || data.status === "MEMO") && !data.heldByShipmentId) {
+    if ((data.status === "HOLD" || data.status === "MEMO" || data.status === "SOLD") && !data.heldByShipmentId) {
       form.setError("heldByShipmentId", {
         type: "manual",
-        message: "Shipment is required for Hold or Memo status",
+        message: "Shipment is required for Hold, Memo, or Sold status",
       });
       return;
     }

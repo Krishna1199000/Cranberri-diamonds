@@ -58,6 +58,7 @@ enum DiamondStatus {
   AVAILABLE
   HOLD
   MEMO
+  SOLD
 }
 
 enum SyncStatus {

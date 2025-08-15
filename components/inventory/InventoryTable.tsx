@@ -112,6 +112,8 @@ export function InventoryTable({
         return "HOLD" as DiamondStatus;
       case "MEMO":
         return "MEMO" as DiamondStatus;
+      case "SOLD":
+        return "SOLD" as DiamondStatus;
       default:
         return "AVAILABLE" as DiamondStatus; // Default fallback
     }
@@ -250,7 +252,7 @@ export function InventoryTable({
             ) : (
               items.map((item, index) => {
                 const currentStatus = mapStatus(item.status);
-                const companyName = (currentStatus === DiamondStatus.MEMO || currentStatus === DiamondStatus.HOLD) 
+                const companyName = (currentStatus === DiamondStatus.MEMO || currentStatus === DiamondStatus.HOLD || currentStatus === DiamondStatus.SOLD) 
                                     ? item.heldByShipment?.companyName || "-" 
                                     : "-";
 

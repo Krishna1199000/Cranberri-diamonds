@@ -10,6 +10,7 @@ const nextConfig = {
       'www.igi.org',
       'www.gia.edu',
       'images.unsplash.com',
+      'images.pexels.com',
       'video.gem360.in',
        // Remove wildcard domain for security
       // '*'
@@ -46,6 +47,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'video.gem360.in', // Add this explicitly
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
       },
       // Remove wildcard hostname for security
       // {

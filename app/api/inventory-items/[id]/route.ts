@@ -79,16 +79,16 @@ export async function PUT(request: NextRequest,
     if (data.status === DiamondStatus.AVAILABLE) {
       // If status is AVAILABLE, always disconnect
       updateData.heldByShipment = { disconnect: true };
-    } else if ((data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO)) {
+    } else if ((data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO || data.status === DiamondStatus.SOLD)) {
       if (data.heldByShipmentId) {
-        // If status is HOLD/MEMO and an ID is provided, connect
+        // If status is HOLD/MEMO/SOLD and an ID is provided, connect
         updateData.heldByShipment = { connect: { id: data.heldByShipmentId } };
       } else {
-        // If status is HOLD/MEMO but *no* ID is provided, disconnect (or maybe return error)
+        // If status is HOLD/MEMO/SOLD but *no* ID is provided, disconnect (or maybe return error)
         // Disconnecting seems safer than potentially leaving an old link 
         updateData.heldByShipment = { disconnect: true }; 
-        // Alternative: return error if ID is mandatory for HOLD/MEMO
-        // return NextResponse.json({ error: "Shipment ID required for HOLD/MEMO status" }, { status: 400 });
+        // Alternative: return error if ID is mandatory for HOLD/MEMO/SOLD
+        // return NextResponse.json({ error: "Shipment ID required for HOLD/MEMO/SOLD status" }, { status: 400 });
       }
     }
     // If status is not changing or not one of the above, the relation is left untouched unless specified

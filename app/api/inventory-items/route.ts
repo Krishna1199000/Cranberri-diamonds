@@ -131,17 +131,17 @@ export async function POST(request: NextRequest) {
       certUrl: data.certUrl || null,
     };
     
-    // Add shipment linking logic if status is HOLD or MEMO and ID is provided
-    if ((data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO) && data.heldByShipmentId) {
+    // Add shipment linking logic if status is HOLD, MEMO, or SOLD and ID is provided
+    if ((data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO || data.status === DiamondStatus.SOLD) && data.heldByShipmentId) {
       inventoryItemCreateData.heldByShipment = {
         connect: { id: data.heldByShipmentId }
       };
     }
-    // Optional: Add error handling if HOLD/MEMO status but no heldByShipmentId provided
-    else if (data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO) {
-        // console.warn("Creating item with HOLD/MEMO status without heldByShipmentId.");
+    // Optional: Add error handling if HOLD/MEMO/SOLD status but no heldByShipmentId provided
+    else if (data.status === DiamondStatus.HOLD || data.status === DiamondStatus.MEMO || data.status === DiamondStatus.SOLD) {
+        // console.warn("Creating item with HOLD/MEMO/SOLD status without heldByShipmentId.");
         // Can choose to return an error:
-        // return NextResponse.json({ error: "heldByShipmentId is required for HOLD/MEMO status" }, { status: 400 });
+        // return NextResponse.json({ error: "heldByShipmentId is required for HOLD/MEMO/SOLD status" }, { status: 400 });
     }
 
     const inventoryItem = await prisma.inventoryItem.create({
