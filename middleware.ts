@@ -23,13 +23,15 @@ export async function middleware(request: NextRequest) {
   const isAdminPage = path.startsWith('/Admins');
   const isEmployeePage = path.startsWith('/employee');
   const isCustomerPage = path.startsWith('/Customer');
-  const isSyncPage = path.startsWith('/sync');
+  const isSyncPage = false;
   const isDashboardPage = path === '/dashboard';
   const isAdminUsersPage = path === '/admin/users';
+  const isAdminVendorsPage = path.startsWith('/admin/vendors');
+  const isAdminFinancePage = path.startsWith('/admin/finance') || path.startsWith('/admin/accounts');
   const isCustomerApprovalPage = path === '/customer-approval';
 
   // If no token and trying to access protected routes
-  if (!token && (isAdminPage || isEmployeePage || isCustomerPage || isSyncPage || isDashboardPage || isAdminUsersPage || isCustomerApprovalPage)) {
+  if (!token && (isAdminPage || isEmployeePage || isCustomerPage || isDashboardPage || isAdminUsersPage || isAdminVendorsPage || isAdminFinancePage || isCustomerApprovalPage)) {
     return NextResponse.redirect(new URL('/auth/signin', request.url));
   }
 
@@ -61,7 +63,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Role-based access control (Now relies solely on JWT payload role)
-    if (isAdminPage || isSyncPage || isAdminUsersPage) {
+    if (isAdminPage || isAdminUsersPage || isAdminVendorsPage || isAdminFinancePage) {
       if (payload.role !== 'admin') {
         return NextResponse.redirect(new URL('/auth/signin', request.url));
       }
@@ -110,10 +112,12 @@ export const config = {
     '/employee/:path*',
     '/Customer/:path*',
     '/auth/:path*',
-    '/sync/:path*',
     '/Admins/:path*',
     '/dashboard',
     '/admin/users',
+    '/admin/vendors/:path*',
+    '/admin/finance/:path*',
+    '/admin/accounts/:path*',
     '/customer-approval'
   ]
 };

@@ -203,7 +203,10 @@ export async function POST(request: NextRequest) {
         let emailSent = false;
         let emailError: Error | null = null;
         
-        if (createdInvoice.selectedShipment && createdInvoice.selectedShipment.email) {
+        // Check if email is enabled (default to true for backward compatibility)
+        const emailEnabled = validatedData.emailEnabled !== false;
+        
+        if (emailEnabled && createdInvoice.selectedShipment && createdInvoice.selectedShipment.email) {
           try {
             console.log('=== INVOICE EMAIL PROCESS START ===');
             console.log('Created invoice:', createdInvoice.invoice.invoiceNo);

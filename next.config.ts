@@ -11,6 +11,7 @@ const nextConfig = {
       'www.gia.edu',
       'images.unsplash.com',
       'images.pexels.com',
+      'video.diamonds360.in',
       'video.gem360.in',
        // Remove wildcard domain for security
       // '*'
@@ -47,6 +48,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'video.gem360.in', // Add this explicitly
+      },
+      {
+        protocol: 'https',
+        hostname: 'video.diamonds360.in',
       },
       {
         protocol: 'https',

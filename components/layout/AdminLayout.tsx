@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, LogOut, Users, Database, BarChart, TrendingUp, FileText, Settings, Gauge, Package, Box } from 'lucide-react';
+import { Menu, X, LogOut, Users,  BarChart, FileText, Settings, Gauge, Package, Box, Building2, DollarSign, Calculator, Home } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { UserProfileDropdown } from '@/components/UserProfileDropdown';
 import Link from 'next/link';
@@ -59,15 +59,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   // Define navigation items specifically for the admin area
   const navItems = [
+    { label: 'Home', icon: Home, href: '/' },
     { label: 'Dashboard', icon: Gauge, href: '/Admins' },
-    { label: 'Sales', icon: BarChart, href: '/Admins/sales' },
-    { label: 'Reports', icon: BarChart, href: '/Admins/sales-report' },
-    { label: 'Performance', icon: TrendingUp, href: '/Admins/performance' },
+    { label: 'Sales & Performance', icon: BarChart, href: '/Admins/sales' },
     { label: 'Inventory', icon: Box, href: '/admin/inventory' },
     { label: 'Users', icon: Users, href: '/admin/users' },
-    { label: 'Invoices', icon: FileText, href: '/invoices' },
-    { label: 'Memos', icon: FileText, href: '/memos' },
-    { label: 'Sync', icon: Database, href: '/sync' },
+    { label: 'Vendors', icon: Building2, href: '/admin/vendors' },
+    { label: 'Finance', icon: DollarSign, href: '/admin/finance' },
+    { label: 'Accounts', icon: Calculator, href: '/admin/accounts' },
+    { label: 'Invoices-memos', icon: FileText, href: '/invoices' },
+    
     { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
     { label: 'Parcel', icon: Box, href: '/parcel-goods' },
   ];

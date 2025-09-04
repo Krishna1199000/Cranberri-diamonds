@@ -13,6 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { getStatusColor, getStatusDisplay } from "@/lib/utils/inventory";
 import { LoadingCards } from "@/components/loading";
 import { Video, FileText, Search } from "lucide-react";
 import Image from "next/image";
@@ -30,29 +32,30 @@ import {
 interface Diamond {
   id: string;
   stockId: string;
-  certificateNo: string;
+  certificateNo: string; // Mapped from stockId
   shape: string;
-  size: number;
+  size: number; // This is carat
   color: string;
   clarity: string;
-  cut: string;
+  cut: string | null;
   polish: string;
   sym: string;
-  floro: string;
+  floro: string; // Not available in inventory
   lab: string;
-  rapPrice: number;
-  rapAmount: number;
-  discount: number;
+  rapPrice: number; // Not available in inventory
+  rapAmount: number; // Not available in inventory
+  discount: number; // Not available in inventory
   pricePerCarat: number;
   finalAmount: number;
-  measurement: string;
-  depth: number;
-  table: number;
-  ratio: number;
-  location: string;
-  imageUrl?: string;
-  videoUrl?: string;
-  certUrl?: string;
+  measurement: string | null;
+  depth: number | null; // Not available in inventory
+  table: number | null; // Not available in inventory
+  ratio: number | null; // Not available in inventory
+  location: string | null;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  certUrl?: string | null;
+  status: 'AVAILABLE' | 'HOLD' | 'MEMO' | 'SOLD';
 }
 
 interface PaginationInfo {
@@ -251,29 +254,30 @@ export default function SearchResultsContent() {
 
         <div className="bg-white rounded-lg shadow">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
+            <TableHeader className="bg-black">
+              <TableRow className="bg-black">
+                <TableHead className="w-12 text-white">
                   <Checkbox 
                     checked={selectedDiamonds.size === diamonds.length && diamonds.length > 0}
                     onChange={(e) => handleSelectAllDiamonds(e.target.checked)}
                   />
                 </TableHead>
-                <TableHead>Sr No.</TableHead>
-                <TableHead>Stock ID</TableHead>
-                <TableHead>Media</TableHead>
-                <TableHead>Shape</TableHead>
-                <TableHead>Carat</TableHead>
-                <TableHead>Color</TableHead>
-                <TableHead>Clarity</TableHead>
-                <TableHead>Cut</TableHead>
-                <TableHead>Polish</TableHead>
-                <TableHead>Sym</TableHead>
-                <TableHead>Lab</TableHead>
+                <TableHead className="text-white">Sr No.</TableHead>
+                <TableHead className="text-white">Stock ID</TableHead>
+                <TableHead className="text-white">Media</TableHead>
+                <TableHead className="text-white">Shape</TableHead>
+                <TableHead className="text-white">Carat</TableHead>
+                <TableHead className="text-white">Color</TableHead>
+                <TableHead className="text-white">Clarity</TableHead>
+                <TableHead className="text-white">Cut</TableHead>
+                <TableHead className="text-white">Polish</TableHead>
+                <TableHead className="text-white">Sym</TableHead>
+                <TableHead className="text-white">Lab</TableHead>
+                <TableHead className="text-white">Status</TableHead>
                 {(userRole === 'admin' || userRole === 'employee') && (
                   <>
-                    <TableHead>Price/Ct</TableHead>
-                    <TableHead>Amount</TableHead>
+                    <TableHead className="text-white">Price/Ct</TableHead>
+                    <TableHead className="text-white">Amount</TableHead>
                   </>
                 )}
               </TableRow>
@@ -299,7 +303,7 @@ export default function SearchResultsContent() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => window.open(diamond.imageUrl)}
+                          onClick={() => diamond.imageUrl && window.open(diamond.imageUrl)}
                         >
                           <Image
                             src={diamond.imageUrl}
@@ -314,7 +318,7 @@ export default function SearchResultsContent() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => window.open(diamond.videoUrl)}
+                          onClick={() => diamond.videoUrl && window.open(diamond.videoUrl)}
                         >
                           <Video className="h-4 w-4" />
                         </Button>
@@ -323,7 +327,7 @@ export default function SearchResultsContent() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => window.open(diamond.certUrl)}
+                          onClick={() => diamond.certUrl && window.open(diamond.certUrl)}
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
@@ -338,6 +342,45 @@ export default function SearchResultsContent() {
                   <TableCell>{diamond.polish}</TableCell>
                   <TableCell>{diamond.sym}</TableCell>
                   <TableCell>{diamond.lab}</TableCell>
+                  <TableCell>
+                    <Badge className={`${getStatusColor(diamond.status).replace('bg-','bg-').replace('text-','text-').replace('border-','border-')}`}>{getStatusDisplay({
+                      id: diamond.id,
+                      stockId: diamond.stockId,
+                      status: diamond.status,
+                      certificateNo: '',
+                      shape: diamond.shape,
+                      size: diamond.size,
+                      color: diamond.color,
+                      clarity: diamond.clarity,
+                      cut: diamond.cut,
+                      polish: diamond.polish,
+                      sym: diamond.sym,
+                      floro: '',
+                      lab: diamond.lab,
+                      rapPrice: 0,
+                      rapAmount: 0,
+                      discount: 0,
+                      pricePerCarat: diamond.pricePerCarat,
+                      finalAmount: diamond.finalAmount,
+                      measurement: '',
+                      length: null,
+                      width: null,
+                      height: null,
+                      depth: null,
+                      table: null,
+                      ratio: null,
+                      comment: null,
+                      videoUrl: diamond.videoUrl ?? null,
+                      imageUrl: diamond.imageUrl ?? null,
+                      certUrl: diamond.certUrl ?? null,
+                      girdle: null,
+                      culet: null,
+                      heldByShipmentId: null,
+                      heldByShipment: null,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    })}</Badge>
+                  </TableCell>
                   {(userRole === 'admin' || userRole === 'employee') && (
                     <>
                       <TableCell>${diamond.pricePerCarat.toLocaleString()}</TableCell>

@@ -41,7 +41,8 @@ export function EditInvoiceForm({ invoice }: EditInvoiceFormProps) {
       shipmentCost: invoice.shipmentCost || 0,
       discount: invoice.discount || 0,
       crPayment: invoice.crPayment || 0,
-      items: invoice.items.map((item: InvoiceFormValues["items"][number]) => ({
+      emailEnabled: invoice.emailEnabled ?? true,
+      items: (invoice.items || []).map((item: InvoiceFormValues["items"][number]) => ({
         description: item.description || "",
         carat: item.carat || 0.01,
         color: item.color || "",
@@ -49,7 +50,7 @@ export function EditInvoiceForm({ invoice }: EditInvoiceFormProps) {
         lab: item.lab || "",
         reportNo: item.reportNo || "",
         pricePerCarat: item.pricePerCarat || 0.01,
-      })) || []
+      }))
     }
   });
 

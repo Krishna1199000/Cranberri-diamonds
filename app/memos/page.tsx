@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { Loader2, Plus, Trash2, FileText } from "lucide-react";
+import { Loader2, Plus, Trash2, FileText, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -99,7 +99,15 @@ export default function MemosPage() {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Memos</h1> {/* Updated Title */}
+        <div className="flex items-center gap-3">
+          <Link href="/invoices">
+            <Button variant="outline" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Invoices
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Memos</h1> {/* Updated Title */}
+        </div>
         <Link href="/memos/new"> {/* Updated Link */}
           <Button className="flex items-center gap-2">
             <Plus className="h-4 w-4" />

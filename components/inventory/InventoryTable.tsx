@@ -73,6 +73,60 @@ export function InventoryTable({
   const [selected, setSelected] = useState<string[]>([]);
   const [activeMedia, setActiveMedia] = useState<{ type: string; url: string } | null>(null);
 
+  const exportSelectedToCSV = async () => {
+    if (!selected.length) return;
+    // Fetch full selected items by IDs to include selections across pages
+    const params = new URLSearchParams({ ids: selected.join(',') });
+    const res = await fetch(`/api/inventory-items?${params.toString()}`);
+    const data = await res.json();
+    const selectedItems = Array.isArray(data.items) && data.items.length ? data.items : items.filter(i => selected.includes(i.id));
+    const headers = [
+      'Sr No.',
+      'Held By Company',
+      'Status',
+      'Stock ID',
+      'Shape',
+      'Carat',
+      'Color',
+      'Clarity',
+      'Cut',
+      'Polish',
+      'Sym',
+      'Lab',
+      'Price/Ct',
+      'Amount'
+    ];
+
+    const rows = selectedItems.map((item, idx) => [
+      String(idx + 1),
+      item.heldByShipment?.companyName ?? '',
+      item.status,
+      item.stockId ?? '',
+      item.shape ?? '',
+      String(item.size ?? ''),
+      item.color ?? '',
+      item.clarity ?? '',
+      item.cut ?? '',
+      item.polish ?? '',
+      item.sym ?? '',
+      item.lab ?? '',
+      String(item.pricePerCarat ?? ''),
+      String(item.finalAmount ?? '')
+    ]);
+
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'selected-inventory.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleSelect = (id: string, checked: boolean) => {
     let newSelected = [...selected];
     
@@ -207,35 +261,51 @@ export function InventoryTable({
   return (
     <div className="rounded-md border">
       <div className="relative overflow-x-auto">
+        {isAdmin && (
+          <div className="flex items-center justify-between px-4 py-2">
+            <div className="text-sm text-muted-foreground">
+              {selected.length > 0 ? `${selected.length} selected` : ''}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                disabled={selected.length === 0}
+                onClick={exportSelectedToCSV}
+              >
+                Export Selected to CSV
+              </Button>
+            </div>
+          </div>
+        )}
         <Table>
-          <TableHeader>
-            <TableRow>
+          <TableHeader className="bg-black">
+            <TableRow className="bg-black">
               {isAdmin && (
-                <TableHead className="w-10">
+                <TableHead className="w-10 text-white">
                   <Checkbox 
                     checked={selected.length === items.length && items.length > 0}
                     onChange={handleSelectAll}
                   />
                 </TableHead>
               )}
-              <TableHead className="w-14">Sr No.</TableHead>
+              <TableHead className="w-14 text-white">Sr No.</TableHead>
               {(userRole === 'admin' || userRole === 'employee') && (
-                <TableHead>Held By Company</TableHead>
+                <TableHead className="text-white">Held By Company</TableHead>
               )}
-              <TableHead>Status</TableHead>
-              <TableHead>Stock ID</TableHead>
-              <TableHead>Media</TableHead>
-              <TableHead>Shape</TableHead>
-              <TableHead>Carat</TableHead>
-              <TableHead>Color</TableHead>
-              <TableHead>Clarity</TableHead>
-              <TableHead>Cut</TableHead>
-              <TableHead>Polish</TableHead>
-              <TableHead>Sym</TableHead>
-              <TableHead>Lab</TableHead>
-              <TableHead>Price/Ct</TableHead>
-              <TableHead>Amount</TableHead>
-              {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+              <TableHead className="text-white">Status</TableHead>
+              <TableHead className="text-white">Stock ID</TableHead>
+              <TableHead className="text-white">Media</TableHead>
+              <TableHead className="text-white">Shape</TableHead>
+              <TableHead className="text-white">Carat</TableHead>
+              <TableHead className="text-white">Color</TableHead>
+              <TableHead className="text-white">Clarity</TableHead>
+              <TableHead className="text-white">Cut</TableHead>
+              <TableHead className="text-white">Polish</TableHead>
+              <TableHead className="text-white">Sym</TableHead>
+              <TableHead className="text-white">Lab</TableHead>
+              <TableHead className="text-white">Price/Ct</TableHead>
+              <TableHead className="text-white">Amount</TableHead>
+              {isAdmin && <TableHead className="text-right text-white">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>

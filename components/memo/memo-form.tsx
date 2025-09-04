@@ -51,7 +51,55 @@ export function MemoForm({ initialData }: MemoFormProps) {
     const [shipmentsList, setShipmentsList] = useState<ShipmentForMemo[]>([]);
     const [shipmentsLoading, setShipmentsLoading] = useState(true);
 
+    // Use MemoFormValues and memoFormSchema - MOVED TO TOP
+    const form = useForm<MemoFormValues>({
+        resolver: zodResolver(memoFormSchema),
+        defaultValues: initialData ? {
+            ...initialData,
+            date: initialData.date instanceof Date ? initialData.date : new Date(initialData.date),
+            dueDate: initialData.dueDate instanceof Date ? initialData.dueDate : new Date(initialData.dueDate),
+        } : {
+            memoNo: "",
+            date: new Date(),
+            dueDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+            paymentTerms: 7,
+            shipmentId: "",
+            description: "MemoRandom",
+            shipmentCost: 0,
+            discount: 0,
+            crPayment: 0,
+            items: [
+                {
+                    description: "",
+                    carat: 0.01,
+                    color: "",
+                    clarity: "",
+                    lab: "",
+                    reportNo: "",
+                    pricePerCarat: 0.01,
+                },
+            ],
+        }
+    });
+
     // Fetch latest memo number (TODO: Create this API endpoint)
+    // Check for pre-filled data from inventory selection
+    useEffect(() => {
+      const prefilledData = sessionStorage.getItem('prefilledMemoData');
+      if (prefilledData) {
+        try {
+          const data = JSON.parse(prefilledData);
+          // Set form values from pre-filled data
+          form.reset(data);
+          // Clear the session storage
+          sessionStorage.removeItem('prefilledMemoData');
+        } catch (error) {
+          console.error('Error parsing pre-filled memo data:', error);
+          toast.error('Failed to load pre-filled data');
+        }
+      }
+    }, [form]);
+
     useEffect(() => {
         setMemoNoLoading(true);
         fetch("/api/memos/latest-number") // Updated API endpoint
@@ -99,37 +147,6 @@ export function MemoForm({ initialData }: MemoFormProps) {
         };
         fetchShipments();
     }, []);
-
-    // Use MemoFormValues and memoFormSchema
-    const form = useForm<MemoFormValues>({
-        resolver: zodResolver(memoFormSchema),
-        defaultValues: initialData ? {
-            ...initialData,
-            date: initialData.date instanceof Date ? initialData.date : new Date(initialData.date),
-            dueDate: initialData.dueDate instanceof Date ? initialData.dueDate : new Date(initialData.dueDate),
-        } : {
-            memoNo: "",
-            date: new Date(),
-            dueDate: new Date(new Date().setDate(new Date().getDate() + 7)),
-            paymentTerms: 7,
-            shipmentId: "",
-            description: "MemoRandom",
-            shipmentCost: 0,
-            discount: 0,
-            crPayment: 0,
-            items: [
-                {
-                    description: "",
-                    carat: 0.01,
-                    color: "",
-                    clarity: "",
-                    lab: "",
-                    reportNo: "",
-                    pricePerCarat: 0.01,
-                },
-            ],
-        }
-    });
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,

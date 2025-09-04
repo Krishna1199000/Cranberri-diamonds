@@ -41,11 +41,23 @@ type Invoice = {
     subtotal?: number;
 };
 
+interface ProcessedInvoice extends Omit<Invoice, 'date' | 'dueDate'> {
+    date: Date;
+    dueDate: Date;
+    paymentTerms: number;
+    shipmentId: string;
+    crPayment: number;
+    discount: number;
+    shipmentCost: number;
+    items: { description: string; color: string; carat: number; clarity: string; lab: string; reportNo: string; pricePerCarat: number; id?: string }[];
+    emailEnabled: boolean;
+}
+
 export default function EditInvoicePage() {
     const params = useParams();
     const router = useRouter();
     const { user, isLoading: userLoading } = useUser();
-    const [invoice, setInvoice] = useState<Invoice | null>(null);
+    const [invoice, setInvoice] = useState<ProcessedInvoice | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const id = params.id as string;
@@ -72,7 +84,7 @@ export default function EditInvoicePage() {
                 const data = await response.json();
                 if (data.invoice) {
                     // Convert dates from strings to Date objects for the form
-                    const processedInvoice = {
+                    const processedInvoice: ProcessedInvoice = {
                         ...data.invoice,
                         date: new Date(data.invoice.date),
                         dueDate: new Date(data.invoice.dueDate)

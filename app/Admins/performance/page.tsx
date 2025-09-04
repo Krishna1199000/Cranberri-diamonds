@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Edit2, Trash2, User, Filter } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import Link from "next/link";
 
 export default function AdminPerformance() {
   interface Employee {
@@ -283,6 +284,9 @@ export default function AdminPerformance() {
         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Performance Reports</h1>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <Link href="/Admins/sales">
+            <Button variant="outline">Back to Sales</Button>
+          </Link>
           {/* Time Period Filter */}
           <Select value={selectedTimeFilter} onValueChange={setSelectedTimeFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">

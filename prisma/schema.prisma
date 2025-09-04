@@ -429,3 +429,157 @@ model Notification {
 
   @@map("notifications")
 }
+
+model EnhancedSale {
+  id                    String   @id @default(uuid())
+  date                  DateTime
+  companyName           String   @map("company_name")
+  ownerName             String   @map("owner_name")
+  vendorCompany         String   @map("vendor_company")
+  shape                 String
+  carat                 Float
+  color                 String
+  clarity               String
+  lab                   String
+  certificateNumber     String   @map("certificate_number")
+  totalPriceSoldINR     Float    @map("total_price_sold_inr")
+  totalPricePurchasedINR Float   @map("total_price_purchased_inr")
+  gstPercentage         Float    @default(18.0) @map("gst_percentage") // GST percentage (e.g., 18.0 for 18%)
+  gstAmountINR          Float    @default(0.0) @map("gst_amount_inr") // GST amount in INR
+  finalSalePriceINR     Float    @default(0.0) @map("final_sale_price_inr") // Final sale price including GST
+  shippingCharge        Float    @map("shipping_charge")
+  employeeProfitPercent Float    @map("employee_profit_percent")
+  finalProfit           Float    @map("final_profit")
+  dueDate               DateTime @map("due_date")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("enhanced_sales")
+}
+
+model Vendor {
+  id                String   @id @default(uuid())
+  companyName       String   @unique @map("company_name")
+  ownerName         String   @map("owner_name")
+  contactNumber     String   @map("contact_number")
+  address           String
+  gstNumber         String?  @map("gst_number")
+  accountNumber     String   @map("account_number")
+  ifscCode          String   @map("ifsc_code")
+  bankName          String   @map("bank_name")
+  accountHolderName String   @map("account_holder_name")
+  location          String
+  businessType      String   @map("business_type")
+  deletedAt         DateTime? @map("deleted_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  purchases         Purchase[]
+  payments          VendorPayment[]
+
+  @@map("vendors")
+}
+
+model Purchase {
+  id               String   @id @default(uuid())
+  vendorId         String   @map("vendor_id")
+  date             DateTime
+  companyName      String   @map("company_name") // seller company name
+  contactPerson    String   @map("contact_person")
+  mobileNumber     String   @map("mobile_number")
+  shape            String
+  color            String
+  clarity          String
+  lab              String
+  certificate      String
+  pricePerCaratUSD Float    @map("price_per_carat_usd")
+  totalPriceUSD    Float    @map("total_price_usd")
+  gstPercentage    Float    @default(0.0) @map("gst_percentage") // GST percentage (e.g., 18.0 for 18%)
+  gstAmountUSD     Float    @default(0.0) @map("gst_amount_usd") // GST amount in USD
+  finalPriceUSD    Float    @default(0.0) @map("final_price_usd") // Final price including GST
+  usdInrRate       Float    @map("usd_inr_rate")
+  inrPrice         Float    @map("inr_price")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  vendor           Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@map("purchases")
+}
+
+model VendorPayment {
+  id        String   @id @default(uuid())
+  vendorId  String   @map("vendor_id")
+  date      DateTime
+  amountINR Float    @map("amount_inr")
+  mode      String
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@map("vendor_payments")
+}
+
+model Sale {
+  id                  String   @id @default(uuid())
+  certificateNumber   String   @map("certificate_number")
+  date                DateTime
+  customerName        String   @map("customer_name")
+  salePriceINR        Float    @map("sale_price_inr")
+  purchasePriceINR    Float?   @map("purchase_price_inr") // Manual override or auto from matched purchase
+  employeePercent     Float    @default(2.0) @map("employee_percent")
+  grossProfitINR      Float    @map("gross_profit_inr")
+  employeeDeduction   Float    @map("employee_deduction")
+  finalProfitINR      Float    @map("final_profit_inr")
+  matchedPurchaseId   String?  @map("matched_purchase_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("sales")
+}
+
+model LedgerEntry {
+  id          String      @id @default(uuid())
+  date        DateTime
+  type        EntryType
+  amountINR   Float       @map("amount_inr")
+  reason      String
+  counterparty String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@map("ledger_entries")
+}
+
+enum EntryType {
+  CREDIT
+  DEBIT
+}
+
+model CardHolder {
+  id           String        @id @default(uuid())
+  name         String
+  cardNumber   String        @map("card_number") // Will store encrypted
+  last4        String        @map("last_4")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  transactions CardTransaction[]
+
+  @@map("card_holders")
+}
+
+model CardTransaction {
+  id          String     @id @default(uuid())
+  cardId      String     @map("card_id")
+  date        DateTime
+  balance     Float
+  usedBalance Float      @map("used_balance")
+  dueDate     DateTime   @map("due_date")
+  emiDate     DateTime   @map("emi_date")
+  charges     Float
+  note        String?
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  cardHolder  CardHolder @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@map("card_transactions")
+}

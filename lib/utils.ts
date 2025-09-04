@@ -96,11 +96,20 @@ export const calculateTotal = (carat: number, pricePerCarat: number): number => 
 };
 
 // Updated invoice number generation logic
-export function generateInvoiceNumber(lastInvoiceNo: string | null | undefined, invoiceDate: Date): string {
-  console.log(`[generateInvoiceNumber] Received lastInvoiceNo: ${lastInvoiceNo}, invoiceDate: ${invoiceDate.toISOString()}`);
+export function generateInvoiceNumber(lastInvoiceNo: string | null | undefined, invoiceDate: Date | string): string {
+  // Ensure invoiceDate is a Date object
+  const date = invoiceDate instanceof Date ? invoiceDate : new Date(invoiceDate);
+  
+  // Validate the date
+  if (isNaN(date.getTime())) {
+    console.error(`[generateInvoiceNumber] Invalid date provided: ${invoiceDate}`);
+    throw new Error('Invalid invoice date provided');
+  }
+  
+  console.log(`[generateInvoiceNumber] Received lastInvoiceNo: ${lastInvoiceNo}, invoiceDate: ${date.toISOString()}`);
 
   const prefix = 'CD-';
-  const datePart = format(invoiceDate, 'ddMM');
+  const datePart = format(date, 'ddMM');
   let nextNum = 103; // Always start from 103 if no previous invoice
 
   if (lastInvoiceNo && lastInvoiceNo.startsWith(prefix)) {
@@ -154,9 +163,18 @@ export function generateInvoiceNumber(lastInvoiceNo: string | null | undefined, 
 }
 
 // Generate memo number
-export function generateMemoNumber(lastMemoNo: string | null | undefined, memoDate: Date): string {
+export function generateMemoNumber(lastMemoNo: string | null | undefined, memoDate: Date | string): string {
+  // Ensure memoDate is a Date object
+  const date = memoDate instanceof Date ? memoDate : new Date(memoDate);
+  
+  // Validate the date
+  if (isNaN(date.getTime())) {
+    console.error(`[generateMemoNumber] Invalid date provided: ${memoDate}`);
+    throw new Error('Invalid memo date provided');
+  }
+  
   const prefix = 'CDM-';
-  const datePart = format(memoDate, 'ddMM');
+  const datePart = format(date, 'ddMM');
   let nextNum = 10; // Start at 10 so next memo will be CDM-0010A
 
   if (lastMemoNo && lastMemoNo.startsWith(prefix)) {

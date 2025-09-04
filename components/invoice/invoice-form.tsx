@@ -40,6 +40,52 @@ export function InvoiceForm() {
     const [shipmentsList, setShipmentsList] = useState<ShipmentForInvoice[]>([]);
     const [shipmentsLoading, setShipmentsLoading] = useState(true);
 
+    const defaultValues: InvoiceFormValues = {
+        invoiceNo: "",
+        date: new Date(),
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+        paymentTerms: 7,
+        shipmentId: "",
+        description: "",
+        shipmentCost: 0,
+        discount: 0,
+        crPayment: 0,
+        emailEnabled: true,
+        items: [
+            {
+                description: "",
+                carat: 0.01,
+                color: "",
+                clarity: "",
+                lab: "",
+                reportNo: "",
+                pricePerCarat: 0.01,
+            },
+        ],
+    };
+
+    const form = useForm<InvoiceFormValues>({
+        resolver: zodResolver(invoiceFormSchema),
+        defaultValues
+    });
+
+    // Check for pre-filled data from inventory selection
+    useEffect(() => {
+      const prefilledData = sessionStorage.getItem('prefilledInvoiceData');
+      if (prefilledData) {
+        try {
+          const data = JSON.parse(prefilledData);
+          // Set form values from pre-filled data
+          form.reset(data);
+          // Clear the session storage
+          sessionStorage.removeItem('prefilledInvoiceData');
+        } catch (error) {
+          console.error('Error parsing pre-filled invoice data:', error);
+          toast.error('Failed to load pre-filled data');
+        }
+      }
+    }, [form]);
+
     useEffect(() => {
         // Fetch the latest invoice *number* string
         setInvoiceNoLoading(true);
@@ -88,31 +134,6 @@ export function InvoiceForm() {
         fetchShipments();
     }, []);
 
-    const form = useForm<InvoiceFormValues, unknown, InvoiceFormValues>({
-        resolver: zodResolver(invoiceFormSchema),
-        defaultValues: {
-            invoiceNo: "",
-            date: new Date(),
-            dueDate: new Date(new Date().setDate(new Date().getDate() + 7)),
-            paymentTerms: 7,
-            shipmentId: "",
-            description: "",
-            shipmentCost: 0,
-            discount: 0,
-            crPayment: 0,
-            items: [
-                {
-                    description: "",
-                    carat: 0.01,
-                    color: "",
-                    clarity: "",
-                    lab: "",
-                    reportNo: "",
-                    pricePerCarat: 0.01,
-                },
-            ],
-        }
-    });
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
@@ -367,7 +388,24 @@ export function InvoiceForm() {
                         )}
                     </div>
 
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="emailEnabled">Email PDF</Label>
+                        <div className="flex items-center space-x-2">
+                            <Button
+                                type="button"
+                                variant={form.watch("emailEnabled") ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => form.setValue("emailEnabled", !form.watch("emailEnabled"))}
+                            >
+                                {form.watch("emailEnabled") ? "ON" : "OFF"}
+                            </Button>
+                            <span className="text-sm text-gray-600">
+                                {form.watch("emailEnabled") ? "PDF will be emailed to customer" : "PDF will not be emailed"}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
                         <Label htmlFor="shipmentId">Company (Select from Shipments)</Label>
                         <Controller
                             control={form.control}

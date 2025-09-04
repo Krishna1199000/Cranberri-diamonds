@@ -1,6 +1,6 @@
 "use client"
 import { motion, useScroll, useTransform, useMotionValue, useInView } from "framer-motion"
-import { useRef } from "react"
+import { useRef, useEffect, useState } from "react"
 import { Diamond, Sparkles, Facebook, Instagram, Linkedin, Twitter } from "lucide-react"
 import Image from "next/image"
 
@@ -9,6 +9,8 @@ import Marquee from "react-fast-marquee"
 import Link from "next/link"
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   const containerRef = useRef(null)
   const heroRef = useRef(null)
   const shapesRef = useRef(null)
@@ -347,31 +349,33 @@ export default function Home() {
           style={{ y: logoY }}
         ></motion.div>
 
-        {/* Animated background particles for diamond-like sparkles */}
-        <div className="absolute inset-0 overflow-hidden z-10">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full bg-white"
-              style={{
-                width: Math.random() * 8 + 2 + "px",
-                height: Math.random() * 8 + 2 + "px",
-                left: Math.random() * 100 + "%",
-                top: Math.random() * 100 + "%",
-                boxShadow: "0 0 10px rgba(255, 255, 255, 0.8)"
-              }}
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.1, 0.8, 0.1]
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: Math.random() * 3 + 2,
-                delay: Math.random() * 2
-              }}
-            />
-          ))}
-        </div>
+        {/* Animated background particles for diamond-like sparkles (client-only to avoid hydration mismatch) */}
+        {mounted && (
+          <div className="absolute inset-0 overflow-hidden z-10">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full bg-white"
+                style={{
+                  width: Math.random() * 8 + 2 + "px",
+                  height: Math.random() * 8 + 2 + "px",
+                  left: Math.random() * 100 + "%",
+                  top: Math.random() * 100 + "%",
+                  boxShadow: "0 0 10px rgba(255, 255, 255, 0.8)"
+                }}
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.1, 0.8, 0.1]
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: Math.random() * 3 + 2,
+                  delay: Math.random() * 2
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         <motion.div
           style={{ y: heroY, opacity: heroOpacity }}
@@ -597,8 +601,8 @@ export default function Home() {
           transition={{ duration: 1 }}
           className="absolute inset-0 pointer-events-none"
         >
-          {/* Decorative elements */}
-          {Array.from({ length: 10 }).map((_, i) => (
+          {/* Decorative elements (client-only) */}
+          {mounted && Array.from({ length: 10 }).map((_, i) => (
             <motion.div
               key={i}
               variants={sparkleVariants}

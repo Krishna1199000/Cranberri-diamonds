@@ -1,166 +1,129 @@
-import { PrismaClient, Prisma } from '@prisma/client'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
-const ITEMS_PER_PAGE = 40
+interface SearchCriteria {
+  page?: number;
+  stoneId?: string;
+  caratRange?: { from?: string; to?: string };
+  priceRange?: { from?: string; to?: string };
+  shapes?: string[];
+  colors?: string[];
+  clarities?: string[];
+  cuts?: string[];
+  labs?: string[];
+  polishes?: string[];
+  symmetries?: string[];
+  locations?: string[];
+}
 
-export async function POST(request: Request) {
+interface WhereCondition {
+  stockId?: { contains: string; mode: 'insensitive' };
+  size?: { gte?: number; lte?: number };
+  finalAmount?: { gte?: number; lte?: number };
+  OR?: Array<{ [key: string]: { equals: string; mode: 'insensitive' } }>;
+}
+
+interface WhereClause {
+  AND: WhereCondition[];
+}
+
+export async function POST(request: NextRequest) {
   try {
-    const searchParams = await request.json()
-    console.log('Search parameters:', searchParams)
-    
-    const page = searchParams.page || 1
-    const skip = (page - 1) * ITEMS_PER_PAGE
-    
-    // Build the where clause based on search parameters
-    const where: Prisma.DiamondWhereInput = {}
-    
-    if (searchParams.shapes?.length > 0) {
-      where.shape = { in: searchParams.shapes.map((s: string) => s.toUpperCase()) }
+    let parsed: SearchCriteria = {};
+    try {
+      parsed = await request.json();
+    } catch {
+      parsed = {};
     }
-    
-    if (searchParams.caratRange?.from || searchParams.caratRange?.to) {
-      where.size = {}
-      if (searchParams.caratRange.from) {
-        where.size.gte = parseFloat(searchParams.caratRange.from)
-      }
-      if (searchParams.caratRange.to) {
-        where.size.lte = parseFloat(searchParams.caratRange.to)
-      }
-    }
-    
-    if (searchParams.stoneId) {
-      where.OR = [
-        { stockId: { contains: searchParams.stoneId, mode: 'insensitive' } },
-        { certificateNo: { contains: searchParams.stoneId, mode: 'insensitive' } }
-      ]
-    }
-    
-    if (searchParams.colors?.length > 0) {
-      where.color = { in: searchParams.colors }
-    }
-    
-    if (searchParams.clarities?.length > 0) {
-      where.clarity = { in: searchParams.clarities }
-    }
-    
-    if (searchParams.cuts?.length > 0) {
-      where.cut = { in: searchParams.cuts }
-    }
-    
-    if (searchParams.labs?.length > 0) {
-      where.lab = { in: searchParams.labs }
-    }
-    
-    if (searchParams.polishes?.length > 0) {
-      where.polish = { in: searchParams.polishes }
-    }
-    
-    if (searchParams.symmetries?.length > 0) {
-      where.sym = { in: searchParams.symmetries }
-    }
-    
-    if (searchParams.fluorescence?.length > 0) {
-      where.floro = { in: searchParams.fluorescence }
-    }
-    
-    if (searchParams.locations?.length > 0) {
-      where.location = { in: searchParams.locations }
-    }
-    
-    if (searchParams.priceRange?.from || searchParams.priceRange?.to) {
-      where.pricePerCarat = {}
-      if (searchParams.priceRange.from) {
-        where.pricePerCarat.gte = parseFloat(searchParams.priceRange.from)
-      }
-      if (searchParams.priceRange.to) {
-        where.pricePerCarat.lte = parseFloat(searchParams.priceRange.to)
-      }
-    }
+    const { page = 1, ...searchCriteria } = parsed;
+    const perPage = 40;
+    const where = buildWhereClause(searchCriteria);
 
-    console.log('Final where clause:', where)
+    const [diamonds, total] = await Promise.all([
+      prisma.inventoryItem.findMany({
+        where,
+        skip: (page - 1) * perPage,
+        take: perPage,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.inventoryItem.count({ where })
+    ]);
 
-    // Get total count for pagination
-    const totalCount = await prisma.diamond.count({ where })
-
-    // Add some test data if the database is empty
-    const count = await prisma.diamond.count()
-    if (count === 0) {
-      await prisma.diamond.createMany({
-        data: [
-          {
-            stockId: "TR001",
-            certificateNo: "IGI123456",
-            shape: "TRIANGLE",
-            size: 1.5,
-            color: "D",
-            clarity: "VS1",
-            cut: "EX",
-            polish: "EX",
-            sym: "EX",
-            floro: "NON",
-            lab: "IGI",
-            rapPrice: 10000,
-            rapAmount: 15000,
-            discount: 10,
-            pricePerCarat: 9000,
-            finalAmount: 13500,
-            measurement: "7.5x7.5x4.5",
-            depth: 61.5,
-            table: 58,
-            ratio: 1.33,
-            location: "NY",
-            status: "AVAILABLE"
-          },
-          {
-            stockId: "TR002",
-            certificateNo: "IGI123457",
-            shape: "TRIANGLE",
-            size: 2.0,
-            color: "E",
-            clarity: "VVS2",
-            cut: "VG",
-            polish: "EX",
-            sym: "VG",
-            floro: "FNT",
-            lab: "IGI",
-            rapPrice: 12000,
-            rapAmount: 24000,
-            discount: 12,
-            pricePerCarat: 10560,
-            finalAmount: 21120,
-            measurement: "8.2x8.2x5.0",
-            depth: 62.0,
-            table: 59,
-            ratio: 1.34,
-            location: "NY",
-            status: "AVAILABLE"
-          }
-        ]
-      })
-    }
-
-    const diamonds = await prisma.diamond.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: ITEMS_PER_PAGE
-    })
-
-    console.log(`Found ${diamonds.length} diamonds`)
-    return NextResponse.json({ 
-      diamonds,
+    return NextResponse.json({
+      diamonds: diamonds.map(d => ({
+        ...d,
+        certificateNo: d.stockId, // Map stockId to certificateNo for UI compatibility
+        size: d.size, // Already matches (carat)
+        sym: d.sym, // Already matches
+        floro: '', // Not available in inventory
+        rapPrice: 0, // Not available in inventory
+        rapAmount: 0, // Not available in inventory
+        discount: 0, // Not available in inventory
+      })),
       pagination: {
-        total: totalCount,
-        pages: Math.ceil(totalCount / ITEMS_PER_PAGE),
+        total,
+        pages: Math.ceil(total / perPage),
         currentPage: page,
-        perPage: ITEMS_PER_PAGE,
-        hasMore: skip + diamonds.length < totalCount
+        perPage
       }
-    })
+    });
   } catch (error) {
-    console.error('Search error:', error)
-    return NextResponse.json({ error: 'Failed to search diamonds' }, { status: 500 })
+    console.error('Search diamonds error:', error instanceof Error ? error.message : String(error));
+    return NextResponse.json(
+      { error: 'Failed to search diamonds' },
+      { status: 500 }
+    );
   }
+}
+
+function buildWhereClause(criteria: SearchCriteria): WhereClause | Record<string, never> {
+  const where: WhereClause = { AND: [] };
+
+  if (criteria.stoneId) {
+    where.AND.push({ stockId: { contains: String(criteria.stoneId), mode: 'insensitive' } });
+  }
+
+  if (criteria.caratRange?.from || criteria.caratRange?.to) {
+    const cond: Record<string, Record<string, number>> = { size: {} };
+    if (criteria.caratRange.from) cond.size.gte = parseFloat(criteria.caratRange.from);
+    if (criteria.caratRange.to) cond.size.lte = parseFloat(criteria.caratRange.to);
+    where.AND.push(cond);
+  }
+
+  if (criteria.priceRange?.from || criteria.priceRange?.to) { 
+    const cond: Record<string, Record<string, number>> = { finalAmount: {} };
+    if (criteria.priceRange.from) cond.finalAmount.gte = parseFloat(criteria.priceRange.from);
+    if (criteria.priceRange.to) cond.finalAmount.lte = parseFloat(criteria.priceRange.to);
+    where.AND.push(cond);
+  }
+
+  // Handle array filters - only include if array has values
+  const arrayFilters = {
+    shapes: 'shape',
+    colors: 'color',
+    clarities: 'clarity',
+    cuts: 'cut',
+    labs: 'lab',
+    polishes: 'polish',
+    symmetries: 'sym'
+  };
+
+  Object.entries(arrayFilters).forEach(([criteriaKey, fieldName]) => {
+    const values = criteria[criteriaKey];
+    if (Array.isArray(values) && values.length > 0) {
+      where.AND.push({ OR: values.map((v: string) => ({ [fieldName]: { equals: v, mode: 'insensitive' } })) });
+    }
+  });
+
+  if (criteria.locations && Array.isArray(criteria.locations) && criteria.locations.length > 0) {
+    where.AND.push({ OR: criteria.locations.map((loc: string) => ({ location: { equals: loc, mode: 'insensitive' } })) });
+  }
+
+  // If no AND conditions added, return empty where to fetch all
+  if (where.AND.length === 0) {
+    return {} as Record<string, never>;
+  }
+  return where;
 }

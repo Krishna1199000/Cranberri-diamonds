@@ -9,6 +9,8 @@ import { Loader2, Plus, Trash2, FileText } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRouter } from "next/navigation";
 
 // Define session user type (adjust based on actual session structure)
 interface SessionUser {
@@ -24,10 +26,19 @@ interface Invoice {
   dueDate: string;
   companyName: string;
   totalAmount: number;
+  emailEnabled?: boolean;
+  paymentTerms?: number;
+  shipmentId?: string;
+  description?: string;
+  shipmentCost?: number;
+  discount?: number;
+  crPayment?: number;
+  items?: { description: string; carat: number; color: string; clarity: string; lab: string; reportNo: string; pricePerCarat: number; }[];
   createdAt: string;
 }
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -99,14 +110,35 @@ export default function InvoicesPage() {
 
   return (
     <>
+      {/* Top-level tabs to unify Invoices and Memos without changing routes/logic */}
+      <div className="mb-4">
+        <Tabs defaultValue="invoices" onValueChange={(v) => {
+          if (v === 'invoices') return;
+          if (v === 'memos') router.push('/memos');
+        }}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="invoices">Invoices</TabsTrigger>
+            <TabsTrigger value="memos">Memos</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Invoices</h1>
-        <Link href="/invoices/new">
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Create New Invoice
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/invoices/create-from-inventory">
+            <Button variant="outline" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              From Inventory
+            </Button>
+          </Link>
+          <Link href="/invoices/new">
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Create New Invoice
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {loading ? (

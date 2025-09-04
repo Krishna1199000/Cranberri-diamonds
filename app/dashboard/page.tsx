@@ -238,15 +238,15 @@ export default function Dashboard() {
         <CardContent>
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">Sr No</TableHead>
-                    <TableHead>Company Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Salesman</TableHead>
-                    <TableHead>Last Updated</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                <TableHeader className="bg-black">
+                  <TableRow className="bg-black">
+                    <TableHead className="w-[50px] text-white">Sr No</TableHead>
+                    <TableHead className="text-white">Company Name</TableHead>
+                    <TableHead className="text-white">Email</TableHead>
+                    <TableHead className="text-white">Phone</TableHead>
+                    <TableHead className="text-white">Salesman</TableHead>
+                    <TableHead className="text-white">Last Updated</TableHead>
+                    <TableHead className="text-right text-white">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

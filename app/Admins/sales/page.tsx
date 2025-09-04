@@ -9,8 +9,10 @@ import { Award } from "lucide-react"
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import { RequirementsManager } from "@/components/RequirementsManager"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useRouter } from "next/navigation"
 
 export default function SalesPage() {
+  const router = useRouter()
   const [showRankings, setShowRankings] = useState(false)
   const [salesData, setSalesData] = useState([])
   const [refreshTrigger, setRefreshTrigger] = useState(0)
@@ -82,6 +84,20 @@ export default function SalesPage() {
         </Button>
       </div>
 
+      {/* Top-level tabs to unify Sales, Reports, Performance. Navigation preserves existing pages/logic. */}
+      <Tabs defaultValue="sales" className="w-full mb-4" onValueChange={(val) => {
+        if (val === 'sales') return
+        if (val === 'reports') router.push('/Admins/sales-report')
+        if (val === 'performance') router.push('/Admins/performance')
+      }}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="sales">Sales & Requirements</TabsTrigger>
+          <TabsTrigger value="reports">Sales Report</TabsTrigger>
+          <TabsTrigger value="performance">Performance Reports</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Inner tabs for the first section: keep existing Sales Dashboard + Requirements tabs */}
       <Tabs defaultValue="sales" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="sales">Sales Dashboard</TabsTrigger>

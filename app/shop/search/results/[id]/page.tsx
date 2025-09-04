@@ -19,29 +19,30 @@ import { toast } from 'sonner';
 interface Diamond {
   id: string;
   stockId: string;
-  certificateNo: string;
+  certificateNo: string; // Mapped from stockId
   shape: string;
-  size: number;
+  size: number; // This is carat
   color: string;
   clarity: string;
-  cut: string;
+  cut: string | null;
   polish: string;
   sym: string;
-  floro: string;
+  floro: string; // Not available in inventory
   lab: string;
-  rapPrice: number;
-  rapAmount: number;
-  discount: number;
+  rapPrice: number; // Not available in inventory
+  rapAmount: number; // Not available in inventory
+  discount: number; // Not available in inventory
   pricePerCarat: number;
   finalAmount: number;
-  measurement: string;
-  depth: number;
-  table: number;
-  ratio: number;
-  location: string;
-  imageUrl?: string;
-  videoUrl?: string;
-  certUrl?: string;
+  measurement: string | null;
+  depth: number | null; // Not available in inventory
+  table: number | null; // Not available in inventory
+  ratio: number | null; // Not available in inventory
+  location: string | null;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  certUrl?: string | null;
+  status: 'AVAILABLE' | 'HOLD' | 'MEMO' | 'SOLD';
 }
 
 export default function DiamondDetails() {
@@ -72,10 +73,22 @@ export default function DiamondDetails() {
   useEffect(() => {
     const fetchDiamond = async () => {
       try {
-        const response = await fetch(`/api/diamonds/${params.id}`);
+        const response = await fetch(`/api/inventory-items/${params.id}`);
         if (response.ok) {
           const data = await response.json();
-          setDiamond(data);
+          // Map inventory item to diamond interface
+          const mappedDiamond: Diamond = {
+            ...data,
+            certificateNo: data.stockId,
+            floro: '',
+            rapPrice: 0,
+            rapAmount: 0,
+            discount: 0,
+            depth: null,
+            table: null,
+            ratio: null
+          };
+          setDiamond(mappedDiamond);
         } else {
           toast.error('Failed to fetch diamond details');
         }

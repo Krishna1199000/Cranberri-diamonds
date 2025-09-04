@@ -25,6 +25,7 @@ import { format } from 'date-fns';
 import { handleRoleChange } from '@/lib/roleChangeHandler';
 import PasswordVerification from '@/components/admin/password-verification';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PasswordGate } from '@/components/admin/PasswordGate';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface User {
@@ -187,6 +188,12 @@ export default function UserManagement() {
 
   return (
     <AdminLayout>
+      <PasswordGate
+        title="User Management Access"
+        description="Enter the password to access user management features"
+        endpoint="/api/users/verify-password"
+        sessionKey="users_unlocked"
+      >
       <Card>
         <CardHeader>
           <CardTitle>User Management</CardTitle>
@@ -221,13 +228,13 @@ export default function UserManagement() {
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Actions</TableHead>
+            <TableHeader className="bg-black">
+              <TableRow className="bg-black">
+                <TableHead className="text-white">Name</TableHead>
+                <TableHead className="text-white">Email</TableHead>
+                <TableHead className="text-white">Role</TableHead>
+                <TableHead className="text-white">Created At</TableHead>
+                <TableHead className="text-white">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -268,6 +275,7 @@ export default function UserManagement() {
           </Table>
         </CardContent>
       </Card>
+      </PasswordGate>
     </AdminLayout>
   );
 }

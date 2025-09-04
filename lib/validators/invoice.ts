@@ -23,6 +23,7 @@ export const invoiceFormSchema = z.object({
   shipmentCost: z.number(), // Make required
   discount: z.number(),     // Make required
   crPayment: z.number(),    // Make required
+  emailEnabled: z.boolean(), // Email toggle
   items: z.array(diamondItemSchema).min(1, "At least one item is required"),
 });
 

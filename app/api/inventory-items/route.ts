@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || ""; 
     const take = parseInt(searchParams.get("take") || "10");
     const skip = parseInt(searchParams.get("skip") || "0");
+    const idsParam = searchParams.get("ids");
 
     const where: InventoryItemWhereClause = {}; 
 
@@ -35,6 +36,17 @@ export async function GET(request: NextRequest) {
     // Check if status is a valid DiamondStatus enum value
     if (status && Object.values(DiamondStatus).includes(status as DiamondStatus)) { 
       where.status = status as DiamondStatus; // Cast to Enum
+    }
+
+    // If a list of IDs is provided, fetch exactly those (used for CSV export across pages)
+    if (idsParam) {
+      const ids = idsParam.split(',').map(id => id.trim()).filter(Boolean);
+      const items = await prisma.inventoryItem.findMany({
+        where: { id: { in: ids }, ...where },
+        orderBy: { createdAt: 'desc' },
+        include: { heldByShipment: true }
+      });
+      return NextResponse.json({ items, total: items.length, pages: 1 });
     }
 
     const [items, total] = await Promise.all([
