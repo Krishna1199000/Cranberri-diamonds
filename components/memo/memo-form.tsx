@@ -102,8 +102,21 @@ export function MemoForm({ initialData }: MemoFormProps) {
 
     useEffect(() => {
         setMemoNoLoading(true);
+        
+        // Add timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+            console.log("Memo number fetch timeout - continuing with default");
+            setMemoNoLoading(false);
+            setLastMemoNo(null);
+        }, 10000); // 10 second timeout
+        
         fetch("/api/memos/latest-number") // Updated API endpoint
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+                return res.json();
+            })
             .then((data) => {
                 // Expect `lastMemoNo` from the API
                 if (data.lastMemoNo) {
@@ -114,10 +127,12 @@ export function MemoForm({ initialData }: MemoFormProps) {
             })
             .catch((error) => {
                 console.error("Failed to fetch latest memo number:", error);
-                toast.error("Could not fetch latest memo number.");
+                // Don't show error toast for this - it's not critical for button functionality
+                console.log("Continuing without latest memo number - will use default");
                 setLastMemoNo(null);
             })
             .finally(() => {
+                clearTimeout(timeoutId);
                 setMemoNoLoading(false);
             });
     }, []);
@@ -126,8 +141,19 @@ export function MemoForm({ initialData }: MemoFormProps) {
     useEffect(() => {
         const fetchShipments = async () => {
             setShipmentsLoading(true);
+            
+            // Add timeout to prevent infinite loading
+            const timeoutId = setTimeout(() => {
+                console.log("Shipments fetch timeout - continuing with empty list");
+                setShipmentsLoading(false);
+                setShipmentsList([]);
+            }, 15000); // 15 second timeout
+            
             try {
                 const response = await fetch("/api/shipments");
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 const data = await response.json();
                 if (data.success && Array.isArray(data.shipments)) {
                     const validShipments = data.shipments.filter(
@@ -142,6 +168,7 @@ export function MemoForm({ initialData }: MemoFormProps) {
                 toast.error(error instanceof Error ? error.message : "Could not load company list.");
                 setShipmentsList([]);
             } finally {
+                clearTimeout(timeoutId);
                 setShipmentsLoading(false);
             }
         };

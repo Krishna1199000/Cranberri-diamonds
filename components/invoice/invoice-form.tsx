@@ -89,8 +89,21 @@ export function InvoiceForm() {
     useEffect(() => {
         // Fetch the latest invoice *number* string
         setInvoiceNoLoading(true);
+        
+        // Add timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+            console.log("Invoice number fetch timeout - continuing with default");
+            setInvoiceNoLoading(false);
+            setLastInvoiceNo(null);
+        }, 10000); // 10 second timeout
+        
         fetch("/api/invoices/latest-number")
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+                return res.json();
+            })
             .then((data) => {
                 if (data.lastInvoiceNo) {
                     setLastInvoiceNo(data.lastInvoiceNo);
@@ -100,10 +113,12 @@ export function InvoiceForm() {
             })
             .catch((error) => {
                 console.error("Failed to fetch latest invoice number:", error);
-                toast.error("Could not fetch latest invoice number.");
+                // Don't show error toast for this - it's not critical for button functionality
+                console.log("Continuing without latest invoice number - will use default");
                 setLastInvoiceNo(null);
             })
             .finally(() => {
+                clearTimeout(timeoutId);
                 setInvoiceNoLoading(false);
             });
     }, []);
@@ -111,8 +126,19 @@ export function InvoiceForm() {
     useEffect(() => {
         const fetchShipments = async () => {
             setShipmentsLoading(true);
+            
+            // Add timeout to prevent infinite loading
+            const timeoutId = setTimeout(() => {
+                console.log("Shipments fetch timeout - continuing with empty list");
+                setShipmentsLoading(false);
+                setShipmentsList([]);
+            }, 15000); // 15 second timeout
+            
             try {
                 const response = await fetch("/api/shipments"); // Assuming this fetches all needed fields
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 const data = await response.json();
                 if (data.success && Array.isArray(data.shipments)) {
                     // Filter out any shipments missing essential info for the dropdown/invoice
@@ -128,6 +154,7 @@ export function InvoiceForm() {
                 toast.error(error instanceof Error ? error.message : "Could not load company list.");
                 setShipmentsList([]);
             } finally {
+                clearTimeout(timeoutId);
                 setShipmentsLoading(false);
             }
         };
