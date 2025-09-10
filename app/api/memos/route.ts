@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient, InvoiceType } from '@prisma/client'; // Import InvoiceType
 import { numberToWords, generateMemoNumber } from '@/lib/utils'; // Import generateMemoNumber from utils
 import { getSession } from '@/lib/session';
-import { invoiceFormSchema } from '@/lib/validators/invoice'; // Reuse invoice schema for now, rename/copy later if needed
+import { memoFormSchema } from '@/lib/validators/memo';
 
 const prisma = new PrismaClient();
 
@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
 
-        // Validate using the invoice schema for now
-        const validation = invoiceFormSchema.safeParse(body);
+        // Validate using the memo schema
+        const validation = memoFormSchema.safeParse(body);
         if (!validation.success) {
           console.error("Memo validation failed:", JSON.stringify(validation.error.errors, null, 2));
           const errorMessage = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
