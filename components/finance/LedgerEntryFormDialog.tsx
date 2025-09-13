@@ -33,10 +33,10 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const ledgerFormSchema = z.object({
-  date: z.string().min(1, 'Date is required'),
-  type: z.enum(['CREDIT', 'DEBIT'], { required_error: 'Type is required' }),
-  amountINR: z.string().min(1, 'Amount is required'),
-  reason: z.string().min(1, 'Reason is required'),
+  date: z.string().optional(),
+  type: z.enum(['CREDIT', 'DEBIT']).optional(),
+  amountINR: z.string().optional(),
+  reason: z.string().optional(),
   counterparty: z.string().optional(),
 });
 

@@ -28,31 +28,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 const saleFormSchema = z.object({
   // Sale Information
-  date: z.string().min(1, 'Date is required'),
-  companyName: z.string().min(1, 'Company name is required'),
-  ownerName: z.string().min(1, 'Owner name is required'),
+  date: z.string().optional(),
+  companyName: z.string().optional(),
+  ownerName: z.string().optional(),
   
   // Vendor Information
-  vendorCompany: z.string().min(1, 'Vendor company is required'),
+  vendorCompany: z.string().optional(),
   
   // Diamond Details
-  shape: z.string().min(1, 'Shape is required'),
-  carat: z.string().min(1, 'Carat is required'),
-  color: z.string().min(1, 'Color is required'),
-  clarity: z.string().min(1, 'Clarity is required'),
-  lab: z.string().min(1, 'Lab is required'),
-  certificateNumber: z.string().min(1, 'Certificate number is required'),
+  shape: z.string().optional(),
+  carat: z.string().optional(),
+  color: z.string().optional(),
+  clarity: z.string().optional(),
+  lab: z.string().optional(),
+  certificateNumber: z.string().optional(),
   pricePerCaratSold: z.string().optional(),
-  totalPriceSoldINR: z.string().min(1, 'Total price sold INR is required'),
+  totalPriceSoldINR: z.string().optional(),
   pricePerCaratPurchase: z.string().optional(),
-  totalPricePurchasedINR: z.string().min(1, 'Total price purchased INR is required'),
+  totalPricePurchasedINR: z.string().optional(),
   invoiceAmount: z.string().optional(),
   
   // Additional Costs
-  shippingCharge: z.string().min(1, 'Shipping charge is required'),
-  employeeProfitPercent: z.string().min(1, 'Employee profit percentage is required'),
-  gstPercentage: z.string().min(1, 'GST percentage is required'),
-  dueDate: z.string().min(1, 'Due date is required'),
+  shippingCharge: z.string().optional(),
+  employeeProfitPercent: z.string().optional(),
+  gstPercentage: z.string().optional(),
+  dueDate: z.string().optional(),
 });
 
 type SaleFormData = z.infer<typeof saleFormSchema>;

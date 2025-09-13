@@ -26,18 +26,12 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const paymentFormSchema = z.object({
-  date: z.string().min(1, 'Date is required'),
+  date: z.string().optional(),
   amountINR: z.string().optional(),
   amountUSD: z.string().optional(),
-  mode: z.string().min(1, 'Payment mode is required'),
+  mode: z.string().optional(),
   note: z.string().optional(),
-})
-  .refine((data) => Boolean(data.amountINR) || Boolean(data.amountUSD), {
-    message: 'Enter Amount (INR) or Amount (USD)'
-  })
-  .refine((data) => !(data.amountINR && data.amountUSD), {
-    message: 'Enter only INR or only USD, not both'
-  });
+});
 
 type PaymentFormData = z.infer<typeof paymentFormSchema>;
 

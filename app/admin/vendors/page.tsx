@@ -166,6 +166,28 @@ export default function VendorsPage() {
     }
   }, [activeTab, fetchOverviewData]);
 
+  // Listen for vendor data changes from detail pages
+  useEffect(() => {
+    const handleVendorDataChange = (event: CustomEvent) => {
+      const { type, action } = event.detail;
+      if ((action === 'delete' && (type === 'purchase' || type === 'payment')) || 
+          (action === 'update' && type === 'transaction')) {
+        // Refresh overview data when purchases or payments are deleted/updated
+        if (activeTab === 'overview') {
+          fetchOverviewData();
+        }
+        // Also refresh vendor list to update totals
+        fetchVendors();
+      }
+    };
+
+    window.addEventListener('vendorDataChanged', handleVendorDataChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('vendorDataChanged', handleVendorDataChange as EventListener);
+    };
+  }, [activeTab, fetchOverviewData, fetchVendors]);
+
   // Debounce the search query
   useEffect(() => {
     const handle = setTimeout(() => setDebouncedQuery(query.trim()), 300);
@@ -288,6 +310,10 @@ export default function VendorsPage() {
       if (response.ok) {
         toast.success('Vendor deleted successfully');
         fetchVendors();
+        // Refresh overview data if overview tab is active
+        if (activeTab === 'overview') {
+          fetchOverviewData();
+        }
       } else {
         toast.error('Failed to delete vendor');
       }
@@ -302,6 +328,10 @@ export default function VendorsPage() {
     setIsFormOpen(false);
     setEditingVendor(null);
     fetchVendors();
+    // Refresh overview data if overview tab is active
+    if (activeTab === 'overview') {
+      fetchOverviewData();
+    }
   };
 
   const formatCurrency = (amount: number) => {

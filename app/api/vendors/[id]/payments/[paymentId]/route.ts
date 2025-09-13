@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
-
 import { getFreshUSDToINRRate } from '@/lib/exchangeRate';
+
 
 export async function PUT(
   request: Request,

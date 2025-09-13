@@ -25,20 +25,20 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const purchaseFormSchema = z.object({
-  date: z.string().min(1, 'Date is required'),
-  companyName: z.string().min(1, 'Company name is required'),
-  contactPerson: z.string().min(1, 'Contact person is required'),
-  mobileNumber: z.string().min(1, 'Mobile number is required'),
-  shape: z.string().min(1, 'Shape is required'),
-  color: z.string().min(1, 'Color is required'),
-  clarity: z.string().min(1, 'Clarity is required'),
-  lab: z.string().min(1, 'Lab is required'),
-  certificate: z.string().min(1, 'Certificate is required'),
-  pricePerCaratUSD: z.string().min(1, 'Required'),
-  totalPriceUSD: z.string().min(1, 'Required'),
-  gstPercentage: z.string().min(1, 'GST percentage is required'),
+  date: z.string().optional(),
+  companyName: z.string().optional(),
+  contactPerson: z.string().optional(),
+  mobileNumber: z.string().optional(),
+  shape: z.string().optional(),
+  color: z.string().optional(),
+  clarity: z.string().optional(),
+  lab: z.string().optional(),
+  certificate: z.string().optional(),
+  pricePerCaratUSD: z.string().optional(),
+  totalPriceUSD: z.string().optional(),
+  gstPercentage: z.string().optional(),
   dueDate: z.string().optional(),
-  usdInrRate: z.string().min(1, 'USD to INR rate is required'),
+  usdInrRate: z.string().optional(),
 });
 
 type PurchaseFormData = z.infer<typeof purchaseFormSchema>;
@@ -166,27 +166,27 @@ export function PurchaseFormDialog({
   const onSubmit = async (data: PurchaseFormData) => {
     setIsSubmitting(true);
     try {
-      const pricePerCaratUSDNum = parseFloat(data.pricePerCaratUSD);
-      const totalPriceUSDNum = parseFloat(data.totalPriceUSD);
-      const gstPercentageNum = parseFloat(data.gstPercentage);
-      const usdInrRateNum = parseFloat(data.usdInrRate);
+      const pricePerCaratUSDNum = data.pricePerCaratUSD ? parseFloat(data.pricePerCaratUSD) : 0;
+      const totalPriceUSDNum = data.totalPriceUSD ? parseFloat(data.totalPriceUSD) : 0;
+      const gstPercentageNum = data.gstPercentage ? parseFloat(data.gstPercentage) : 0;
+      const usdInrRateNum = data.usdInrRate ? parseFloat(data.usdInrRate) : 1;
       
-      if (!isFinite(pricePerCaratUSDNum) || pricePerCaratUSDNum <= 0) {
+      if (data.pricePerCaratUSD && (!isFinite(pricePerCaratUSDNum) || pricePerCaratUSDNum <= 0)) {
         toast.error('Enter a valid Price per Carat (USD)');
         setIsSubmitting(false);
         return;
       }
-      if (!isFinite(totalPriceUSDNum) || totalPriceUSDNum <= 0) {
+      if (data.totalPriceUSD && (!isFinite(totalPriceUSDNum) || totalPriceUSDNum <= 0)) {
         toast.error('Enter a valid Total Price (USD)');
         setIsSubmitting(false);
         return;
       }
-      if (!isFinite(gstPercentageNum) || gstPercentageNum < 0) {
+      if (data.gstPercentage && (!isFinite(gstPercentageNum) || gstPercentageNum < 0)) {
         toast.error('Enter a valid GST percentage');
         setIsSubmitting(false);
         return;
       }
-      if (!isFinite(usdInrRateNum) || usdInrRateNum <= 0) {
+      if (data.usdInrRate && (!isFinite(usdInrRateNum) || usdInrRateNum <= 0)) {
         toast.error('Enter a valid USD to INR rate');
         setIsSubmitting(false);
         return;

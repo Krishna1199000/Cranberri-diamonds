@@ -33,15 +33,16 @@ export async function POST(request: Request) {
     }
 
     const { name, cardNumber } = await request.json();
-    if (!name || !cardNumber) {
-      return new NextResponse('Missing fields', { status: 400 });
-    }
-    const last4 = String(cardNumber).slice(-4);
-    const encrypted = encryptCardNumber(String(cardNumber));
+    
+    // Handle optional fields
+    const cardName = name || '';
+    const cardNum = cardNumber || '';
+    const last4 = cardNum ? String(cardNum).slice(-4) : '';
+    const encrypted = cardNum ? encryptCardNumber(String(cardNum)) : '';
 
     const holder = await prisma.cardHolder.create({
       data: {
-        name,
+        name: cardName,
         cardNumber: encrypted,
         last4,
       },

@@ -11,6 +11,11 @@ export async function GET() {
     }
 
     const purchases = await prisma.purchase.findMany({
+      where: {
+        vendor: {
+          deletedAt: null, // Only include purchases from non-deleted vendors
+        },
+      },
       include: {
         vendor: {
           select: {

@@ -49,17 +49,17 @@ export function CreditCardsPanel() {
   const [deletingHolderId, setDeletingHolderId] = useState<string | null>(null);
 
   const holderFormSchema = z.object({ 
-    name: z.string().min(1, 'Name is required'), 
-    cardNumber: z.string().min(12, 'Card number required') 
+    name: z.string().optional(), 
+    cardNumber: z.string().optional() 
   });
   
   const transactionFormSchema = z.object({
-    date: z.string().min(1, 'Date is required'),
-    balance: z.string().min(1, 'Balance is required'),
-    usedBalance: z.string().min(1, 'Used balance is required'),
-    dueDate: z.string().min(1, 'Due date is required'),
-    emiDate: z.string().min(1, 'EMI date is required'),
-    charges: z.string().min(1, 'Charges is required'),
+    date: z.string().optional(),
+    balance: z.string().optional(),
+    usedBalance: z.string().optional(),
+    dueDate: z.string().optional(),
+    emiDate: z.string().optional(),
+    charges: z.string().optional(),
     note: z.string().optional()
   });
 

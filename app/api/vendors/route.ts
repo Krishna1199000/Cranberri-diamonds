@@ -77,38 +77,36 @@ export async function POST(request: Request) {
     // Parse request body
     const data = await request.json();
     
-    // Validate required fields
-    if (!data.companyName || !data.ownerName || !data.contactNumber || !data.location || !data.businessType) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
+    // Handle optional fields with defaults
     const {
-      companyName,
-      ownerName,
-      contactNumber,
-      address,
-      gstNumber,
-      accountNumber,
-      ifscCode,
-      bankName,
-      accountHolderName,
-      location,
-      businessType,
+      companyName = '',
+      ownerName = '',
+      contactNumber = '',
+      address = '',
+      gstNumber = '',
+      accountNumber = '',
+      ifscCode = '',
+      bankName = '',
+      accountHolderName = '',
+      location = '',
+      businessType = '',
     } = data;
 
-    // Check if vendor with this company name already exists
-    const existingVendor = await prisma.vendor.findFirst({
-      where: {
-        companyName,
-        deletedAt: null,
-      },
-    });
+    // Check if vendor with this company name already exists (only if companyName is provided)
+    if (companyName) {
+      const existingVendor = await prisma.vendor.findFirst({
+        where: {
+          companyName,
+          deletedAt: null,
+        },
+      });
 
-    if (existingVendor) {
-      return NextResponse.json(
-        { error: 'A vendor with this company name already exists' },
-        { status: 400 }
-      );
+      if (existingVendor) {
+        return NextResponse.json(
+          { error: 'A vendor with this company name already exists' },
+          { status: 400 }
+        );
+      }
     }
 
     // Create vendor

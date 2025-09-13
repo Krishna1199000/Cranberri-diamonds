@@ -136,6 +136,10 @@ export default function VendorDetailsPage() {
       if (response.ok) {
         toast.success('Purchase deleted successfully');
         fetchVendor();
+        // Dispatch custom event to refresh overview data in main vendors page
+        window.dispatchEvent(new CustomEvent('vendorDataChanged', { 
+          detail: { type: 'purchase', action: 'delete' } 
+        }));
       } else {
         toast.error('Failed to delete purchase');
       }
@@ -155,6 +159,10 @@ export default function VendorDetailsPage() {
       if (response.ok) {
         toast.success('Payment deleted successfully');
         fetchVendor();
+        // Dispatch custom event to refresh overview data in main vendors page
+        window.dispatchEvent(new CustomEvent('vendorDataChanged', { 
+          detail: { type: 'payment', action: 'delete' } 
+        }));
       } else {
         toast.error('Failed to delete payment');
       }
@@ -171,6 +179,10 @@ export default function VendorDetailsPage() {
     setEditingPurchase(null);
     setEditingPayment(null);
     fetchVendor();
+    // Dispatch custom event to refresh overview data in main vendors page
+    window.dispatchEvent(new CustomEvent('vendorDataChanged', { 
+      detail: { type: 'transaction', action: 'update' } 
+    }));
   };
 
   const formatCurrency = (amount: number) => {

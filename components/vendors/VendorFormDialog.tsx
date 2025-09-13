@@ -26,17 +26,17 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const vendorFormSchema = z.object({
-  companyName: z.string().min(1, 'Company name is required'),
-  ownerName: z.string().min(1, 'Owner name is required'),
-  contactNumber: z.string().min(1, 'Contact number is required'),
-  address: z.string().min(1, 'Address is required'),
+  companyName: z.string().optional(),
+  ownerName: z.string().optional(),
+  contactNumber: z.string().optional(),
+  address: z.string().optional(),
   gstNumber: z.string().optional(),
-  accountNumber: z.string().min(1, 'Account number is required'),
-  ifscCode: z.string().min(1, 'IFSC code is required'),
-  bankName: z.string().min(1, 'Bank name is required'),
-  accountHolderName: z.string().min(1, 'Account holder name is required'),
-  location: z.string().min(1, 'Location is required'),
-  businessType: z.string().min(1, 'Business type is required'),
+  accountNumber: z.string().optional(),
+  ifscCode: z.string().optional(),
+  bankName: z.string().optional(),
+  accountHolderName: z.string().optional(),
+  location: z.string().optional(),
+  businessType: z.string().optional(),
 });
 
 type VendorFormData = z.infer<typeof vendorFormSchema>;
