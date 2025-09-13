@@ -110,8 +110,8 @@ export function PurchaseFormDialog({
   const watchedUsdInrRate = form.watch('usdInrRate');
 
   useEffect(() => {
-    const totalPrice = parseFloat(watchedTotalPrice) || 0;
-    const gstPercentage = parseFloat(watchedGSTPercentage) || 0;
+    const totalPrice = parseFloat(watchedTotalPrice || '0') || 0;
+    const gstPercentage = parseFloat(watchedGSTPercentage || '0') || 0;
     
     if (totalPrice > 0 && gstPercentage >= 0) {
       const gstAmount = (totalPrice * gstPercentage) / 100;
@@ -511,7 +511,7 @@ export function PurchaseFormDialog({
                 <div className="flex justify-between">
                   <span className="text-gray-600">Base Price (USD):</span>
                   <span className="font-medium text-black">
-                    ${parseFloat(watchedTotalPrice) || 0}
+                    ${parseFloat(watchedTotalPrice || '0') || 0}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -536,13 +536,13 @@ export function PurchaseFormDialog({
                 <div className="flex justify-between">
                   <span className="text-gray-600">USD to INR Rate:</span>
                   <span className="font-medium text-black">
-                    {parseFloat(watchedUsdInrRate) || 0}
+                    {parseFloat(watchedUsdInrRate || '0') || 0}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Final Price (INR):</span>
                   <span className="font-medium text-green-600">
-                    ₹{(((parseFloat(watchedTotalPrice) || 0) + calculatedGST) * (parseFloat(watchedUsdInrRate) || 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    ₹{(((parseFloat(watchedTotalPrice || '0') || 0) + calculatedGST) * (parseFloat(watchedUsdInrRate || '0') || 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                   </span>
                 </div>
               </div>

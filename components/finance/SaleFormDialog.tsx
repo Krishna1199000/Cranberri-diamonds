@@ -233,12 +233,12 @@ export function SaleFormDialog({
       // Convert string values to numbers
       const formattedData = {
         ...data,
-        carat: parseFloat(data.carat),
-        totalPriceSoldINR: parseFloat(data.totalPriceSoldINR),
-        totalPricePurchasedINR: parseFloat(data.totalPricePurchasedINR),
-        shippingCharge: parseFloat(data.shippingCharge),
-        employeeProfitPercent: parseFloat(data.employeeProfitPercent),
-        gstPercentage: parseFloat(data.gstPercentage),
+        carat: parseFloat(data.carat || '0'),
+        totalPriceSoldINR: parseFloat(data.totalPriceSoldINR || '0'),
+        totalPricePurchasedINR: parseFloat(data.totalPricePurchasedINR || '0'),
+        shippingCharge: parseFloat(data.shippingCharge || '0'),
+        employeeProfitPercent: parseFloat(data.employeeProfitPercent || '0'),
+        gstPercentage: parseFloat(data.gstPercentage || '0'),
         finalProfit: finalCalculatedProfit,
       };
 

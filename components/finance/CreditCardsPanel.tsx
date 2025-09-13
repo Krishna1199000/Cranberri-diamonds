@@ -415,11 +415,11 @@ export function CreditCardsPanel() {
                   // Prepare the data for API call
                   const apiData = {
                     date: data.date,
-                    balance: parseFloat(data.balance),
-                    usedBalance: parseFloat(data.usedBalance),
+                    balance: parseFloat(data.balance || '0'),
+                    usedBalance: parseFloat(data.usedBalance || '0'),
                     dueDate: data.dueDate,
                     emiDate: data.emiDate,
-                    charges: parseFloat(data.charges),
+                    charges: parseFloat(data.charges || '0'),
                     note: data.note,
                     cardId: selectedCardId
                   };

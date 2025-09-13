@@ -101,7 +101,7 @@ export function LedgerEntryFormDialog({
   const onSubmit = async (data: LedgerFormData) => {
     setIsSubmitting(true);
     try {
-      const amountNum = parseFloat(data.amountINR);
+      const amountNum = parseFloat(data.amountINR || '0');
 
       if (!isFinite(amountNum) || amountNum <= 0) {
         toast.error('Enter a valid amount');
@@ -181,7 +181,7 @@ export function LedgerEntryFormDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-black">Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
                     <FormControl>
                       <SelectTrigger className="border-gray-300 focus:border-black focus:ring-black">
                         <SelectValue placeholder="Select entry type" />
