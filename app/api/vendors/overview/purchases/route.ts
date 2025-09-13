@@ -1,0 +1,32 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { getSession } from '@/lib/session';
+
+export async function GET() {
+  try {
+    const session = await getSession();
+    
+    if (!session?.userId || session.role !== 'admin') {
+      return new NextResponse('Unauthorized', { status: 403 });
+    }
+
+    const purchases = await prisma.purchase.findMany({
+      include: {
+        vendor: {
+          select: {
+            companyName: true,
+            ownerName: true,
+          },
+        },
+      },
+      orderBy: {
+        date: 'desc',
+      },
+    });
+
+    return NextResponse.json(purchases);
+  } catch (error) {
+    console.error('Get overview purchases error:', error);
+    return new NextResponse('Internal error', { status: 500 });
+  }
+}

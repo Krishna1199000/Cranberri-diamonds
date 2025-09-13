@@ -321,7 +321,7 @@ export function SaleFormDialog({
                   name="date"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Date *</FormLabel>
+                      <FormLabel className="text-black">Date</FormLabel>
                       <FormControl>
                         <Input {...field} type="date" className="border-gray-300 focus:border-black focus:ring-black" />
                       </FormControl>
@@ -334,7 +334,7 @@ export function SaleFormDialog({
                   name="companyName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Company Name *</FormLabel>
+                      <FormLabel className="text-black">Company Name</FormLabel>
                       <FormControl>
                         <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Customer company" />
                       </FormControl>
@@ -347,7 +347,7 @@ export function SaleFormDialog({
                   name="ownerName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Owner Name *</FormLabel>
+                      <FormLabel className="text-black">Owner Name</FormLabel>
                       <FormControl>
                         <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Owner name" />
                       </FormControl>
@@ -369,7 +369,7 @@ export function SaleFormDialog({
                   name="vendorCompany"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Vendor Company *</FormLabel>
+                      <FormLabel className="text-black">Vendor Company</FormLabel>
                       <FormControl>
                         <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Vendor company" />
                       </FormControl>
@@ -382,7 +382,7 @@ export function SaleFormDialog({
                   name="shape"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Shape *</FormLabel>
+                      <FormLabel className="text-black">Shape</FormLabel>
                       <FormControl>
                         <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Round, Princess, etc." />
                       </FormControl>
@@ -395,7 +395,7 @@ export function SaleFormDialog({
                   name="carat"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Carat *</FormLabel>
+                      <FormLabel className="text-black">Carat</FormLabel>
                       <FormControl>
                         <Input {...field} type="number" step="0.01" className="border-gray-300 focus:border-black focus:ring-black" placeholder="1.00" />
                       </FormControl>
@@ -408,7 +408,7 @@ export function SaleFormDialog({
                   name="color"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Color *</FormLabel>
+                      <FormLabel className="text-black">Color</FormLabel>
                       <FormControl>
                         <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="D, E, F, etc." />
                       </FormControl>
@@ -421,7 +421,7 @@ export function SaleFormDialog({
                   name="clarity"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Clarity *</FormLabel>
+                      <FormLabel className="text-black">Clarity</FormLabel>
                       <FormControl>
                         <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="VVS1, VS1, etc." />
                       </FormControl>
@@ -434,7 +434,7 @@ export function SaleFormDialog({
                   name="lab"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Lab *</FormLabel>
+                      <FormLabel className="text-black">Lab</FormLabel>
                       <FormControl>
                         <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="GIA, IGI, etc." />
                       </FormControl>
@@ -447,7 +447,7 @@ export function SaleFormDialog({
                 name="certificateNumber"
                 render={({ field }) => (
                     <FormItem className="md:col-span-3">
-                    <FormLabel className="text-black">Certificate Number *</FormLabel>
+                    <FormLabel className="text-black">Certificate Number</FormLabel>
                     <FormControl>
                         <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Certificate number" />
                     </FormControl>
@@ -470,7 +470,7 @@ export function SaleFormDialog({
                   name="totalPriceSoldINR"
                 render={({ field }) => (
                   <FormItem>
-                      <FormLabel className="text-black">Total Price Sold (INR) *</FormLabel>
+                      <FormLabel className="text-black">Total Price Sold (INR)</FormLabel>
                     <FormControl>
                         <Input {...field} type="number" step="0.01" className="border-gray-300 focus:border-black focus:ring-black" placeholder="0.00" />
                     </FormControl>
@@ -484,7 +484,7 @@ export function SaleFormDialog({
                   name="totalPricePurchasedINR"
                 render={({ field }) => (
                   <FormItem>
-                      <FormLabel className="text-black">Total Price Purchased (INR) *</FormLabel>
+                      <FormLabel className="text-black">Total Price Purchased (INR)</FormLabel>
                     <FormControl>
                         <Input {...field} type="number" step="0.01" className="border-gray-300 focus:border-black focus:ring-black" placeholder="0.00" />
                     </FormControl>
@@ -498,7 +498,7 @@ export function SaleFormDialog({
                   name="shippingCharge"
                 render={({ field }) => (
                   <FormItem>
-                      <FormLabel className="text-black">Shipping Charge *</FormLabel>
+                      <FormLabel className="text-black">Shipping Charge</FormLabel>
                     <FormControl>
                         <Input {...field} type="number" step="0.01" className="border-gray-300 focus:border-black focus:ring-black" placeholder="0.00" />
                     </FormControl>
@@ -511,7 +511,7 @@ export function SaleFormDialog({
                 name="employeeProfitPercent"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Employee Profit % *</FormLabel>
+                    <FormLabel className="text-black">Employee Profit %</FormLabel>
                     <FormControl>
                       <Input {...field} type="number" step="0.01" className="border-gray-300 focus:border-black focus:ring-black" placeholder="0.00" />
                     </FormControl>
@@ -524,7 +524,7 @@ export function SaleFormDialog({
                 name="gstPercentage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">GST Percentage (%) *</FormLabel>
+                    <FormLabel className="text-black">GST Percentage (%)</FormLabel>
                     <FormControl>
                       <Input {...field} type="number" step="0.01" className="border-gray-300 focus:border-black focus:ring-black" placeholder="18.00" />
                     </FormControl>
@@ -537,7 +537,7 @@ export function SaleFormDialog({
                 name="dueDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Due Date *</FormLabel>
+                    <FormLabel className="text-black">Due Date</FormLabel>
                     <FormControl>
                       <Input {...field} type="date" className="border-gray-300 focus:border-black focus:ring-black" />
                     </FormControl>

@@ -10,6 +10,7 @@ import { InventorySearch } from "@/components/inventory/InventorySearch";
 import { AddEditInventoryForm, InventoryItemFormData } from "@/components/inventory/AddEditInventoryForm";
 import { StatusChangeDialog } from "@/components/inventory/StatusChangeDialog";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import { FilterState } from "@/components/inventory/AdvancedFilters";
 
 // Import actual Prisma types
 import type { InventoryItem as PrismaInventoryItem, Shipment as PrismaShipment } from "@prisma/client"; 
@@ -43,6 +44,14 @@ export default function AdminInventoryPage() {
   const [shipments, setShipments] = useState<ShipmentOption[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+    carat: "",
+    colors: [],
+    clarities: [],
+    shapes: [],
+    sortBy: "",
+    sortOrder: 'desc'
+  });
   
   // Fetch shipments for the dropdown
   useEffect(() => {
@@ -87,6 +96,26 @@ export default function AdminInventoryPage() {
           query.append("status", statusFilter);
         }
         
+        // Add advanced filters
+        if (advancedFilters.carat) {
+          query.append("carat", advancedFilters.carat);
+        }
+        if (advancedFilters.colors.length > 0) {
+          query.append("colors", advancedFilters.colors.join(","));
+        }
+        if (advancedFilters.clarities.length > 0) {
+          query.append("clarities", advancedFilters.clarities.join(","));
+        }
+        if (advancedFilters.shapes.length > 0) {
+          query.append("shapes", advancedFilters.shapes.join(","));
+        }
+        if (advancedFilters.sortBy) {
+          query.append("sortBy", advancedFilters.sortBy);
+        }
+        if (advancedFilters.sortOrder) {
+          query.append("sortOrder", advancedFilters.sortOrder);
+        }
+        
         const response = await fetch(`/api/inventory-items?${query.toString()}`);
         const data = await response.json();
         
@@ -105,7 +134,7 @@ export default function AdminInventoryPage() {
     };
     
     fetchItems();
-  }, [currentPage, pageSize, searchQuery, statusFilter, refreshKey]);
+  }, [currentPage, pageSize, searchQuery, statusFilter, advancedFilters, refreshKey]);
   
   const handleAddInventoryItem = async (data: InventoryItemFormData) => { 
     setFormSubmitting(true);
@@ -235,9 +264,12 @@ export default function AdminInventoryPage() {
     }
   };
   
-  const handleSearch = (query: string, status: string) => {
+  const handleSearch = (query: string, status: string, filters?: FilterState) => {
     setSearchQuery(query);
     setStatusFilter(status);
+    if (filters) {
+      setAdvancedFilters(filters);
+    }
     setCurrentPage(1);
   };
   

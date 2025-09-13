@@ -162,7 +162,7 @@ export function LedgerEntryFormDialog({
               name="date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black">Date *</FormLabel>
+                  <FormLabel className="text-black">Date</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -180,7 +180,7 @@ export function LedgerEntryFormDialog({
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black">Type *</FormLabel>
+                  <FormLabel className="text-black">Type</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="border-gray-300 focus:border-black focus:ring-black">
@@ -202,7 +202,7 @@ export function LedgerEntryFormDialog({
               name="amountINR"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black">Amount (INR) *</FormLabel>
+                  <FormLabel className="text-black">Amount (INR)</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -221,7 +221,7 @@ export function LedgerEntryFormDialog({
               name="reason"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black">Reason *</FormLabel>
+                  <FormLabel className="text-black">Reason</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}

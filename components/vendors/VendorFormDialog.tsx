@@ -196,7 +196,7 @@ export function VendorFormDialog({
                 name="ownerName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Owner Name *</FormLabel>
+                    <FormLabel className="text-black">Owner Name</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -214,7 +214,7 @@ export function VendorFormDialog({
                 name="contactNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Contact Number *</FormLabel>
+                    <FormLabel className="text-black">Contact Number</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -232,7 +232,7 @@ export function VendorFormDialog({
                 name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Location *</FormLabel>
+                    <FormLabel className="text-black">Location</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -250,7 +250,7 @@ export function VendorFormDialog({
                 name="businessType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Business Type *</FormLabel>
+                    <FormLabel className="text-black">Business Type</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -287,7 +287,7 @@ export function VendorFormDialog({
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black">Address *</FormLabel>
+                  <FormLabel className="text-black">Address</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
@@ -309,7 +309,7 @@ export function VendorFormDialog({
                   name="accountNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Account Number *</FormLabel>
+                      <FormLabel className="text-black">Account Number</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -327,7 +327,7 @@ export function VendorFormDialog({
                   name="ifscCode"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">IFSC Code *</FormLabel>
+                      <FormLabel className="text-black">IFSC Code</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -345,7 +345,7 @@ export function VendorFormDialog({
                   name="bankName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Bank Name *</FormLabel>
+                      <FormLabel className="text-black">Bank Name</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -363,7 +363,7 @@ export function VendorFormDialog({
                   name="accountHolderName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Account Holder Name *</FormLabel>
+                      <FormLabel className="text-black">Account Holder Name</FormLabel>
                       <FormControl>
                         <Input
                           {...field}

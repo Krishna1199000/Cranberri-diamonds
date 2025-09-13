@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { InventorySearch } from "@/components/inventory/InventorySearch";
 import { CustomerLayout } from "@/components/layout/CustomerLayout";
+import { FilterState } from "@/components/inventory/AdvancedFilters";
 // Import Prisma type instead of utils/inventory
 import type { InventoryItem as PrismaInventoryItem } from "@prisma/client";
 
@@ -21,6 +22,14 @@ export default function CustomerInventoryPage() {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+    carat: "",
+    colors: [],
+    clarities: [],
+    shapes: [],
+    sortBy: "",
+    sortOrder: 'desc'
+  });
   
   // Fetch InventoryItems
   useEffect(() => {
@@ -40,6 +49,26 @@ export default function CustomerInventoryPage() {
           query.append("status", statusFilter);
         }
         
+        // Add advanced filters
+        if (advancedFilters.carat) {
+          query.append("carat", advancedFilters.carat);
+        }
+        if (advancedFilters.colors.length > 0) {
+          query.append("colors", advancedFilters.colors.join(","));
+        }
+        if (advancedFilters.clarities.length > 0) {
+          query.append("clarities", advancedFilters.clarities.join(","));
+        }
+        if (advancedFilters.shapes.length > 0) {
+          query.append("shapes", advancedFilters.shapes.join(","));
+        }
+        if (advancedFilters.sortBy) {
+          query.append("sortBy", advancedFilters.sortBy);
+        }
+        if (advancedFilters.sortOrder) {
+          query.append("sortOrder", advancedFilters.sortOrder);
+        }
+        
         // Fetch from the correct endpoint
         const response = await fetch(`/api/inventory-items?${query.toString()}`); 
         const data = await response.json();
@@ -57,11 +86,14 @@ export default function CustomerInventoryPage() {
     };
     
     fetchItems();
-  }, [currentPage, pageSize, searchQuery, statusFilter]);
+  }, [currentPage, pageSize, searchQuery, statusFilter, advancedFilters]);
   
-  const handleSearch = (query: string, status: string) => {
+  const handleSearch = (query: string, status: string, filters?: FilterState) => {
     setSearchQuery(query);
     setStatusFilter(status);
+    if (filters) {
+      setAdvancedFilters(filters);
+    }
     setCurrentPage(1);
   };
   

@@ -62,10 +62,9 @@ export async function POST(
       gstPercentage,
       gstAmountUSD,
       finalPriceUSD,
+      dueDate,
+      usdInrRate,
     } = data;
-
-    // Fetch current USD to INR rate
-    const usdInrRate = await getFreshUSDToINRRate();
     
     // Use finalPriceUSD if provided, otherwise calculate it
     const finalPrice = finalPriceUSD || (totalPriceUSD + (gstAmountUSD || 0));
@@ -90,6 +89,7 @@ export async function POST(
         finalPriceUSD: finalPrice,
         usdInrRate,
         inrPrice,
+        dueDate: dueDate ? new Date(dueDate) : null,
       },
     });
 

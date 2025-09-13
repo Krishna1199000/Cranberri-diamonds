@@ -165,7 +165,7 @@ export function PaymentFormDialog({
               name="date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black">Date *</FormLabel>
+                  <FormLabel className="text-black">Date</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -183,7 +183,7 @@ export function PaymentFormDialog({
               name="amountINR"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black">Amount (INR) *</FormLabel>
+                  <FormLabel className="text-black">Amount (INR)</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -242,7 +242,7 @@ export function PaymentFormDialog({
               name="mode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black">Payment Mode *</FormLabel>
+                  <FormLabel className="text-black">Payment Mode</FormLabel>
                   <FormControl>
                     <Input
                       {...field}

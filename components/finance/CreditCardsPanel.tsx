@@ -108,6 +108,15 @@ export function CreditCardsPanel() {
     }).format(amount);
   };
 
+  const isDueDatePassed = (dueDateString: string) => {
+    const dueDate = new Date(dueDateString);
+    const today = new Date();
+    // Set time to start of day for accurate comparison
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate <= today;
+  };
+
   const handleAddTransaction = (cardId: string) => {
     setSelectedCardId(cardId);
     setEditingTransaction(null);
@@ -343,7 +352,7 @@ export function CreditCardsPanel() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Name *</FormLabel>
+                    <FormLabel className="text-black">Name</FormLabel>
                     <FormControl>
                       <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Card holder name" disabled={isHolderSubmitting} />
                     </FormControl>
@@ -356,7 +365,7 @@ export function CreditCardsPanel() {
                 name="cardNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Card Number *</FormLabel>
+                    <FormLabel className="text-black">Card Number</FormLabel>
                     <FormControl>
                       <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Enter full card number" disabled={isHolderSubmitting} />
                     </FormControl>
@@ -440,7 +449,7 @@ export function CreditCardsPanel() {
                 name="date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Transaction Date *</FormLabel>
+                    <FormLabel className="text-black">Transaction Date</FormLabel>
                     <FormControl>
                       <Input {...field} type="date" className="border-gray-300 focus:border-black focus:ring-black" disabled={isTransactionSubmitting} />
                     </FormControl>
@@ -453,7 +462,7 @@ export function CreditCardsPanel() {
                   name="dueDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Due Date *</FormLabel>
+                      <FormLabel className="text-black">Due Date</FormLabel>
                       <FormControl>
                         <Input {...field} type="date" className="border-gray-300 focus:border-black focus:ring-black" disabled={isTransactionSubmitting} />
                       </FormControl>
@@ -468,7 +477,7 @@ export function CreditCardsPanel() {
                   name="balance"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Available Balance *</FormLabel>
+                      <FormLabel className="text-black">Available Balance</FormLabel>
                       <FormControl>
                         <Input {...field} type="number" step="0.01" min="0" className="border-gray-300 focus:border-black focus:ring-black" placeholder="0.00" />
                       </FormControl>
@@ -481,7 +490,7 @@ export function CreditCardsPanel() {
                   name="usedBalance"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Used Balance *</FormLabel>
+                      <FormLabel className="text-black">Used Balance</FormLabel>
                       <FormControl>
                         <Input {...field} type="number" step="0.01" min="0" className="border-gray-300 focus:border-black focus:ring-black" placeholder="0.00" />
                       </FormControl>
@@ -496,7 +505,7 @@ export function CreditCardsPanel() {
                   name="emiDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">EMI Date *</FormLabel>
+                      <FormLabel className="text-black">EMI Date</FormLabel>
                       <FormControl>
                         <Input {...field} type="date" className="border-gray-300 focus:border-black focus:ring-black" />
                       </FormControl>
@@ -509,7 +518,7 @@ export function CreditCardsPanel() {
                   name="charges"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-black">Charges *</FormLabel>
+                      <FormLabel className="text-black">Charges</FormLabel>
                       <FormControl>
                         <Input {...field} type="number" step="0.01" min="0" className="border-gray-300 focus:border-black focus:ring-black" placeholder="0.00" />
                       </FormControl>
@@ -612,15 +621,17 @@ export function CreditCardsPanel() {
                         <TableBody>
                           {viewingHolder.transactions
                             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                            .map((transaction) => (
-                            <TableRow key={transaction.id}>
-                              <TableCell className="text-gray-700">{formatDate(transaction.date)}</TableCell>
-                              <TableCell className="text-gray-700">{formatDate(transaction.dueDate)}</TableCell>
-                              <TableCell className="text-gray-700 font-medium">{formatCurrency(transaction.balance)}</TableCell>
-                              <TableCell className="text-gray-700">{formatCurrency(transaction.usedBalance)}</TableCell>
-                              <TableCell className="text-gray-700">{formatDate(transaction.emiDate)}</TableCell>
-                              <TableCell className="text-gray-700">{formatCurrency(transaction.charges)}</TableCell>
-                              <TableCell className="text-gray-700">{transaction.note || '-'}</TableCell>
+                            .map((transaction) => {
+                              const isOverdue = isDueDatePassed(transaction.dueDate);
+                              return (
+                            <TableRow key={transaction.id} className={isOverdue ? "bg-red-50 hover:bg-red-100" : ""}>
+                              <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{formatDate(transaction.date)}</TableCell>
+                              <TableCell className={`font-bold ${isOverdue ? "text-red-600" : "text-gray-700"}`}>{formatDate(transaction.dueDate)}</TableCell>
+                              <TableCell className={`font-medium ${isOverdue ? "text-red-700" : "text-gray-700"}`}>{formatCurrency(transaction.balance)}</TableCell>
+                              <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{formatCurrency(transaction.usedBalance)}</TableCell>
+                              <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{formatDate(transaction.emiDate)}</TableCell>
+                              <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{formatCurrency(transaction.charges)}</TableCell>
+                              <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{transaction.note || '-'}</TableCell>
                               <TableCell>
                                 <div className="flex gap-2">
                                   <Button
@@ -662,7 +673,8 @@ export function CreditCardsPanel() {
                                 </div>
                               </TableCell>
                             </TableRow>
-                          ))}
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>

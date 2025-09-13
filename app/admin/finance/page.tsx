@@ -239,6 +239,15 @@ export default function FinancePage() {
     return new Date(dateString).toLocaleDateString('en-IN');
   };
 
+  const isDueDatePassed = (dueDateString: string) => {
+    const dueDate = new Date(dueDateString);
+    const today = new Date();
+    // Set time to start of day for accurate comparison
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate <= today;
+  };
+
   return (
     <AdminLayout>
       <PasswordGate
@@ -434,43 +443,49 @@ export default function FinancePage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      sales.map((sale, index) => (
-                        <TableRow key={sale.id}>
-                          <TableCell className="font-medium text-black">{index + 1}</TableCell>
-                          <TableCell className="text-gray-700">{formatDate(sale.date)}</TableCell>
-                          <TableCell className="text-gray-700">{sale.companyName}</TableCell>
-                          <TableCell className="text-gray-700">{sale.ownerName}</TableCell>
-                          <TableCell className="text-gray-700">{sale.vendorCompany}</TableCell>
-                          <TableCell className="text-gray-700">{sale.shape}</TableCell>
-                          <TableCell className="text-gray-700">{sale.carat}</TableCell>
-                          <TableCell className="text-gray-700">{sale.color}</TableCell>
-                          <TableCell className="text-gray-700">{sale.clarity}</TableCell>
-                          <TableCell className="text-gray-700">{sale.lab}</TableCell>
-                          <TableCell className="text-gray-700">{sale.certificateNumber}</TableCell>
-                          <TableCell className="text-gray-700 font-medium">
+                      sales.map((sale, index) => {
+                        const isOverdue = isDueDatePassed(sale.dueDate);
+                        return (
+                        <TableRow key={sale.id} className={isOverdue ? "bg-red-50 hover:bg-red-100" : ""}>
+                          <TableCell className={`font-medium ${isOverdue ? "text-red-800" : "text-black"}`}>{index + 1}</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{formatDate(sale.date)}</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.companyName}</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.ownerName}</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.vendorCompany}</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.shape}</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.carat}</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.color}</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.clarity}</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.lab}</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.certificateNumber}</TableCell>
+                          <TableCell className={`font-medium ${isOverdue ? "text-red-700" : "text-gray-700"}`}>
                             {formatCurrency(sale.totalPriceSoldINR)}
                           </TableCell>
-                          <TableCell className="text-gray-700">
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>
                             {formatCurrency(sale.totalPricePurchasedINR)}
                           </TableCell>
-                          <TableCell className="text-gray-700">
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>
                             {formatCurrency(sale.shippingCharge)}
                           </TableCell>
                           <TableCell className={`font-medium ${
-                            (sale.totalPriceSoldINR - sale.totalPricePurchasedINR) >= 0 ? 'text-green-600' : 'text-red-600'
+                            isOverdue 
+                              ? 'text-red-600' 
+                              : (sale.totalPriceSoldINR - sale.totalPricePurchasedINR) >= 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
                             {formatCurrency(sale.totalPriceSoldINR - sale.totalPricePurchasedINR)}
                           </TableCell>
-                          <TableCell className="text-gray-700">{sale.employeeProfitPercent}%</TableCell>
-                          <TableCell className="text-gray-700">
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.employeeProfitPercent}%</TableCell>
+                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>
                             {formatCurrency((sale.totalPriceSoldINR * sale.employeeProfitPercent) / 100)}
                           </TableCell>
                           <TableCell className={`font-medium ${
-                            sale.finalProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                            isOverdue 
+                              ? 'text-red-600' 
+                              : sale.finalProfit >= 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
                             {formatCurrency(sale.finalProfit)}
                           </TableCell>
-                          <TableCell className="text-gray-700">{formatDate(sale.dueDate)}</TableCell>
+                          <TableCell className={`font-bold ${isOverdue ? "text-red-600" : "text-gray-700"}`}>{formatDate(sale.dueDate)}</TableCell>
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -497,7 +512,8 @@ export default function FinancePage() {
                             </DropdownMenu>
                           </TableCell>
                         </TableRow>
-                      ))
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>

@@ -480,27 +480,28 @@ model Vendor {
 }
 
 model Purchase {
-  id               String   @id @default(uuid())
-  vendorId         String   @map("vendor_id")
+  id               String    @id @default(uuid())
+  vendorId         String    @map("vendor_id")
   date             DateTime
-  companyName      String   @map("company_name") // seller company name
-  contactPerson    String   @map("contact_person")
-  mobileNumber     String   @map("mobile_number")
+  dueDate          DateTime? @map("due_date")
+  companyName      String    @map("company_name") // seller company name
+  contactPerson    String    @map("contact_person")
+  mobileNumber     String    @map("mobile_number")
   shape            String
   color            String
   clarity          String
   lab              String
   certificate      String
-  pricePerCaratUSD Float    @map("price_per_carat_usd")
-  totalPriceUSD    Float    @map("total_price_usd")
-  gstPercentage    Float    @default(0.0) @map("gst_percentage") // GST percentage (e.g., 18.0 for 18%)
-  gstAmountUSD     Float    @default(0.0) @map("gst_amount_usd") // GST amount in USD
-  finalPriceUSD    Float    @default(0.0) @map("final_price_usd") // Final price including GST
-  usdInrRate       Float    @map("usd_inr_rate")
-  inrPrice         Float    @map("inr_price")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-  vendor           Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  pricePerCaratUSD Float     @map("price_per_carat_usd")
+  totalPriceUSD    Float     @map("total_price_usd")
+  gstPercentage    Float     @default(0.0) @map("gst_percentage") // GST percentage (e.g., 18.0 for 18%)
+  gstAmountUSD     Float     @default(0.0) @map("gst_amount_usd") // GST amount in USD
+  finalPriceUSD    Float     @default(0.0) @map("final_price_usd") // Final price including GST
+  usdInrRate       Float     @map("usd_inr_rate")
+  inrPrice         Float     @map("inr_price")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  vendor           Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@map("purchases")
 }

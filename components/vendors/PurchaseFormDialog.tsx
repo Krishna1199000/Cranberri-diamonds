@@ -37,6 +37,8 @@ const purchaseFormSchema = z.object({
   pricePerCaratUSD: z.string().min(1, 'Required'),
   totalPriceUSD: z.string().min(1, 'Required'),
   gstPercentage: z.string().min(1, 'GST percentage is required'),
+  dueDate: z.string().optional(),
+  usdInrRate: z.string().min(1, 'USD to INR rate is required'),
 });
 
 type PurchaseFormData = z.infer<typeof purchaseFormSchema>;
@@ -59,6 +61,7 @@ interface Purchase {
   finalPriceUSD?: number;
   usdInrRate: number;
   inrPrice: number;
+  dueDate: string | null;
 }
 
 interface PurchaseFormDialogProps {
@@ -96,12 +99,15 @@ export function PurchaseFormDialog({
       pricePerCaratUSD: '',
       totalPriceUSD: '',
       gstPercentage: '18', // Default GST percentage
+      dueDate: '',
+      usdInrRate: '83.0', // Default USD to INR rate
     },
   });
 
-  // Watch for changes in totalPriceUSD and gstPercentage to calculate GST and final price
+  // Watch for changes in totalPriceUSD, gstPercentage, and usdInrRate to calculate GST and final price
   const watchedTotalPrice = form.watch('totalPriceUSD');
   const watchedGSTPercentage = form.watch('gstPercentage');
+  const watchedUsdInrRate = form.watch('usdInrRate');
 
   useEffect(() => {
     const totalPrice = parseFloat(watchedTotalPrice) || 0;
@@ -134,6 +140,8 @@ export function PurchaseFormDialog({
         pricePerCaratUSD: String(purchase.pricePerCaratUSD ?? ''),
         totalPriceUSD: String(purchase.totalPriceUSD ?? ''),
         gstPercentage: String(purchase.gstPercentage ?? '18'),
+        dueDate: purchase.dueDate ? new Date(purchase.dueDate).toISOString().split('T')[0] : '',
+        usdInrRate: String(purchase.usdInrRate ?? '83.0'),
       });
     } else {
       form.reset({
@@ -149,6 +157,8 @@ export function PurchaseFormDialog({
         pricePerCaratUSD: '',
         totalPriceUSD: '',
         gstPercentage: '18',
+        dueDate: '',
+        usdInrRate: '83.0',
       });
     }
   }, [purchase, form]);
@@ -159,6 +169,7 @@ export function PurchaseFormDialog({
       const pricePerCaratUSDNum = parseFloat(data.pricePerCaratUSD);
       const totalPriceUSDNum = parseFloat(data.totalPriceUSD);
       const gstPercentageNum = parseFloat(data.gstPercentage);
+      const usdInrRateNum = parseFloat(data.usdInrRate);
       
       if (!isFinite(pricePerCaratUSDNum) || pricePerCaratUSDNum <= 0) {
         toast.error('Enter a valid Price per Carat (USD)');
@@ -172,6 +183,11 @@ export function PurchaseFormDialog({
       }
       if (!isFinite(gstPercentageNum) || gstPercentageNum < 0) {
         toast.error('Enter a valid GST percentage');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!isFinite(usdInrRateNum) || usdInrRateNum <= 0) {
+        toast.error('Enter a valid USD to INR rate');
         setIsSubmitting(false);
         return;
       }
@@ -193,6 +209,7 @@ export function PurchaseFormDialog({
           gstPercentage: gstPercentageNum,
           gstAmountUSD: calculatedGST,
           finalPriceUSD: calculatedFinalPrice,
+          usdInrRate: usdInrRateNum,
         }),
       });
 
@@ -234,7 +251,7 @@ export function PurchaseFormDialog({
                 name="date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Date *</FormLabel>
+                    <FormLabel className="text-black">Date</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -252,7 +269,7 @@ export function PurchaseFormDialog({
                 name="companyName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Seller Company Name *</FormLabel>
+                    <FormLabel className="text-black">Seller Company Name</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -270,7 +287,7 @@ export function PurchaseFormDialog({
                 name="contactPerson"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Contact Person *</FormLabel>
+                    <FormLabel className="text-black">Contact Person</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -288,7 +305,7 @@ export function PurchaseFormDialog({
                 name="mobileNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Mobile Number *</FormLabel>
+                    <FormLabel className="text-black">Mobile Number</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -306,7 +323,7 @@ export function PurchaseFormDialog({
                 name="shape"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Shape *</FormLabel>
+                    <FormLabel className="text-black">Shape</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -324,7 +341,7 @@ export function PurchaseFormDialog({
                 name="color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Color *</FormLabel>
+                    <FormLabel className="text-black">Color</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -342,7 +359,7 @@ export function PurchaseFormDialog({
                 name="clarity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Clarity *</FormLabel>
+                    <FormLabel className="text-black">Clarity</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -360,7 +377,7 @@ export function PurchaseFormDialog({
                 name="lab"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Lab *</FormLabel>
+                    <FormLabel className="text-black">Lab</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -378,7 +395,7 @@ export function PurchaseFormDialog({
                 name="certificate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Certificate Number *</FormLabel>
+                    <FormLabel className="text-black">Certificate Number</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -396,7 +413,7 @@ export function PurchaseFormDialog({
                 name="pricePerCaratUSD"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Price per Carat (USD) *</FormLabel>
+                    <FormLabel className="text-black">Price per Carat (USD)</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -415,7 +432,7 @@ export function PurchaseFormDialog({
                 name="totalPriceUSD"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Total Price (USD) *</FormLabel>
+                    <FormLabel className="text-black">Total Price (USD)</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -434,13 +451,51 @@ export function PurchaseFormDialog({
                 name="gstPercentage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">GST Percentage (%) *</FormLabel>
+                    <FormLabel className="text-black">GST Percentage (%)</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         type="text"
                         className="border-gray-300 focus:border-black focus:ring-black"
                         placeholder="e.g., 18 for 18%"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-black">Due Date</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="date"
+                        className="border-gray-300 focus:border-black focus:ring-black"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="usdInrRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-black">USD to INR Rate</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="number"
+                        step="0.01"
+                        className="border-gray-300 focus:border-black focus:ring-black"
+                        placeholder="e.g., 83.0"
                       />
                     </FormControl>
                     <FormMessage />
@@ -474,11 +529,29 @@ export function PurchaseFormDialog({
               </div>
             </div>
 
+            {/* INR Calculation Display */}
+            <div className="bg-green-50 p-4 rounded-lg space-y-2">
+              <h4 className="font-medium text-black">INR Conversion</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">USD to INR Rate:</span>
+                  <span className="font-medium text-black">
+                    {parseFloat(watchedUsdInrRate) || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Final Price (INR):</span>
+                  <span className="font-medium text-green-600">
+                    ₹{(((parseFloat(watchedTotalPrice) || 0) + calculatedGST) * (parseFloat(watchedUsdInrRate) || 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-blue-600">
-                <strong>Note:</strong> The USD to INR conversion rate will be fetched automatically 
-                and the INR price will be calculated when you save this purchase. GST is calculated 
-                on the base price and added to get the final purchase amount.
+                <strong>Note:</strong> GST is calculated on the base price and added to get the final purchase amount. 
+                Please enter the current USD to INR exchange rate for accurate INR price calculation.
               </p>
             </div>
 

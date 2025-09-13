@@ -19,6 +19,14 @@ export async function GET(request: NextRequest) {
     const take = parseInt(searchParams.get("take") || "10");
     const skip = parseInt(searchParams.get("skip") || "0");
     const idsParam = searchParams.get("ids");
+    
+    // Advanced filters
+    const carat = searchParams.get("carat") || "";
+    const colors = searchParams.get("colors") || "";
+    const clarities = searchParams.get("clarities") || "";
+    const shapes = searchParams.get("shapes") || "";
+    const sortBy = searchParams.get("sortBy") || "";
+    const sortOrder = searchParams.get("sortOrder") || "desc";
 
     const where: InventoryItemWhereClause = {}; 
 
@@ -38,6 +46,34 @@ export async function GET(request: NextRequest) {
       where.status = status as DiamondStatus; // Cast to Enum
     }
 
+    // Advanced filters
+    if (carat) {
+      const caratValue = parseFloat(carat);
+      // Use exact match for decimal carat values
+      where.size = caratValue;
+    }
+
+    if (colors) {
+      const colorArray = colors.split(',').map(c => c.trim()).filter(Boolean);
+      if (colorArray.length > 0) {
+        where.color = { in: colorArray };
+      }
+    }
+
+    if (clarities) {
+      const clarityArray = clarities.split(',').map(c => c.trim()).filter(Boolean);
+      if (clarityArray.length > 0) {
+        where.clarity = { in: clarityArray };
+      }
+    }
+
+    if (shapes) {
+      const shapeArray = shapes.split(',').map(s => s.trim()).filter(Boolean);
+      if (shapeArray.length > 0) {
+        where.shape = { in: shapeArray };
+      }
+    }
+
     // If a list of IDs is provided, fetch exactly those (used for CSV export across pages)
     if (idsParam) {
       const ids = idsParam.split(',').map(id => id.trim()).filter(Boolean);
@@ -49,12 +85,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ items, total: items.length, pages: 1 });
     }
 
+    // Build orderBy clause
+    let orderBy: any = { createdAt: 'desc' }; // Default sorting
+    
+    if (sortBy) {
+      const validSortFields = ['size', 'color', 'clarity', 'shape', 'pricePerCarat', 'finalAmount', 'createdAt'];
+      if (validSortFields.includes(sortBy)) {
+        orderBy = { [sortBy]: sortOrder };
+      }
+    }
+
     const [items, total] = await Promise.all([
       prisma.inventoryItem.findMany({
         where, // Use the typed where clause
         take,
         skip,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: {
           heldByShipment: true
         }

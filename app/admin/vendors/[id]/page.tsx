@@ -51,6 +51,7 @@ interface Vendor {
 interface Purchase {
   id: string;
   date: string;
+  dueDate: string | null;
   companyName: string;
   contactPerson: string;
   mobileNumber: string;
@@ -191,6 +192,16 @@ export default function VendorDetailsPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN');
+  };
+
+  const isDueDatePassed = (dueDateString: string | null) => {
+    if (!dueDateString) return false;
+    const dueDate = new Date(dueDateString);
+    const today = new Date();
+    // Set time to start of day for accurate comparison
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate <= today;
   };
 
   if (isLoading) {
@@ -436,45 +447,51 @@ export default function VendorDetailsPage() {
                     <TableHead className="text-white">Certificate</TableHead>
                     <TableHead className="text-white">Price (USD)</TableHead>
                     <TableHead className="text-white">Price (INR)</TableHead>
+                    <TableHead className="text-white">Due Date</TableHead>
                     <TableHead className="text-white">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {vendor.purchases.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                         No purchases found. Add the first purchase to get started.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    vendor.purchases.map((purchase) => (
-                      <TableRow key={purchase.id}>
-                        <TableCell className="text-black font-medium">
+                    vendor.purchases.map((purchase) => {
+                      const isOverdue = isDueDatePassed(purchase.dueDate);
+                      return (
+                      <TableRow key={purchase.id} className={isOverdue ? "bg-red-50 hover:bg-red-100" : ""}>
+                        <TableCell className={`font-medium ${isOverdue ? "text-red-800" : "text-black"}`}>
                           {formatDate(purchase.date)}
                         </TableCell>
-                        <TableCell className="text-gray-700">{purchase.companyName}</TableCell>
-                        <TableCell className="text-gray-700">
+                        <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{purchase.companyName}</TableCell>
+                        <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>
                           {purchase.contactPerson}<br />
-                          <span className="text-sm text-gray-500">{purchase.mobileNumber}</span>
+                          <span className={`text-sm ${isOverdue ? "text-red-600" : "text-gray-500"}`}>{purchase.mobileNumber}</span>
                         </TableCell>
-                        <TableCell className="text-gray-700">
+                        <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>
                           {purchase.shape} {purchase.color} {purchase.clarity}
                         </TableCell>
-                        <TableCell className="text-gray-700">{purchase.lab}</TableCell>
-                        <TableCell className="text-gray-700">{purchase.certificate}</TableCell>
-                        <TableCell className="text-gray-700">
+                        <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{purchase.lab}</TableCell>
+                        <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{purchase.certificate}</TableCell>
+                        <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>
                           {formatUSD(purchase.totalPriceUSD)}
                           <br />
-                          <span className="text-sm text-gray-500">
+                          <span className={`text-sm ${isOverdue ? "text-red-600" : "text-gray-500"}`}>
                             @{purchase.pricePerCaratUSD}/ct
                           </span>
                         </TableCell>
-                        <TableCell className="text-gray-700 font-medium">
+                        <TableCell className={`font-medium ${isOverdue ? "text-red-700" : "text-gray-700"}`}>
                           {formatCurrency(purchase.inrPrice)}
                           <br />
-                          <span className="text-sm text-gray-500">
+                          <span className={`text-sm ${isOverdue ? "text-red-600" : "text-gray-500"}`}>
                             Rate: {purchase.usdInrRate}
                           </span>
+                        </TableCell>
+                        <TableCell className={`font-bold ${isOverdue ? "text-red-600" : "text-gray-700"}`}>
+                          {purchase.dueDate ? formatDate(purchase.dueDate) : 'Not set'}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -505,7 +522,8 @@ export default function VendorDetailsPage() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
