@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
 
-// Function to fetch USD to INR exchange rate
-import { getFreshUSDToINRRate } from '@/lib/exchangeRate';
 
 export async function GET(
   request: Request,

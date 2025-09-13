@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build orderBy clause
-    let orderBy: any = { createdAt: 'desc' }; // Default sorting
+    let orderBy: Prisma.InventoryItemOrderByWithRelationInput = { createdAt: 'desc' }; // Default sorting
     
     if (sortBy) {
       const validSortFields = ['size', 'color', 'clarity', 'shape', 'pricePerCarat', 'finalAmount', 'createdAt'];
