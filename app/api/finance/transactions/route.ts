@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { cardTransactionSchema } from '@/lib/validators/credit-card';
+import { ZodError } from 'zod';
 
 export async function POST(request: Request) {
   try {
@@ -31,9 +32,9 @@ export async function POST(request: Request) {
     return NextResponse.json(transaction);
   } catch (error) {
     console.error('Create transaction error:', error);
-    if (error instanceof Error && error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: (error as any).errors },
+        { error: 'Validation failed', details: error.errors },
         { status: 400 }
       );
     }
