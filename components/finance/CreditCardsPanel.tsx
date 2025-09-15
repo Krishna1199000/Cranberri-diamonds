@@ -47,6 +47,11 @@ export function CreditCardsPanel() {
   const [deletingTransactionId, setDeletingTransactionId] = useState<string | null>(null);
   const [isHolderSubmitting, setIsHolderSubmitting] = useState(false);
   const [deletingHolderId, setDeletingHolderId] = useState<string | null>(null);
+  const [totalBalances, setTotalBalances] = useState({
+    totalBalance: 0,
+    totalUsed: 0,
+    totalRemaining: 0
+  });
 
   const holderFormSchema = z.object({ 
     name: z.string().optional(), 
@@ -54,13 +59,20 @@ export function CreditCardsPanel() {
   });
   
   const transactionFormSchema = z.object({
-    date: z.string().optional(),
-    balance: z.string().optional(),
-    usedBalance: z.string().optional(),
-    dueDate: z.string().optional(),
-    emiDate: z.string().optional(),
-    charges: z.string().optional(),
+    date: z.string().min(1, "Date is required"),
+    balance: z.string().min(1, "Available balance is required"),
+    usedBalance: z.string().min(1, "Used balance is required"),
+    dueDate: z.string().min(1, "Due date is required"),
+    emiDate: z.string().min(1, "EMI date is required"),
+    charges: z.string().min(1, "Charges are required"),
     note: z.string().optional()
+  }).refine((data) => {
+    const balance = parseFloat(data.balance || '0');
+    const usedBalance = parseFloat(data.usedBalance || '0');
+    return usedBalance <= balance;
+  }, {
+    message: "Used balance cannot exceed available balance",
+    path: ["usedBalance"]
   });
 
   const holderForm = useForm<z.infer<typeof holderFormSchema>>({ 
@@ -83,12 +95,27 @@ export function CreditCardsPanel() {
 
   const fetchHolders = async () => {
     try {
-      const res = await fetch('/api/finance/cards');
-      if (!res.ok) throw new Error('Failed');
-      const data = await res.json();
-      setHolders(data);
-    } catch {
-      toast.error('Failed to load card holders');
+      // Fetch card holders
+      const holdersRes = await fetch('/api/finance/cards');
+      if (!holdersRes.ok) throw new Error('Failed to fetch holders');
+      const holdersData = await holdersRes.json();
+      
+      // Fetch transactions with totals
+      const transactionsRes = await fetch('/api/finance/transactions');
+      if (!transactionsRes.ok) throw new Error('Failed to fetch transactions');
+      const { transactions, totals } = await transactionsRes.json();
+      
+      // Map transactions to holders
+      const holdersWithTransactions = holdersData.map(holder => ({
+        ...holder,
+        transactions: transactions.filter(t => t.cardId === holder.id)
+      }));
+      
+      setHolders(holdersWithTransactions);
+      setTotalBalances(totals);
+    } catch (error) {
+      console.error('Fetch error:', error);
+      toast.error('Failed to load card data');
     } finally {
       setIsLoading(false);
     }
@@ -132,27 +159,42 @@ export function CreditCardsPanel() {
     setIsTransactionFormOpen(true);
   };
 
-  const handleEditTransaction = (transaction: CardTransaction) => {
-    setEditingTransaction(transaction);
-    setSelectedCardId(transaction.cardId);
-    transactionForm.reset({
-      date: transaction.date.split('T')[0],
-      balance: transaction.balance.toString(),
-      usedBalance: transaction.usedBalance.toString(),
-      dueDate: transaction.dueDate.split('T')[0],
-      emiDate: transaction.emiDate.split('T')[0],
-      charges: transaction.charges.toString(),
-      note: transaction.note || ''
-    });
-    setIsTransactionFormOpen(true);
-  };
-
   const handleViewDetails = (holder: CardHolder) => {
     setViewingHolder(holder);
   };
 
   return (
     <div className="space-y-6">
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Amount</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-black">{formatCurrency(totalBalances.totalBalance)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Used Balance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{formatCurrency(totalBalances.totalUsed)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Remaining Balance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(totalBalances.totalRemaining)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-black">Credit Cards</h2>
@@ -183,7 +225,9 @@ export function CreditCardsPanel() {
                   <TableHead className="text-white">Card Holder</TableHead>
                   <TableHead className="text-white">Card Number</TableHead>
                   <TableHead className="text-white">Due Date</TableHead>
-                  <TableHead className="text-white">Available Balance</TableHead>
+                  <TableHead className="text-white">Total Amount</TableHead>
+                  <TableHead className="text-white">Used Balance</TableHead>
+                  <TableHead className="text-white">Remaining</TableHead>
                   <TableHead className="text-white">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -205,8 +249,13 @@ export function CreditCardsPanel() {
                   </TableRow>
                 ) : (
                   holders.map((holder) => {
-                    const latestTransaction = holder.transactions && holder.transactions.length > 0 
-                      ? holder.transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+                    const transactions = holder.transactions || [];
+                    const totals = transactions.reduce((acc, t) => ({
+                      balance: acc.balance + t.balance,
+                      usedBalance: acc.usedBalance + t.usedBalance
+                    }), { balance: 0, usedBalance: 0 });
+                    const latestTransaction = transactions.length > 0 
+                      ? transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
                       : null;
                     
                     return (
@@ -226,16 +275,36 @@ export function CreditCardsPanel() {
                           )}
                         </TableCell>
                         <TableCell className="text-gray-700">
-                          {latestTransaction ? (
+                          {transactions.length > 0 ? (
                             <div className="flex items-center gap-1">
                               <DollarSign className="h-3 w-3" />
-                              {formatCurrency(latestTransaction.balance)}
+                              {formatCurrency(totals.balance)}
                             </div>
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}
-                      </TableCell>
-                      <TableCell>
+                        </TableCell>
+                        <TableCell className="text-orange-600">
+                          {transactions.length > 0 ? (
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-3 w-3" />
+                              {formatCurrency(totals.usedBalance)}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-green-600">
+                          {transactions.length > 0 ? (
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-3 w-3" />
+                              {formatCurrency(totals.balance - totals.usedBalance)}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm" className="text-black hover:bg-gray-100">
@@ -397,9 +466,18 @@ export function CreditCardsPanel() {
         if (!o) { 
           setEditingTransaction(null); 
           setSelectedCardId(null);
+          transactionForm.reset({
+            date: new Date().toISOString().split('T')[0],
+            balance: '0',
+            usedBalance: '0',
+            dueDate: new Date().toISOString().split('T')[0],
+            emiDate: new Date().toISOString().split('T')[0],
+            charges: '0',
+            note: ''
+          });
         } 
       }}>
-        <DialogContent className="max-w-2xl bg-white">
+        <DialogContent className="max-w-2xl bg-white z-50">
           <DialogHeader>
             <DialogTitle className="text-black">{editingTransaction ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
             <DialogDescription className="text-gray-600">{editingTransaction ? 'Update transaction details' : 'Enter transaction information'}</DialogDescription>
@@ -559,7 +637,14 @@ export function CreditCardsPanel() {
       </Dialog>
 
       {/* View Details Dialog */}
-      <Dialog open={!!viewingHolder} onOpenChange={(o) => !o && setViewingHolder(null)}>
+      <Dialog open={!!viewingHolder} onOpenChange={(o) => {
+        if (!o) {
+          setViewingHolder(null);
+          setIsTransactionFormOpen(false);
+          setEditingTransaction(null);
+          setSelectedCardId(null);
+        }
+      }}>
         <DialogContent className="max-w-4xl bg-white">
           <DialogHeader>
             <DialogTitle className="text-black">Credit Card Details - {viewingHolder?.name}</DialogTitle>
@@ -595,7 +680,21 @@ export function CreditCardsPanel() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg text-black">Transaction History</CardTitle>
                   <Button
-                    onClick={() => handleAddTransaction(viewingHolder.id)}
+                    onClick={() => {
+                      setEditingTransaction(null);
+                      setSelectedCardId(viewingHolder.id);
+                      transactionForm.reset({
+                        date: new Date().toISOString().split('T')[0],
+                        balance: '0',
+                        usedBalance: '0',
+                        dueDate: new Date().toISOString().split('T')[0],
+                        emiDate: new Date().toISOString().split('T')[0],
+                        charges: '0',
+                        note: ''
+                      });
+                      setViewingHolder(null); // Close details view
+                      setIsTransactionFormOpen(true);
+                    }}
                     className="bg-black text-white hover:bg-gray-800"
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -637,7 +736,21 @@ export function CreditCardsPanel() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleEditTransaction(transaction)}
+                                    onClick={() => {
+                                      setEditingTransaction(transaction);
+                                      setSelectedCardId(transaction.cardId);
+                                      transactionForm.reset({
+                                        date: new Date(transaction.date).toISOString().split('T')[0],
+                                        balance: transaction.balance.toString(),
+                                        usedBalance: transaction.usedBalance.toString(),
+                                        dueDate: new Date(transaction.dueDate).toISOString().split('T')[0],
+                                        emiDate: new Date(transaction.emiDate).toISOString().split('T')[0],
+                                        charges: transaction.charges.toString(),
+                                        note: transaction.note || ''
+                                      });
+                                      setViewingHolder(null); // Close details view
+                                      setIsTransactionFormOpen(true);
+                                    }}
                                     className="text-black hover:bg-gray-50"
                                   >
                                     <Edit className="h-3 w-3" />

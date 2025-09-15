@@ -147,7 +147,7 @@ export function MemoPreview({ memo }: MemoPreviewProps) {
 
         {/* Title (can be changed to "Memo" or keep "Annexure") */} 
          <div className="text-center mb-1 print:mb-0.5">
-          <h2 className="font-bold text-base underline print:text-[11px]">MemoRandom</h2> {/* Updated Title */}
+          <h2 className="font-bold text-base underline print:text-[11px]">MemoRandum</h2> {/* Updated Title */}
         </div>
 
         {/* Items Table - Use memo.items */} 

@@ -64,7 +64,7 @@ export function MemoForm({ initialData }: MemoFormProps) {
             dueDate: new Date(new Date().setDate(new Date().getDate() + 7)),
             paymentTerms: 7,
             shipmentId: "",
-            description: "MemoRandom",
+            description: "MemoRandum",
             shipmentCost: 0,
             discount: 0,
             crPayment: 0,

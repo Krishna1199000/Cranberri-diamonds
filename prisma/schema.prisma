@@ -572,15 +572,30 @@ model CardTransaction {
   id          String     @id @default(uuid())
   cardId      String     @map("card_id")
   date        DateTime
-  balance     Float
-  usedBalance Float      @map("used_balance")
+  balance     Float      @default(0)
+  usedBalance Float      @default(0) @map("used_balance")
+  remainingBalance Float @default(0) @map("remaining_balance")
   dueDate     DateTime   @map("due_date")
   emiDate     DateTime   @map("emi_date")
-  charges     Float
+  charges     Float      @default(0)
+  status      TransactionStatus @default(ACTIVE)
+  transactionType TransactionType @default(CREDIT) @map("transaction_type")
   note        String?
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
   cardHolder  CardHolder @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
   @@map("card_transactions")
+}
+
+enum TransactionStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+  ADJUSTMENT
 }
