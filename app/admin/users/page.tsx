@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Download } from "lucide-react";
 import { toast } from "sonner";
 import { format } from 'date-fns';
 import { handleRoleChange } from '@/lib/roleChangeHandler';
@@ -166,6 +166,35 @@ export default function UserManagement() {
     setIsVerified(true);
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const csvContent = [
+        ['Sr No', 'Name', 'Email', 'Role', 'Created At'],
+        ...filteredUsers.map((user, index) => [
+          (index + 1).toString(),
+          user.name || '',
+          user.email || '',
+          user.role || '',
+          new Date(user.createdAt).toLocaleDateString('en-IN')
+        ])
+      ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `users-management-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Users list exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
   if (!isVerified) {
     return (
       <AdminLayout>
@@ -196,7 +225,16 @@ export default function UserManagement() {
       >
       <Card>
         <CardHeader>
-          <CardTitle>User Management</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>User Management</CardTitle>
+            <Button
+              onClick={handleExportCSV}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" /> Export CSV
+            </Button>
+          </div>
           <div className="pt-4 relative">
             <div className="flex gap-2 max-w-md">
               <div className="relative w-full">

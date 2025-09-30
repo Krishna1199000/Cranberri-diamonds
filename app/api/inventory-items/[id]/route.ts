@@ -70,6 +70,7 @@ export async function PUT(request: NextRequest,
     if (data.cut !== undefined) updateData.cut = data.cut;
     if (data.polish !== undefined) updateData.polish = data.polish;
     if (data.sym !== undefined) updateData.sym = data.sym;
+    if (data.certificateNo !== undefined) updateData.certificateNo = data.certificateNo;
     if (data.lab !== undefined) updateData.lab = data.lab;
     const parsedPricePerCarat = data.pricePerCarat ? parseFloat(data.pricePerCarat) : NaN;
     if (data.pricePerCarat !== undefined) updateData.pricePerCarat = isNaN(parsedPricePerCarat) ? undefined : parsedPricePerCarat;

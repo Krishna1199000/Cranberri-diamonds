@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash, CreditCard as CreditCardIcon, Eye, Calendar, DollarSign } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash, CreditCard as CreditCardIcon, Eye, Calendar, DollarSign, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -30,6 +30,7 @@ interface CardTransaction {
   usedBalance: number;
   dueDate: string;
   emiDate: string;
+  emiAmount: number;
   charges: number;
   note?: string | null;
 }
@@ -50,7 +51,9 @@ export function CreditCardsPanel() {
   const [totalBalances, setTotalBalances] = useState({
     totalBalance: 0,
     totalUsed: 0,
-    totalRemaining: 0
+    totalRemaining: 0,
+    totalEmiAmount: 0,
+    totalCharges: 0
   });
 
   const holderFormSchema = z.object({ 
@@ -64,6 +67,7 @@ export function CreditCardsPanel() {
     usedBalance: z.string().min(1, "Used balance is required"),
     dueDate: z.string().min(1, "Due date is required"),
     emiDate: z.string().min(1, "EMI date is required"),
+    emiAmount: z.string().min(1, "EMI amount is required"),
     charges: z.string().min(1, "Charges are required"),
     note: z.string().optional()
   }).refine((data) => {
@@ -88,6 +92,7 @@ export function CreditCardsPanel() {
       usedBalance: '0',
       dueDate: new Date().toISOString().split('T')[0],
       emiDate: new Date().toISOString().split('T')[0],
+      emiAmount: '0',
       charges: '0',
       note: ''
     }
@@ -144,6 +149,104 @@ export function CreditCardsPanel() {
     return dueDate <= today;
   };
 
+  const handleExportOverview = async () => {
+    try {
+      // Export overview data (card holders with summary info)
+        const csvContent = [
+          ['Card Holder', 'Card Number', 'Latest Due Date', 'Total Amount', 'Total Used Balance', 'Remaining Balance', 'Total EMI Amount', 'Total Charges'],
+          ...holders.map((holder) => {
+            const transactions = holder.transactions || [];
+            const totals = transactions.reduce((acc, t) => ({
+              balance: acc.balance + t.balance,
+              usedBalance: acc.usedBalance + t.usedBalance,
+              emiAmount: acc.emiAmount + (t.emiAmount || 0),
+              charges: acc.charges + (t.charges || 0)
+            }), { balance: 0, usedBalance: 0, emiAmount: 0, charges: 0 });
+            const latestTransaction = transactions.length > 0 
+              ? transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+              : null;
+            
+            return [
+              holder.name,
+              `**** **** **** ${holder.last4}`,
+              latestTransaction ? formatDate(latestTransaction.dueDate) : 'No transactions',
+              totals.balance.toString(),
+              totals.usedBalance.toString(),
+              (totals.balance - totals.usedBalance).toString(),
+              totals.emiAmount.toString(),
+              totals.charges.toString()
+            ];
+          })
+        ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `credit-cards-overview-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Credit cards overview exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
+  const handleExportAllTransactions = async () => {
+    try {
+      // Fetch all transactions from the API
+      const response = await fetch('/api/finance/transactions');
+      if (response.ok) {
+        const data = await response.json();
+        const allTransactions = data.transactions;
+        
+        // Create a map of card holders for lookup
+        const cardMap = new Map();
+        holders.forEach(holder => {
+          cardMap.set(holder.id, holder);
+        });
+        
+        const csvContent = [
+          ['Card Holder', 'Card Number', 'Transaction Date', 'Due Date', 'Available Balance', 'Used Balance', 'EMI Date', 'EMI Amount', 'Charges', 'Note'],
+          ...allTransactions.map((transaction: CardTransaction) => {
+            const holder = cardMap.get(transaction.cardId);
+            return [
+              holder ? holder.name : 'Unknown',
+              holder ? `**** **** **** ${holder.last4}` : 'Unknown',
+              formatDate(transaction.date),
+              formatDate(transaction.dueDate),
+              transaction.balance.toString(),
+              transaction.usedBalance.toString(),
+              formatDate(transaction.emiDate),
+              (transaction.emiAmount || 0).toString(),
+              (transaction.charges || 0).toString(),
+              transaction.note || ''
+            ];
+          })
+        ].map(row => row.join(',')).join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `credit-card-transactions-all-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        toast.success('All transactions exported successfully');
+      } else {
+        toast.error('Failed to fetch transactions for export');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
   const handleAddTransaction = (cardId: string) => {
     setSelectedCardId(cardId);
     setEditingTransaction(null);
@@ -153,6 +256,7 @@ export function CreditCardsPanel() {
       usedBalance: '0',
       dueDate: new Date().toISOString().split('T')[0],
       emiDate: new Date().toISOString().split('T')[0],
+      emiAmount: '0',
       charges: '0',
       note: ''
     });
@@ -166,13 +270,13 @@ export function CreditCardsPanel() {
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total Amount</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-black">{formatCurrency(totalBalances.totalBalance)}</div>
+            <div className="text-2xl font-bold text-black">{formatCurrency(totalBalances.totalBalance + totalBalances.totalCharges)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -193,6 +297,26 @@ export function CreditCardsPanel() {
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Total EMI Amount</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrency(totalBalances.totalEmiAmount || 0)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Charges</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(totalBalances.totalCharges)}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex items-center justify-between">
@@ -200,16 +324,45 @@ export function CreditCardsPanel() {
           <h2 className="text-xl font-bold text-black">Credit Cards</h2>
           <p className="text-gray-600">Manage card holders and transactions</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingHolder(null);
-            setIsHolderFormOpen(true);
-          }}
-          className="bg-black text-white hover:bg-gray-800"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Card Holder
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="border-black text-black hover:bg-gray-50"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white border border-gray-200">
+              <DropdownMenuItem
+                onClick={handleExportOverview}
+                className="text-black hover:bg-gray-50"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Overview
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleExportAllTransactions}
+                className="text-black hover:bg-gray-50"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export All Transactions
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            onClick={() => {
+              setEditingHolder(null);
+              setIsHolderFormOpen(true);
+            }}
+            className="bg-black text-white hover:bg-gray-800"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Card Holder
+          </Button>
+        </div>
       </div>
 
       <Card className="bg-white border">
@@ -228,13 +381,15 @@ export function CreditCardsPanel() {
                   <TableHead className="text-white">Total Amount</TableHead>
                   <TableHead className="text-white">Used Balance</TableHead>
                   <TableHead className="text-white">Remaining</TableHead>
+                  <TableHead className="text-white">Total EMI</TableHead>
+                  <TableHead className="text-white">Total Charges</TableHead>
                   <TableHead className="text-white">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black"></div>
                         <span className="ml-2 text-gray-600">Loading credit cards...</span>
@@ -243,7 +398,7 @@ export function CreditCardsPanel() {
                   </TableRow>
                 ) : holders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                       No credit cards yet. Add your first card holder to get started.
                     </TableCell>
                   </TableRow>
@@ -252,8 +407,10 @@ export function CreditCardsPanel() {
                     const transactions = holder.transactions || [];
                     const totals = transactions.reduce((acc, t) => ({
                       balance: acc.balance + t.balance,
-                      usedBalance: acc.usedBalance + t.usedBalance
-                    }), { balance: 0, usedBalance: 0 });
+                      usedBalance: acc.usedBalance + t.usedBalance,
+                      emiAmount: acc.emiAmount + (t.emiAmount || 0),
+                      charges: acc.charges + (t.charges || 0)
+                    }), { balance: 0, usedBalance: 0, emiAmount: 0, charges: 0 });
                     const latestTransaction = transactions.length > 0 
                       ? transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
                       : null;
@@ -299,6 +456,26 @@ export function CreditCardsPanel() {
                             <div className="flex items-center gap-1">
                               <DollarSign className="h-3 w-3" />
                               {formatCurrency(totals.balance - totals.usedBalance)}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-blue-600">
+                          {transactions.length > 0 ? (
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-3 w-3" />
+                              {formatCurrency(totals.emiAmount)}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-red-600">
+                          {transactions.length > 0 ? (
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-3 w-3" />
+                              {formatCurrency(totals.charges)}
                             </div>
                           ) : (
                             <span className="text-gray-400">-</span>
@@ -472,6 +649,7 @@ export function CreditCardsPanel() {
             usedBalance: '0',
             dueDate: new Date().toISOString().split('T')[0],
             emiDate: new Date().toISOString().split('T')[0],
+            emiAmount: '0',
             charges: '0',
             note: ''
           });
@@ -497,6 +675,7 @@ export function CreditCardsPanel() {
                     usedBalance: parseFloat(data.usedBalance || '0'),
                     dueDate: data.dueDate,
                     emiDate: data.emiDate,
+                    emiAmount: parseFloat(data.emiAmount || '0'),
                     charges: parseFloat(data.charges || '0'),
                     note: data.note,
                     cardId: selectedCardId
@@ -577,7 +756,7 @@ export function CreditCardsPanel() {
                   )}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={transactionForm.control}
                   name="emiDate"
@@ -586,6 +765,19 @@ export function CreditCardsPanel() {
                       <FormLabel className="text-black">EMI Date</FormLabel>
                       <FormControl>
                         <Input {...field} type="date" className="border-gray-300 focus:border-black focus:ring-black" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={transactionForm.control}
+                  name="emiAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-black">EMI Amount</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="number" step="0.01" min="0" className="border-gray-300 focus:border-black focus:ring-black" placeholder="0.00" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -689,6 +881,7 @@ export function CreditCardsPanel() {
                         usedBalance: '0',
                         dueDate: new Date().toISOString().split('T')[0],
                         emiDate: new Date().toISOString().split('T')[0],
+                        emiAmount: '0',
                         charges: '0',
                         note: ''
                       });
@@ -712,6 +905,7 @@ export function CreditCardsPanel() {
                             <TableHead className="text-black font-semibold">Available Balance</TableHead>
                             <TableHead className="text-black font-semibold">Used Balance</TableHead>
                             <TableHead className="text-black font-semibold">EMI Date</TableHead>
+                            <TableHead className="text-black font-semibold">EMI Amount</TableHead>
                             <TableHead className="text-black font-semibold">Charges</TableHead>
                             <TableHead className="text-black font-semibold">Note</TableHead>
                             <TableHead className="text-black font-semibold">Actions</TableHead>
@@ -729,6 +923,7 @@ export function CreditCardsPanel() {
                               <TableCell className={`font-medium ${isOverdue ? "text-red-700" : "text-gray-700"}`}>{formatCurrency(transaction.balance)}</TableCell>
                               <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{formatCurrency(transaction.usedBalance)}</TableCell>
                               <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{formatDate(transaction.emiDate)}</TableCell>
+                              <TableCell className={`font-medium ${isOverdue ? "text-red-700" : "text-blue-600"}`}>{formatCurrency(transaction.emiAmount || 0)}</TableCell>
                               <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{formatCurrency(transaction.charges)}</TableCell>
                               <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{transaction.note || '-'}</TableCell>
                               <TableCell>
@@ -745,7 +940,8 @@ export function CreditCardsPanel() {
                                         usedBalance: transaction.usedBalance.toString(),
                                         dueDate: new Date(transaction.dueDate).toISOString().split('T')[0],
                                         emiDate: new Date(transaction.emiDate).toISOString().split('T')[0],
-                                        charges: transaction.charges.toString(),
+                                        emiAmount: (transaction.emiAmount || 0).toString(),
+                                        charges: (transaction.charges || 0).toString(),
                                         note: transaction.note || ''
                                       });
                                       setViewingHolder(null); // Close details view

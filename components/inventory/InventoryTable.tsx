@@ -143,11 +143,36 @@ export function InventoryTable({
     if (onSelect) onSelect(newSelected);
   };
   
-  const handleSelectAll = (checked: boolean | ChangeEvent<HTMLInputElement>) => {
+  const handleSelectAll = async (checked: boolean | ChangeEvent<HTMLInputElement>) => {
     const isChecked = checked instanceof Object ? checked.target.checked : checked;
-    const newSelected = isChecked ? items.map(d => d.id) : [];
-    setSelected(newSelected);
-    if (onSelect) onSelect(newSelected);
+    
+    if (isChecked) {
+      // Select all items across all pages - fetch without pagination
+      try {
+        const response = await fetch('/api/inventory-items?take=10000'); // Large number to get all items
+        if (response.ok) {
+          const data = await response.json();
+          const allItemIds = data.items.map((item: InventoryItemWithShipmentDetails) => item.id);
+          setSelected(allItemIds);
+          if (onSelect) onSelect(allItemIds);
+        } else {
+          // Fallback to current page only
+          const newSelected = items.map(d => d.id);
+          setSelected(newSelected);
+          if (onSelect) onSelect(newSelected);
+        }
+      } catch (error) {
+        console.error('Error fetching all items:', error);
+        // Fallback to current page only
+        const newSelected = items.map(d => d.id);
+        setSelected(newSelected);
+        if (onSelect) onSelect(newSelected);
+      }
+    } else {
+      // Deselect all
+      setSelected([]);
+      if (onSelect) onSelect([]);
+    }
   };
 
   const handleMediaClick = (type: string, url: string | null) => {
@@ -270,6 +295,16 @@ export function InventoryTable({
               <Button
                 variant="outline"
                 disabled={selected.length === 0}
+                onClick={() => {
+                  setSelected([]);
+                  if (onSelect) onSelect([]);
+                }}
+              >
+                Unselect All
+              </Button>
+              <Button
+                variant="outline"
+                disabled={selected.length === 0}
                 onClick={exportSelectedToCSV}
               >
                 Export Selected to CSV
@@ -302,6 +337,7 @@ export function InventoryTable({
               <TableHead className="text-white">Cut</TableHead>
               <TableHead className="text-white">Polish</TableHead>
               <TableHead className="text-white">Sym</TableHead>
+              <TableHead className="text-white">Certificate</TableHead>
               <TableHead className="text-white">Lab</TableHead>
               <TableHead className="text-white">Price/Ct</TableHead>
               <TableHead className="text-white">Amount</TableHead>
@@ -387,6 +423,7 @@ export function InventoryTable({
                     <TableCell>{item.cut || '-'}</TableCell>
                     <TableCell>{item.polish}</TableCell>
                     <TableCell>{item.sym}</TableCell>
+                    <TableCell>{item.certificateNo || '-'}</TableCell>
                     <TableCell>{item.lab}</TableCell>
                     <TableCell>${formatNumber(item.pricePerCarat)}</TableCell>
                     <TableCell>${formatNumber(item.finalAmount)}</TableCell>

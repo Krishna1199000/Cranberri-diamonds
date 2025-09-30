@@ -49,6 +49,7 @@ const inventoryFormSchema = z.object({
   polish: z.string().min(1, "Polish is required"),
   sym: z.string().min(1, "Symmetry is required"),
   lab: z.string().min(1, "Lab is required"),
+  certificateNo: z.string().optional().nullable(),
   pricePerCarat: z.coerce.number().positive("Price per carat must be positive"),
   finalAmount: z.coerce.number().positive("Final amount must be positive"),
   videoUrl: z.string().optional().nullable(),
@@ -327,6 +328,24 @@ export function AddEditInventoryForm({
                       <Input 
                         {...field} 
                         placeholder="Enter symmetry" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="certificateNo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Certificate Number</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        value={field.value || ""} 
+                        placeholder="Enter certificate number (optional)" 
                       />
                     </FormControl>
                     <FormMessage />

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Edit2, Trash2, User, Filter } from "lucide-react";
+import { Edit2, Trash2, User, Filter, Download } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import Link from "next/link";
 
@@ -278,12 +278,51 @@ export default function AdminPerformance() {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const csvContent = [
+        ['Sr No', 'Employee Name', 'Date', 'Total Calls', 'Total Emails', 'Requirements Received', 'Memo', 'Invoice'],
+        ...reports.map((report, index) => [
+          (index + 1).toString(),
+          report.user?.name || 'Unknown',
+          new Date(report.date).toLocaleDateString('en-IN'),
+          report.totalCalls.toString(),
+          report.totalEmails.toString(),
+          report.requirementsReceived.toString(),
+          report.memo || '',
+          report.invoice || ''
+        ])
+      ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `performance-reports-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Performance reports exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Performance Reports</h1>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <Button
+            onClick={handleExportCSV}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" /> Export CSV
+          </Button>
           <Link href="/Admins/sales">
             <Button variant="outline">Back to Sales</Button>
           </Link>

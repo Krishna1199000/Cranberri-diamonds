@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { toast } from "sonner";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, Download } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { EmployeeLayout } from "@/components/layout/EmployeeLayout";
 import { CustomerLayout } from "@/components/layout/CustomerLayout";
@@ -178,9 +178,46 @@ export default function ParcelGoods() {
 
   const canEdit = userRole === 'admin';
 
+  const handleExportCSV = async () => {
+    try {
+      const csvContent = [
+        ['Sieve Size (mm)', 'Price ($)', 'Created At', 'Updated At'],
+        ...prices.map((price) => [
+          price.sieve,
+          price.price.toString(),
+          new Date(price.id).toLocaleDateString('en-IN'), // Using id as proxy for created date
+          new Date().toLocaleDateString('en-IN') // Using current date as proxy for updated date
+        ])
+      ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `parcel-goods-prices-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Parcel goods prices exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
   return (
     <LayoutComponent>
-        <h1 className="text-3xl font-bold mb-8 text-gray-800 dark:text-gray-100">Parcel Goods Management</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Parcel Goods Management</h1>
+          <Button
+            onClick={handleExportCSV}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" /> Export CSV
+          </Button>
+        </div>
 
         <div className="w-full">
             <div className={`grid grid-cols-1 ${canEdit ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-8`}>

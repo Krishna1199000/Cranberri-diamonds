@@ -6,6 +6,7 @@ export const cardTransactionSchema = z.object({
   usedBalance: z.number().min(0, "Used balance must be positive"),
   dueDate: z.string().min(1, "Due date is required"),
   emiDate: z.string().min(1, "EMI date is required"),
+  emiAmount: z.number().min(0, "EMI amount must be positive"),
   charges: z.number().min(0, "Charges must be positive"),
   note: z.string().optional(),
   transactionType: z.enum(['CREDIT', 'DEBIT', 'ADJUSTMENT']).default('CREDIT'),

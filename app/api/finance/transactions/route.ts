@@ -72,12 +72,16 @@ export async function GET(request: Request) {
         acc.totalBalance += transaction.balance;
         acc.totalUsed += transaction.usedBalance;
         acc.totalRemaining += transaction.remainingBalance;
+        acc.totalEmiAmount += transaction.emiAmount || 0;
+        acc.totalCharges += transaction.charges || 0;
       }
       return acc;
     }, {
       totalBalance: 0,
       totalUsed: 0,
       totalRemaining: 0,
+      totalEmiAmount: 0,
+      totalCharges: 0,
     });
 
     return NextResponse.json({ transactions, totals });

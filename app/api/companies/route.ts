@@ -15,22 +15,52 @@ export async function GET() {
       );
     }
 
-    // Only fetch companies created by the current employee if they're not an admin
-    const companies = await prisma.shipment.findMany({
-      where: session.role === 'employee' ? {
-        userId: session.userId as string
-      } : undefined,
-      select: {
-        id: true,
-        companyName: true
-      },
-      distinct: ['companyName'],
-      orderBy: {
-        companyName: 'asc'
-      }
-    });
+    // Fetch both customers (from shipments) and vendors
+    const [customerCompanies, vendorCompanies] = await Promise.all([
+      // Customer companies from shipments
+      prisma.shipment.findMany({
+        where: session.role === 'employee' ? {
+          userId: session.userId as string
+        } : undefined,
+        select: {
+          id: true,
+          companyName: true,
+          ownerName: true
+        },
+        distinct: ['companyName'],
+        orderBy: {
+          companyName: 'asc'
+        }
+      }),
+      // Vendor companies
+      session.role === 'admin' ? prisma.vendor.findMany({
+        where: {
+          deletedAt: null
+        },
+        select: {
+          id: true,
+          companyName: true,
+          ownerName: true
+        },
+        orderBy: {
+          companyName: 'asc'
+        }
+      }) : []
+    ]);
 
-    return NextResponse.json({ success: true, companies });
+    // Combine and deduplicate companies
+    const allCompanies = [...customerCompanies, ...vendorCompanies];
+    const uniqueCompanies = allCompanies.reduce((acc, current) => {
+      const existing = acc.find(company => 
+        company.companyName.toLowerCase() === current.companyName.toLowerCase()
+      );
+      if (!existing) {
+        acc.push(current);
+      }
+      return acc;
+    }, [] as typeof allCompanies);
+
+    return NextResponse.json(uniqueCompanies);
   } catch (error) {
     console.error('Error fetching companies:', error);
     return NextResponse.json(

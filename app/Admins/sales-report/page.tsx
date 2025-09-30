@@ -17,16 +17,16 @@ import {
   BarChart,
   Bar,
   Cell,
+  PieChart,
+  Pie,
 } from "recharts"
-import { Calendar, Download, TrendingUp, Users, DollarSign, Hourglass } from "lucide-react"
+import { Calendar, Download, TrendingUp, Users } from "lucide-react"
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import Link from "next/link"
 import { SaleEntry, EmployeeStats } from "@/types/sales"
 
 // Import components
 import SalesTable from "@/components/SalesTable"
-import ProfitAnalysis from "@/components/ProfitAnalysis"
-import ProfitMetrics from "@/components/ProfitMetrics"
 
 export default function AdminSalesReport() {
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([])
@@ -35,19 +35,7 @@ export default function AdminSalesReport() {
   const [period, setPeriod] = useState("30")
   const [customPeriod, setCustomPeriod] = useState({ start: "", end: "" })
   const [selectedEmployee, setSelectedEmployee] = useState("all")
-  const [purchaseValue, setPurchaseValue] = useState("") // This seems related to overall ProfitAnalysis, keep it there?
-  const [profitAnalysis, setProfitAnalysis] = useState({
-    totalSales: 0,
-    totalPurchase: 0,
-    totalProfit: 0,
-    profitMargin: 0,
-    entriesWithProfit: 0,
-    entriesWithLoss: 0,
-  })
-  const [showProfitAnalysis, setShowProfitAnalysis] = useState(false)
   const [employeeStats, setEmployeeStats] = useState<EmployeeStats[]>([])
-  const [totalProfit, setTotalProfit] = useState(0);
-  const [totalOutstanding, setTotalOutstanding] = useState(0);
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ffc658"]
   
@@ -87,13 +75,6 @@ export default function AdminSalesReport() {
       return 0
     })
     setFilteredData(filtered)
-
-    // Recalculate totals based on the *filtered* data
-    const outstanding = filtered.filter((e: SaleEntry) => !e.paymentReceived && !e.isNoSale).reduce((sum, e) => sum + e.saleValue, 0);
-    const profit = filtered.filter((e: SaleEntry) => typeof e.purchaseValue === 'number' && e.purchaseValue !== null && typeof e.profit === 'number')
-                         .reduce((sum, e) => sum + e.profit!, 0);
-    setTotalOutstanding(outstanding);
-    setTotalProfit(profit);
   }, [])
 
   const calculateEmployeeStats = useCallback((data: SaleEntry[]) => {
@@ -193,146 +174,73 @@ export default function AdminSalesReport() {
     } else {
       setFilteredData([])
       setEmployeeStats([])
-      setTotalOutstanding(0);
-      setTotalProfit(0);
     }
   }, [salesData, selectedEmployee, applyFilters, calculateEmployeeStats])
 
-  const calculateProfit = () => {
-    const purchase = parseFloat(purchaseValue)
-    if (isNaN(purchase) || purchase <= 0) {
-      toast.error("Please enter a valid overall purchase value for this analysis")
-      return
-    }
-    const validSales = filteredData.filter(entry => !entry.isNoSale)
-    const totalSales = validSales.reduce((sum, entry) => sum + entry.saleValue, 0)
-    const totalProfit = totalSales - purchase
-    const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0
-    setProfitAnalysis({
-      totalSales,
-      totalPurchase: purchase,
-      totalProfit,
-      profitMargin: profitMargin || 0,
-      entriesWithProfit: validSales.filter(entry => entry.profit !== undefined && entry.profit !== null && entry.profit > 0).length,
-      entriesWithLoss: validSales.filter(entry => entry.profit !== undefined && entry.profit !== null && entry.profit < 0).length,
-    })
-    setShowProfitAnalysis(true)
-  }
-
-  const calculateAllEntryProfits = async () => {
-    const entriesWithPurchaseValue = salesData.filter(
-      entry => !entry.isNoSale && entry.purchaseValue !== null
-    )
-    if (entriesWithPurchaseValue.length === 0) {
-      toast.warning("Set purchase values for entries to calculate profit")
-      return
-    }
-    let successfulUpdates = 0;
-    const profitData = entriesWithPurchaseValue.map(entry => {
-      const profit = entry.saleValue - (entry.purchaseValue ?? 0);
-      const profitMargin = entry.saleValue !== 0 ? (profit / entry.saleValue) * 100 : 0;
-      return { id: entry.id, profit, profitMargin }
-    });
-    // Update local state optimistically
-     setSalesData(prevData => 
-        prevData.map(entry => {
-            const update = profitData.find(pd => pd.id === entry.id);
-            return update ? { ...entry, profit: update.profit, profitMargin: update.profitMargin } : entry;
-        })
-    );
-    try {
-      const response = await fetch('/api/sales/bulk-profit', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entries: profitData }),
-      });
-      const data = await response.json();
-      if (data.success) {
-          successfulUpdates = profitData.length; // Assume all succeeded if API returns success
-          toast.success(`Profit calculated and saved for ${successfulUpdates} entries`);
-           // Trigger recalculation of overall Profit Analysis if needed
-           // This might depend on whether `ProfitAnalysis` uses the state directly
-            // You might need to pass updatedProfitMetrics to the ProfitAnalysis component
-            // or update the state it relies on.
-      } else {
-        toast.error(data.message || "Some profit calculations failed to save");
-        // Optionally refetch data to reconcile state if bulk update partially fails
-        // fetchSalesData(); 
-      }
-    } catch (error) {
-      console.error("Error saving bulk profit calculations:", error);
-      toast.error("Failed to save profit calculations");
-       // Optionally refetch data
-        // fetchSalesData();
-    }
-    // Calculate overall analysis based on potentially updated local state
-    // This recalculates based on the optimistic update
-    const validEntries = salesData.filter(entry => !entry.isNoSale && entry.profit !== undefined && entry.profit !== null);
-    if (validEntries.length > 0) {
-      const totalSales = validEntries.reduce((sum, entry) => sum + entry.saleValue, 0);
-      const totalPurchase = validEntries.reduce((sum, entry) => sum + (entry.purchaseValue || 0), 0);
-      const totalProfit = validEntries.reduce((sum, entry) => sum + (entry.profit || 0), 0);
-      const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
-      setProfitAnalysis({
-        totalSales,
-        totalPurchase,
-        totalProfit,
-        profitMargin: profitMargin || 0,
-        entriesWithProfit: validEntries.filter(entry => (entry.profit ?? 0) > 0).length,
-        entriesWithLoss: validEntries.filter(entry => (entry.profit ?? 0) < 0).length,
-      });
-      setShowProfitAnalysis(true);
-    }
-  }
-
   const getChartData = () => {
-    const grouped: Record<string, { date: string; sales: number }> = {}
+    if (!Array.isArray(filteredData) || filteredData.length === 0) {
+      return []
+    }
+
+    const grouped: Record<string, { date: string; sales: number; count: number }> = {}
+    
     filteredData.forEach(entry => {
-      if (!entry.isNoSale) {
-        if (!grouped[entry.date]) {
-          grouped[entry.date] = { date: entry.date, sales: 0 }
+      if (entry && !entry.isNoSale && entry.saleValue > 0) {
+        const dateKey = new Date(entry.rawDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
+        })
+        
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = { 
+            date: dateKey, 
+            sales: 0, 
+            count: 0 
+          }
         }
-        grouped[entry.date].sales += entry.saleValue
+        grouped[dateKey].sales += Number(entry.saleValue || 0)
+        grouped[dateKey].count += 1
       }
     })
-    return Object.values(grouped).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Sort chart data by date
+    
+    return Object.values(grouped).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }
   
   const getEmployeeChartData = () => {
+    if (!Array.isArray(employeeStats) || employeeStats.length === 0) {
+      return []
+    }
+    
     return employeeStats.slice(0, 5).map(employee => ({
       name: employee.name.split(' ')[0], // Just first name for chart clarity
-      sales: employee.totalSales
+      sales: employee.totalSales,
+      count: employee.salesCount
     }))
   }
 
-  const getProfitMetricsData = (currentSalesData: SaleEntry[]): SaleEntry[] => {
-    // Ensure profit is a number, defaulting null/undefined to 0
-    return currentSalesData.map(entry => ({
-      ...entry,
-      profit: entry.profit ?? 0, // Use nullish coalescing operator
-      // Ensure purchaseValue is also handled if needed by ProfitMetrics (it expects number)
-      purchaseValue: entry.purchaseValue ?? 0,
-      // Explicitly handle profitMargin if ProfitMetrics expects it as number
-      profitMargin: entry.profitMargin ?? 0,
-    }));
+  const getPieChartData = () => {
+    if (!Array.isArray(employeeStats) || employeeStats.length === 0) {
+      return []
+    }
+    
+    return employeeStats.slice(0, 6).map((employee, index) => ({
+      name: employee.name.split(' ')[0],
+      value: employee.totalSales,
+      fill: COLORS[index % COLORS.length]
+    }))
   }
 
   const exportToCSV = () => {
     const headers = [
-      'Date', 'Employee', 'Company', 'Tracking ID', 'Shipment', 
-      'Sale Value', 'Purchase Value', 'Profit', 'Profit Margin (%)',
-      'Carat', 'Color', 'Clarity', 'Description'
+      'Date', 'Employee', 'Company', 'Tracking ID',
+      'Sale Value', 'Carat', 'Color', 'Clarity', 'Description'
     ]
     const rows = filteredData.map(item => [
       item.date,
       item.employeeName,
       item.companyName,
       item.trackingId,
-      item.shipmentCarrier,
       item.isNoSale ? 0 : item.saleValue,
-      item.purchaseValue ?? '',
-      item.profit !== undefined && item.profit !== null ? item.profit : '',
-      item.profitMargin !== undefined && item.profitMargin !== null ? item.profitMargin.toFixed(2) : '',
       item.details.carat || '',
       item.details.color || '',
       item.details.clarity || '',
@@ -355,49 +263,6 @@ export default function AdminSalesReport() {
     link.click()
     document.body.removeChild(link)
   }
-
-  // ---> START: Handler for updating payment status <--- 
-  const handleUpdatePaymentStatus = useCallback(async (id: string, currentStatus: boolean) => {
-    const newStatus = !currentStatus;
-    console.log(`Attempting to update payment status for ID ${id} to ${newStatus}`);
-
-    // Optimistic UI Update
-    const originalSalesData = [...salesData];
-    const originalFilteredData = [...filteredData];
-
-    setSalesData(prev => prev.map(entry => entry.id === id ? { ...entry, paymentReceived: newStatus } : entry));
-    setFilteredData(prev => prev.map(entry => entry.id === id ? { ...entry, paymentReceived: newStatus } : entry));
-    
-    // Recalculate totals optimistically
-    const updatedFiltered = filteredData.map(entry => entry.id === id ? { ...entry, paymentReceived: newStatus } : entry);
-    const outstanding = updatedFiltered.filter((e: SaleEntry) => !e.paymentReceived && !e.isNoSale).reduce((sum, e) => sum + e.saleValue, 0);
-    setTotalOutstanding(outstanding); // Profit doesn't change with payment status
-
-    try {
-      const response = await fetch(`/api/sales/${id}/payment-status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentReceived: newStatus }),
-      });
-
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.message || "Failed to update status on server");
-      }
-      toast.success(`Payment status updated successfully for entry ${id}`);
-
-    } catch (error) {
-      console.error("Error updating payment status:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to update payment status");
-      // Revert Optimistic Update on failure
-      setSalesData(originalSalesData);
-      setFilteredData(originalFilteredData);
-       // Recalculate totals based on reverted data
-      const revertedOutstanding = originalFilteredData.filter((e: SaleEntry) => !e.paymentReceived && !e.isNoSale).reduce((sum, e) => sum + e.saleValue, 0);
-      setTotalOutstanding(revertedOutstanding);
-    }
-  }, [salesData, filteredData]);
-  // ---> END: Handler for updating payment status <--- 
 
   return (
     <AdminLayout>
@@ -434,36 +299,6 @@ export default function AdminSalesReport() {
                </div>
                <p className="text-xs text-muted-foreground">
                  {filteredData.filter(item => !item.isNoSale).length} transactions
-               </p>
-             </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
-               <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-             <CardContent>
-               <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {totalProfit.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
-               </div>
-               <p className="text-xs text-muted-foreground">
-                 Sum of calculated profit for entries with purchase value set.
-               </p>
-             </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
-               <Hourglass className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-             <CardContent>
-               <div className={`text-2xl font-bold ${totalOutstanding > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
-                 {totalOutstanding.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
-               </div>
-                <p className="text-xs text-muted-foreground">
-                 Based on sales entries marked as not received.
                </p>
              </CardContent>
           </Card>
@@ -513,49 +348,69 @@ export default function AdminSalesReport() {
                  <Users className="h-4 w-4 text-muted-foreground" />
              </CardHeader>
              <CardContent>
-                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                  <SelectTrigger>
-                    {/* Find selected employee and display name, or show placeholder */}
-                    {selectedEmployee === "all" 
-                      ? <SelectValue placeholder="All Employees" />
-                      : employees.find(emp => emp.id === selectedEmployee)?.name || <SelectValue placeholder="Select Employee" />
-                    }
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Employees</SelectItem>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {selectedEmployee === "all" 
-                    ? `Viewing all ${employees.length} employees` 
-                    : `Filtering for 1 employee`}
-                </p>
+               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="All Employees" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">All Employees</SelectItem>
+                   {employees.map((employee) => (
+                     <SelectItem key={employee.id} value={employee.id}>
+                       {employee.name}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
              </CardContent>
-          </Card>
+           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <Card>
-              <CardHeader>
-                  <CardTitle>Sales Performance Over Time</CardTitle>
+             <CardHeader>
+                  <CardTitle>Sales Over Time</CardTitle>
               </CardHeader>
               <CardContent>
                  <div className="h-[300px]">
-                   <ResponsiveContainer width="100%" height="100%">
-                     <BarChart data={getChartData()}>
-                       <CartesianGrid strokeDasharray="3 3" />
-                       <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false}/>
-                       <YAxis fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`}/>
-                       <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} labelFormatter={(label: string) => `Date: ${label}`} />
-                       <Legend />
-                       <Bar dataKey="sales" name="Sales" fill="var(--color-sales, #8884d8)" radius={[4, 4, 0, 0]} />
-                     </BarChart>
-                   </ResponsiveContainer>
+                   {getChartData().length > 0 ? (
+                     <ResponsiveContainer width="100%" height="100%">
+                       <BarChart data={getChartData()}>
+                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                         <XAxis 
+                           dataKey="date" 
+                           tick={{ fontSize: 12 }}
+                           tickLine={{ stroke: '#ccc' }}
+                           axisLine={{ stroke: '#ccc' }}
+                         />
+                         <YAxis 
+                           tick={{ fontSize: 12 }}
+                           tickLine={{ stroke: '#ccc' }}
+                           axisLine={{ stroke: '#ccc' }}
+                           tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                         />
+                         <Tooltip 
+                           formatter={(value: number) => [`$${value.toLocaleString()}`, 'Sales']} 
+                           labelFormatter={(label: string) => `Date: ${label}`}
+                           contentStyle={{
+                             backgroundColor: 'white',
+                             border: '1px solid #ccc',
+                             borderRadius: '6px',
+                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                           }}
+                         />
+                         <Legend />
+                         <Bar dataKey="sales" name="Sales ($)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                       </BarChart>
+                     </ResponsiveContainer>
+                   ) : (
+                     <div className="flex items-center justify-center h-full text-gray-500">
+                       <div className="text-center">
+                         <div className="text-4xl mb-2">📊</div>
+                         <p>No sales data available</p>
+                         <p className="text-sm mt-1">Try adjusting your filters or time period</p>
+                       </div>
+                     </div>
+                   )}
                  </div>
               </CardContent>
           </Card>
@@ -566,44 +421,103 @@ export default function AdminSalesReport() {
               </CardHeader>
               <CardContent>
                  <div className="h-[300px]">
-                   <ResponsiveContainer width="100%" height="100%">
-                     <BarChart data={getEmployeeChartData()} layout="vertical">
-                       <CartesianGrid strokeDasharray="3 3" />
-                       <XAxis type="number" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value / 1000}k`}/>
-                       <YAxis type="category" dataKey="name" width={60} fontSize={10} tickLine={false} axisLine={false}/>
-                       <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                       <Bar dataKey="sales" name="Total Sales" radius={[0, 4, 4, 0]}>
-                         {getEmployeeChartData().map((entry, index) => (
-                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                         ))}
-                       </Bar>
-                     </BarChart>
-                   </ResponsiveContainer>
+                   {getEmployeeChartData().length > 0 ? (
+                     <ResponsiveContainer width="100%" height="100%">
+                       <BarChart data={getEmployeeChartData()} layout="vertical">
+                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                         <XAxis 
+                           type="number" 
+                           tick={{ fontSize: 12 }}
+                           tickLine={{ stroke: '#ccc' }}
+                           axisLine={{ stroke: '#ccc' }}
+                           tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                         />
+                         <YAxis 
+                           type="category" 
+                           dataKey="name" 
+                           width={80} 
+                           tick={{ fontSize: 12 }}
+                           tickLine={{ stroke: '#ccc' }}
+                           axisLine={{ stroke: '#ccc' }}
+                         />
+                         <Tooltip 
+                           formatter={(value: number) => [`$${value.toLocaleString()}`, 'Total Sales']}
+                           contentStyle={{
+                             backgroundColor: 'white',
+                             border: '1px solid #ccc',
+                             borderRadius: '6px',
+                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                           }}
+                         />
+                         <Bar dataKey="sales" name="Total Sales ($)" radius={[0, 4, 4, 0]}>
+                           {getEmployeeChartData().map((entry, index) => (
+                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                           ))}
+                         </Bar>
+                       </BarChart>
+                     </ResponsiveContainer>
+                   ) : (
+                     <div className="flex items-center justify-center h-full text-gray-500">
+                       <div className="text-center">
+                         <div className="text-4xl mb-2">👥</div>
+                         <p>No employee data available</p>
+                         <p className="text-sm mt-1">Try adjusting your filters or time period</p>
+                       </div>
+                     </div>
+                   )}
+                 </div>
+              </CardContent>
+          </Card>
+
+          <Card>
+             <CardHeader>
+                  <CardTitle>Sales Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                 <div className="h-[300px]">
+                   {getPieChartData().length > 0 ? (
+                     <ResponsiveContainer width="100%" height="100%">
+                       <PieChart>
+                         <Pie
+                           data={getPieChartData()}
+                           cx="50%"
+                           cy="50%"
+                           labelLine={false}
+                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                           outerRadius={80}
+                           fill="#8884d8"
+                           dataKey="value"
+                         >
+                           {getPieChartData().map((entry, index) => (
+                             <Cell key={`cell-${index}`} fill={entry.fill} />
+                           ))}
+                         </Pie>
+                         <Tooltip 
+                           formatter={(value: number) => [`$${value.toLocaleString()}`, 'Sales']}
+                           contentStyle={{
+                             backgroundColor: 'white',
+                             border: '1px solid #ccc',
+                             borderRadius: '6px',
+                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                           }}
+                         />
+                       </PieChart>
+                     </ResponsiveContainer>
+                   ) : (
+                     <div className="flex items-center justify-center h-full text-gray-500">
+                       <div className="text-center">
+                         <div className="text-4xl mb-2">🥧</div>
+                         <p>No sales data available</p>
+                         <p className="text-sm mt-1">Try adjusting your filters or time period</p>
+                       </div>
+                     </div>
+                   )}
                  </div>
               </CardContent>
           </Card>
         </div>
 
-        <ProfitMetrics 
-          salesData={getProfitMetricsData(salesData)} 
-          showProfitAnalysis={showProfitAnalysis} 
-        />
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-           <div className="xl:col-span-1">
-            <ProfitAnalysis 
-              salesData={filteredData}
-              purchaseValue={purchaseValue}
-              setPurchaseValue={setPurchaseValue}
-              profitAnalysis={profitAnalysis}
-              showProfitAnalysis={showProfitAnalysis}
-              setShowProfitAnalysis={setShowProfitAnalysis}
-              calculateProfit={calculateProfit}
-              calculateAllEntryProfits={calculateAllEntryProfits}
-            />
-          </div>
-          
-          <Card className="xl:col-span-2">
+        <Card>
              <CardHeader>
                  <div className="flex justify-between items-center">
                      <CardTitle>Sales Entries</CardTitle>
@@ -614,14 +528,9 @@ export default function AdminSalesReport() {
             <CardContent>
                  <SalesTable 
                     salesData={filteredData}
-                    onUpdatePaymentStatus={handleUpdatePaymentStatus}
                   />
             </CardContent>
           </Card>
-        </div>
     </AdminLayout>
   )
 }
-
-
- 

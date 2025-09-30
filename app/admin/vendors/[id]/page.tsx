@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, Plus, MoreHorizontal, Edit, Trash, Building2, CreditCard, Package, Filter, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Plus, MoreHorizontal, Edit, Trash, Building2, CreditCard, Package, Filter, RotateCcw, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { PurchaseFormDialog } from '@/components/vendors/PurchaseFormDialog';
@@ -206,6 +206,73 @@ export default function VendorDetailsPage() {
     return new Date(dateString).toLocaleDateString('en-IN');
   };
 
+  const handleExportPurchases = async () => {
+    try {
+      const csvContent = [
+        ['Sr No', 'Date', 'Company Name', 'Contact Person', 'Mobile Number', 'Shape', 'Color', 'Clarity', 'Lab', 'Certificate', 'Price Per Carat (USD)', 'Total Price (USD)', 'INR Price', 'Due Date'],
+        ...(vendor?.purchases || []).map((purchase, index) => [
+          (index + 1).toString(),
+          new Date(purchase.date).toLocaleDateString('en-IN'),
+          purchase.companyName,
+          purchase.contactPerson,
+          purchase.mobileNumber,
+          purchase.shape,
+          purchase.color,
+          purchase.clarity,
+          purchase.lab,
+          purchase.certificate,
+          purchase.pricePerCaratUSD.toString(),
+          purchase.totalPriceUSD.toString(),
+          purchase.inrPrice.toString(),
+          purchase.dueDate ? new Date(purchase.dueDate).toLocaleDateString('en-IN') : 'Not set'
+        ])
+      ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${vendor?.companyName?.replace(/[^a-zA-Z0-9]/g, '_') || 'vendor'}-purchases-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Purchases exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
+  const handleExportPayments = async () => {
+    try {
+      const csvContent = [
+        ['Sr No', 'Date', 'Amount (INR)', 'Payment Mode', 'Note'],
+        ...(vendor?.payments || []).map((payment, index) => [
+          (index + 1).toString(),
+          new Date(payment.date).toLocaleDateString('en-IN'),
+          payment.amountINR.toString(),
+          payment.mode,
+          payment.note || ''
+        ])
+      ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${vendor?.companyName?.replace(/[^a-zA-Z0-9]/g, '_') || 'vendor'}-payments-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Payments exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
   const isDueDatePassed = (dueDateString: string | null) => {
     if (!dueDateString) return false;
     const dueDate = new Date(dueDateString);
@@ -383,16 +450,25 @@ export default function VendorDetailsPage() {
                   <h3 className="text-lg font-semibold text-black">Diamond Purchases</h3>
                   <p className="text-gray-600">Manage purchase records for this vendor</p>
                 </div>
-                <Button
-                  onClick={() => {
-                    setEditingPurchase(null);
-                    setIsPurchaseFormOpen(true);
-                  }}
-                  className="bg-black text-white hover:bg-gray-800"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Purchase
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={handleExportPurchases}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" /> Export CSV
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setEditingPurchase(null);
+                      setIsPurchaseFormOpen(true);
+                    }}
+                    className="bg-black text-white hover:bg-gray-800"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Purchase
+                  </Button>
+                </div>
               </div>
 
               <Card>
@@ -550,16 +626,25 @@ export default function VendorDetailsPage() {
                   <h3 className="text-lg font-semibold text-black">Payments</h3>
                   <p className="text-gray-600">Track payments made to this vendor</p>
                 </div>
-                <Button
-                  onClick={() => {
-                    setEditingPayment(null);
-                    setIsPaymentFormOpen(true);
-                  }}
-                  className="bg-black text-white hover:bg-gray-800"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Payment
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={handleExportPayments}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" /> Export CSV
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setEditingPayment(null);
+                      setIsPaymentFormOpen(true);
+                    }}
+                    className="bg-black text-white hover:bg-gray-800"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Payment
+                  </Button>
+                </div>
               </div>
 
               <Card>

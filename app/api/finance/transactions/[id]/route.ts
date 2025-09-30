@@ -13,9 +13,9 @@ export async function PUT(
     }
 
     const resolvedParams = await params;
-    const { date, balance, usedBalance, dueDate, emiDate, charges, note } = await request.json();
+    const { date, balance, usedBalance, dueDate, emiDate, emiAmount, charges, note } = await request.json();
     
-    if (!date || balance === undefined || usedBalance === undefined || !dueDate || !emiDate || charges === undefined) {
+    if (!date || balance === undefined || usedBalance === undefined || !dueDate || !emiDate || emiAmount === undefined || charges === undefined) {
       return new NextResponse('Missing required fields', { status: 400 });
     }
 
@@ -27,6 +27,7 @@ export async function PUT(
         usedBalance: parseFloat(usedBalance),
         dueDate: new Date(dueDate),
         emiDate: new Date(emiDate),
+        emiAmount: parseFloat(emiAmount),
         charges: parseFloat(charges),
         note: note || null,
       },

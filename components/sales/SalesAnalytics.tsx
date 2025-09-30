@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
   Card,
 } from "@/components/ui/card"
@@ -15,6 +15,9 @@ import {
   Legend,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts"
 import { SaleEntry } from "@/types/sales"
 
@@ -92,16 +95,68 @@ export function SalesAnalytics({
     { value: "custom", label: "Custom Range" },
   ]
 
-  // Transform the sales data for the chart
-  const chartData = data
-    .filter(entry => !entry.isNoSale)
-    .map(entry => ({
-      date: new Date(entry.rawDate).toLocaleDateString(),
-      value: entry.saleValue || 0,
-      employee: entry.employeeName || "Unknown"
-    }))
-    // Sort by date
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  // Transform the sales data for employee performance chart
+  const employeeChartData = React.useMemo(() => {
+    if (!Array.isArray(data) || data.length === 0) {
+      return []
+    }
+
+    // Group sales by employee
+    const employeeStats: Record<string, { name: string; sales: number; count: number }> = {}
+    
+    data
+      .filter(entry => entry && !entry.isNoSale && entry.saleValue > 0)
+      .forEach(entry => {
+        const employeeName = entry.employeeName || 'Unknown'
+        
+        if (!employeeStats[employeeName]) {
+          employeeStats[employeeName] = {
+            name: employeeName.split(' ')[0], // First name only
+            sales: 0,
+            count: 0
+          }
+        }
+        
+        employeeStats[employeeName].sales += Number(entry.saleValue || 0)
+        employeeStats[employeeName].count += 1
+      })
+
+    // Convert to array and sort by sales
+    return Object.values(employeeStats)
+      .sort((a, b) => b.sales - a.sales)
+      .slice(0, 10) // Top 10 employees
+  }, [data])
+
+  // Transform the sales data for sales amount ranges
+  const salesAmountData = React.useMemo(() => {
+    if (!Array.isArray(data) || data.length === 0) {
+      return []
+    }
+
+    // Define sales amount ranges
+    const ranges = [
+      { range: '$0 - $1K', min: 0, max: 1000, count: 0 },
+      { range: '$1K - $5K', min: 1000, max: 5000, count: 0 },
+      { range: '$5K - $10K', min: 5000, max: 10000, count: 0 },
+      { range: '$10K - $25K', min: 10000, max: 25000, count: 0 },
+      { range: '$25K+', min: 25000, max: Infinity, count: 0 }
+    ]
+    
+    data
+      .filter(entry => entry && !entry.isNoSale && entry.saleValue > 0)
+      .forEach(entry => {
+        const saleAmount = Number(entry.saleValue || 0)
+        
+        for (const range of ranges) {
+          if (saleAmount >= range.min && saleAmount < range.max) {
+            range.count += 1
+            break
+          }
+        }
+      })
+
+    return ranges.filter(range => range.count > 0)
+  }, [data])
 
   // Find the selected employee object to display their name
   const selectedEmployeeObject = employees.find(emp => emp.id === selectedEmployee);
@@ -179,23 +234,104 @@ export function SalesAnalytics({
         </div>
       )}
 
-      <div className="h-64 mt-6">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip 
-              formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Sales']}
-              labelFormatter={(label) => `Date: ${label}`}
-            />
-            <Legend />
-            <Bar dataKey="value" name="Sale Amount ($)" fill="#3b82f6" />
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        {/* Employee Performance Chart */}
+        <div className="h-64">
+          <h3 className="text-lg font-semibold mb-4">Top Employees by Sales</h3>
+          {employeeChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={employeeChartData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 12 }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                />
+                <Tooltip 
+                  formatter={(value) => [
+                    `$${Number(value).toLocaleString()}`, 
+                    'Total Sales'
+                  ]}
+                  labelFormatter={(label) => `Employee: ${label}`}
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #ccc',
+                    borderRadius: '6px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="sales" 
+                  name="Sales ($)" 
+                  fill="#3b82f6" 
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="text-center">
+                <div className="text-4xl mb-2">👥</div>
+                <p>No employee data available</p>
+                <p className="text-sm mt-1">Try adjusting your filters</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sales Amount Distribution Chart */}
+        <div className="h-64">
+          <h3 className="text-lg font-semibold mb-4">Sales Amount Distribution</h3>
+          {salesAmountData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={salesAmountData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ range, percent }) => `${range} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="count"
+                >
+                  {salesAmountData.map((entry, index) => {
+                    const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658']
+                    return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                  })}
+                </Pie>
+                <Tooltip 
+                  formatter={(value) => [`${value} sales`, 'Count']}
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #ccc',
+                    borderRadius: '6px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="text-center">
+                <div className="text-4xl mb-2">💰</div>
+                <p>No sales amount data available</p>
+                <p className="text-sm mt-1">Try adjusting your filters</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </Card>
   )

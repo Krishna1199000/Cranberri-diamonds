@@ -125,6 +125,31 @@ export function PurchaseFormDialog({
     }
   }, [watchedTotalPrice, watchedGSTPercentage]);
 
+  // Fetch vendor data when dialog opens
+  useEffect(() => {
+    const fetchVendorData = async () => {
+      if (!vendorId) return;
+      
+      try {
+        const response = await fetch(`/api/vendors/${vendorId}`);
+        if (response.ok) {
+          const vendor = await response.json();
+          
+          // Auto-fill vendor data
+          form.setValue('companyName', vendor.companyName || '');
+          form.setValue('contactPerson', vendor.ownerName || '');
+          form.setValue('mobileNumber', vendor.contactNumber || '');
+        }
+      } catch (error) {
+        console.error('Error fetching vendor data:', error);
+      }
+    };
+
+    if (open && vendorId && !isEditing) {
+      fetchVendorData();
+    }
+  }, [open, vendorId, isEditing, form]);
+
   useEffect(() => {
     if (purchase) {
       form.reset({

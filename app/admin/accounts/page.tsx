@@ -28,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash, Filter, RotateCcw, TrendingUp, TrendingDown, Calculator } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash, Filter, RotateCcw, TrendingUp, TrendingDown, Calculator, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { LedgerEntryFormDialog } from '@/components/finance/LedgerEntryFormDialog';
 import { DeleteConfirmDialog } from '@/components/vendors/DeleteConfirmDialog';
@@ -148,6 +148,74 @@ export default function AccountsPage() {
     return new Date(dateString).toLocaleDateString('en-IN');
   };
 
+  const handleExportFiltered = async () => {
+    try {
+      // Export currently filtered data
+      const csvContent = [
+        ['Date', 'Type', 'Amount (INR)', 'Reason', 'Counterparty'],
+        ...entries.map((entry) => [
+          formatDate(entry.date),
+          entry.type,
+          entry.amountINR.toString(),
+          entry.reason,
+          entry.counterparty || '',
+        ])
+      ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ledger-entries-filtered-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Filtered data exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
+  const handleExportAll = async () => {
+    try {
+      // Fetch all data without filters
+      const response = await fetch('/api/finance/ledger');
+      if (response.ok) {
+        const data = await response.json();
+        const allEntries = data.entries;
+        
+        const csvContent = [
+          ['Date', 'Type', 'Amount (INR)', 'Reason', 'Counterparty'],
+          ...allEntries.map((entry: LedgerEntry) => [
+            formatDate(entry.date),
+            entry.type,
+            entry.amountINR.toString(),
+            entry.reason,
+            entry.counterparty || '',
+          ])
+        ].map(row => row.join(',')).join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ledger-entries-all-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        toast.success('All data exported successfully');
+      } else {
+        toast.error('Failed to fetch data for export');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
   return (
     <AdminLayout>
       <PasswordGate
@@ -161,16 +229,45 @@ export default function AccountsPage() {
               <h1 className="text-2xl font-bold text-black">Account Statements</h1>
               <p className="text-gray-600">Manage ledger entries and account balances</p>
             </div>
-            <Button
-              onClick={() => {
-                setEditingEntry(null);
-                setIsFormOpen(true);
-              }}
-              className="bg-black text-white hover:bg-gray-800"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Entry
-            </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="border-black text-black hover:bg-gray-50"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-white border border-gray-200">
+                  <DropdownMenuItem
+                    onClick={handleExportFiltered}
+                    className="text-black hover:bg-gray-50"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Filtered Data
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleExportAll}
+                    className="text-black hover:bg-gray-50"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export All Data
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                onClick={() => {
+                  setEditingEntry(null);
+                  setIsFormOpen(true);
+                }}
+                className="bg-black text-white hover:bg-gray-800"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Entry
+              </Button>
+            </div>
           </div>
 
           {/* Filters */}

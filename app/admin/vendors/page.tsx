@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash, Eye, Search, Calendar, Package, CreditCard, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash, Eye, Search, Calendar, Package, CreditCard, TrendingUp, TrendingDown, DollarSign, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { VendorFormDialog } from '@/components/vendors/VendorFormDialog';
@@ -248,16 +248,31 @@ export default function VendorsPage() {
   const getOverviewSummary = () => {
     const { purchases, payments } = filterOverviewData();
     
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     const totalPurchaseAmount = purchases.reduce((sum, purchase) => sum + purchase.inrPrice, 0);
     const totalPaymentAmount = payments.reduce((sum, payment) => sum + payment.amountINR, 0);
     const netAmount = totalPaymentAmount - totalPurchaseAmount;
+    
+    // Calculate total overdue amount
+    const totalOverdueAmount = purchases.reduce((sum, purchase) => {
+      if (purchase.dueDate) {
+        const dueDate = new Date(purchase.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        if (dueDate <= today) {
+          return sum + purchase.inrPrice;
+        }
+      }
+      return sum;
+    }, 0);
 
     return {
       totalPurchases: purchases.length,
       totalPayments: payments.length,
       totalPurchaseAmount,
       totalPaymentAmount,
+      totalOverdueAmount,
       netAmount
     };
   };
@@ -343,6 +358,159 @@ export default function VendorsPage() {
     }).format(amount);
   };
 
+  const handleExportVendors = async () => {
+    try {
+      const csvContent = [
+        ['Company Name', 'Owner Name', 'Contact Number', 'Location', 'Total Business', 'Balance Due'],
+        ...vendors.map((vendor) => [
+          vendor.companyName,
+          vendor.ownerName,
+          vendor.contactNumber,
+          vendor.location,
+          vendor.totalBusiness.toString(),
+          vendor.balanceDue.toString()
+        ])
+      ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vendors-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Vendors exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
+  const handleExportOverview = async () => {
+    try {
+      const { purchases, payments } = filterOverviewData();
+      const summary = getOverviewSummary();
+      
+      // Create timeline data (chronological transactions)
+      const allTransactions: Transaction[] = [
+        ...purchases.map(p => ({ ...p, type: 'purchase' as const })),
+        ...payments.map(p => ({ ...p, type: 'payment' as const }))
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      // Timeline CSV
+      const timelineCsv = [
+        ['Date', 'Type', 'Company Name', 'Owner Name', 'Description', 'Amount (INR)', 'Additional Info'],
+        ...allTransactions.map((transaction) => {
+          if (transaction.type === 'purchase') {
+            return [
+              new Date(transaction.date).toLocaleDateString('en-IN'),
+              'Purchase',
+              transaction.vendor?.companyName || '',
+              transaction.vendor?.ownerName || '',
+              `${transaction.shape} ${transaction.color} ${transaction.clarity} ${transaction.lab}`,
+              transaction.inrPrice?.toString() || '0',
+              `Due: ${transaction.dueDate ? new Date(transaction.dueDate).toLocaleDateString('en-IN') : 'Not set'}`
+            ];
+          } else {
+            return [
+              new Date(transaction.date).toLocaleDateString('en-IN'),
+              'Payment',
+              transaction.vendor?.companyName || '',
+              transaction.vendor?.ownerName || '',
+              'Payment received',
+              transaction.amountINR?.toString() || '0',
+              `Mode: ${transaction.mode || ''} | Note: ${transaction.note || ''}`
+            ];
+          }
+        })
+      ].map(row => row.join(',')).join('\n');
+
+      // Summary CSV
+      const summaryCsv = [
+        ['Summary Item', 'Value'],
+        ['Total Purchases (Count)', summary.totalPurchases.toString()],
+        ['Total Payments (Count)', summary.totalPayments.toString()],
+        ['Total Purchase Amount (INR)', summary.totalPurchaseAmount.toString()],
+        ['Total Payment Amount (INR)', summary.totalPaymentAmount.toString()],
+        ['Net Amount (INR)', summary.netAmount.toString()],
+        ['Total Overdue Amount (INR)', summary.totalOverdueAmount.toString()],
+        ['Export Date', new Date().toLocaleDateString('en-IN')],
+        ['Export Time', new Date().toLocaleTimeString('en-IN')]
+      ].map(row => row.join(',')).join('\n');
+
+      // Detailed Purchases CSV
+      const purchasesCsv = [
+        ['Date', 'Company Name', 'Owner Name', 'Shape', 'Color', 'Clarity', 'Lab', 'Certificate', 'Price Per Carat (USD)', 'Total Price (USD)', 'INR Price', 'Due Date', 'Status'],
+        ...purchases.map((purchase: Purchase) => [
+          new Date(purchase.date).toLocaleDateString('en-IN'),
+          purchase.vendor?.companyName || '',
+          purchase.vendor?.ownerName || '',
+          purchase.shape,
+          purchase.color,
+          purchase.clarity,
+          purchase.lab,
+          purchase.certificate,
+          purchase.pricePerCaratUSD?.toString() || '0',
+          purchase.totalPriceUSD?.toString() || '0',
+          purchase.inrPrice?.toString() || '0',
+          purchase.dueDate ? new Date(purchase.dueDate).toLocaleDateString('en-IN') : 'Not set',
+          isDueDatePassed(purchase.dueDate) ? 'Overdue' : 'Current'
+        ])
+      ].map(row => row.join(',')).join('\n');
+
+      // Detailed Payments CSV
+      const paymentsCsv = [
+        ['Date', 'Company Name', 'Owner Name', 'Amount (INR)', 'Payment Mode', 'Note'],
+        ...payments.map((payment: Payment) => [
+          new Date(payment.date).toLocaleDateString('en-IN'),
+          payment.vendor?.companyName || '',
+          payment.vendor?.ownerName || '',
+          payment.amountINR?.toString() || '0',
+          payment.mode || '',
+          payment.note || ''
+        ])
+      ].map(row => row.join(',')).join('\n');
+
+      // Create comprehensive CSV with all sections
+      const comprehensiveCsv = [
+        'VENDORS OVERVIEW EXPORT',
+        '================================',
+        '',
+        'SUMMARY TOTALS',
+        '==============',
+        summaryCsv,
+        '',
+        'TIMELINE VIEW (Chronological Transactions)',
+        '=========================================',
+        timelineCsv,
+        '',
+        'DETAILED PURCHASES',
+        '==================',
+        purchasesCsv,
+        '',
+        'DETAILED PAYMENTS',
+        '=================',
+        paymentsCsv
+      ].join('\n');
+      
+      const blob = new Blob([comprehensiveCsv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vendors-overview-complete-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Complete overview exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
   return (
     <AdminLayout>
       <PasswordGate
@@ -369,6 +537,19 @@ export default function VendorsPage() {
                   className="pl-9 border-gray-300 focus:border-black focus:ring-black"
                 />
               </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="border-black text-black hover:bg-gray-50">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-white border border-gray-200">
+                  <DropdownMenuItem onClick={handleExportVendors} className="text-black hover:bg-gray-50">
+                    Export Vendors List
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 onClick={() => {
                   setEditingVendor(null);
@@ -378,6 +559,18 @@ export default function VendorsPage() {
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Vendor
+              </Button>
+            </div>
+          )}
+          {activeTab === 'overview' && (
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleExportOverview}
+                variant="outline"
+                className="border-black text-black hover:bg-gray-50"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Complete Overview
               </Button>
             </div>
           )}
@@ -553,13 +746,13 @@ export default function VendorsPage() {
             </Card>
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <Card className="bg-white border">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Total Purchases</p>
-                      <p className="text-2xl font-bold text-black">{getOverviewSummary().totalPurchases}</p>
+                      <p className="text-2xl font-bold text-blue-600">{getOverviewSummary().totalPurchases}</p>
                     </div>
                     <Package className="h-8 w-8 text-blue-600" />
                   </div>
@@ -583,9 +776,9 @@ export default function VendorsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Purchase Amount</p>
-                      <p className="text-2xl font-bold text-red-600">{formatCurrency(getOverviewSummary().totalPurchaseAmount)}</p>
+                      <p className="text-2xl font-bold text-blue-600">{formatCurrency(getOverviewSummary().totalPurchaseAmount)}</p>
                     </div>
-                    <TrendingDown className="h-8 w-8 text-red-600" />
+                    <TrendingDown className="h-8 w-8 text-blue-600" />
                   </div>
                 </CardContent>
               </Card>
@@ -616,6 +809,20 @@ export default function VendorsPage() {
                     <DollarSign className={`h-8 w-8 ${
                       getOverviewSummary().netAmount >= 0 ? 'text-green-600' : 'text-red-600'
                     }`} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white border">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Overdue</p>
+                      <p className="text-2xl font-bold text-red-600">
+                        {formatCurrency(getOverviewSummary().totalOverdueAmount)}
+                      </p>
+                    </div>
+                    <TrendingDown className="h-8 w-8 text-red-600" />
                   </div>
                 </CardContent>
               </Card>
@@ -653,13 +860,13 @@ export default function VendorsPage() {
                       return allTransactions.map((transaction) => (
                         <div key={`${transaction.type}-${transaction.id}`} className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg">
                           <div className={`w-3 h-3 rounded-full mt-2 ${
-                            transaction.type === 'purchase' ? 'bg-red-500' : 'bg-green-500'
+                            transaction.type === 'purchase' ? 'bg-blue-500' : 'bg-green-500'
                           }`} />
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 {transaction.type === 'purchase' ? (
-                                  <Package className="h-4 w-4 text-red-600" />
+                                  <Package className="h-4 w-4 text-blue-600" />
                                 ) : (
                                   <CreditCard className="h-4 w-4 text-green-600" />
                                 )}
@@ -672,7 +879,7 @@ export default function VendorsPage() {
                               </div>
                               <div className="text-right">
                                 <p className={`font-bold ${
-                                  transaction.type === 'purchase' ? 'text-red-600' : 'text-green-600'
+                                  transaction.type === 'purchase' ? 'text-blue-600' : 'text-green-600'
                                 }`}>
                                   {transaction.type === 'purchase' 
                                     ? formatCurrency(transaction.inrPrice)

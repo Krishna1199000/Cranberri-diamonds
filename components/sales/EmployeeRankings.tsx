@@ -1,7 +1,19 @@
 "use client"
 
+import React from "react"
 import { Card } from "@/components/ui/card"
 import { SaleEntry } from "@/types/sales"
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  BarChart,
+  Bar,
+  Cell,
+} from "recharts"
 
 interface EmployeeRanking {
   id: string
@@ -51,9 +63,74 @@ export function EmployeeRankings({ salesData }: EmployeeRankingsProps) {
 
   const rankings = calculateRankings(salesData);
 
+  // Colors for the chart bars
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ffc658"]
+
+  // Transform data for the chart (top 5 employees)
+  const chartData = React.useMemo(() => {
+    return rankings.slice(0, 5).map(employee => ({
+      name: employee.name.split(' ')[0], // First name only for chart clarity
+      sales: employee.totalSales,
+      count: employee.salesCount,
+      avgSale: employee.salesCount ? employee.totalSales / employee.salesCount : 0
+    }))
+  }, [rankings])
+
   return (
     <Card className="p-6 mb-6">
-      <h2 className="text-2xl font-bold mb-4">Employee Rankings</h2>
+      <h2 className="text-2xl font-bold mb-6">Employee Rankings</h2>
+      
+      {/* Chart Section */}
+      {chartData.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-4">Top Performers Chart</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 12 }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                />
+                <Tooltip 
+                  formatter={(value, name) => [
+                    `$${Number(value).toLocaleString()}`, 
+                    name === 'sales' ? 'Total Sales' : 'Sales Count'
+                  ]}
+                  labelFormatter={(label) => `Employee: ${label}`}
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #ccc',
+                    borderRadius: '6px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="sales" 
+                  name="Total Sales ($)" 
+                  radius={[4, 4, 0, 0]}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead>

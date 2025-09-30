@@ -46,6 +46,7 @@ interface Sale {
   employeeProfitPercent: number;
   finalProfit: number;
   dueDate: string;
+  paymentReceived?: boolean;
 }
 
 interface PLStats {
@@ -56,6 +57,8 @@ interface PLStats {
   netProfit: number;
   matchedCertificates: number;
   unmatchedSales: number;
+  totalOverdueAmount: number;
+  totalReceivedAmount: number;
 }
 
 export default function FinancePage() {
@@ -68,6 +71,8 @@ export default function FinancePage() {
     netProfit: 0,
     matchedCertificates: 0,
     unmatchedSales: 0,
+    totalOverdueAmount: 0,
+    totalReceivedAmount: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -98,6 +103,21 @@ export default function FinancePage() {
         const employeeDeductions = data.reduce((sum: number, sale: Sale) => sum + ((sale.totalPriceSoldINR * sale.employeeProfitPercent) / 100), 0);
         const netProfit = data.reduce((sum: number, sale: Sale) => sum + sale.finalProfit, 0);
         
+        // Calculate overdue and received amounts
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const totalOverdueAmount = data.reduce((sum: number, sale: Sale) => {
+          const dueDate = new Date(sale.dueDate);
+          dueDate.setHours(0, 0, 0, 0);
+          const isOverdue = dueDate <= today && !sale.paymentReceived;
+          return isOverdue ? sum + sale.totalPriceSoldINR : sum;
+        }, 0);
+        
+        const totalReceivedAmount = data.reduce((sum: number, sale: Sale) => {
+          return sale.paymentReceived ? sum + sale.totalPriceSoldINR : sum;
+        }, 0);
+        
         setStats({
           totalSales,
           totalPurchases,
@@ -106,6 +126,8 @@ export default function FinancePage() {
           netProfit,
           matchedCertificates: 0,
           unmatchedSales: 0,
+          totalOverdueAmount,
+          totalReceivedAmount,
         });
         
         console.log('Stats calculated:', {
@@ -174,6 +196,28 @@ export default function FinancePage() {
     setIsFormOpen(false);
     setEditingSale(null);
     fetchSales();
+  };
+
+  const handlePaymentToggle = async (saleId: string, currentStatus: boolean) => {
+    try {
+      const response = await fetch(`/api/finance/enhanced-sales/${saleId}/payment-status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentReceived: !currentStatus }),
+      });
+
+      if (response.ok) {
+        toast.success(`Payment marked as ${!currentStatus ? 'received' : 'pending'}`);
+        fetchSales();
+      } else {
+        toast.error('Failed to update payment status');
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      toast.error('Error updating payment status');
+    }
   };
 
   const handleExport = async () => {
@@ -246,6 +290,10 @@ export default function FinancePage() {
     today.setHours(0, 0, 0, 0);
     dueDate.setHours(0, 0, 0, 0);
     return dueDate <= today;
+  };
+
+  const isOverdue = (sale: Sale) => {
+    return isDueDatePassed(sale.dueDate) && !sale.paymentReceived;
   };
 
   return (
@@ -330,7 +378,7 @@ export default function FinancePage() {
           </Card>
 
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
             <Card className="bg-white border">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">Total Sales</CardTitle>
@@ -380,6 +428,28 @@ export default function FinancePage() {
                 </div>
               </CardContent>
             </Card>
+            <Card className="bg-white border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">Total Overdue</CardTitle>
+                <TrendingDown className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(stats.totalOverdueAmount)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">Total Received</CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(stats.totalReceivedAmount)}
+                </div>
+              </CardContent>
+            </Card>
 
               </div>
 
@@ -423,13 +493,14 @@ export default function FinancePage() {
                       <TableHead className="text-white">Employee Profit INR</TableHead>
                       <TableHead className="text-white">Final Profit</TableHead>
                       <TableHead className="text-white">Due Date</TableHead>
+                      <TableHead className="text-white">Payment</TableHead>
                       <TableHead className="text-white">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={20} className="text-center py-8">
+                        <TableCell colSpan={21} className="text-center py-8">
                           <div className="flex items-center justify-center">
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black"></div>
                             <span className="ml-2 text-gray-600">Loading sales...</span>
@@ -438,54 +509,68 @@ export default function FinancePage() {
                       </TableRow>
                     ) : sales.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={20} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={21} className="text-center py-8 text-gray-500">
                           No sales found. Add your first sale to get started.
                         </TableCell>
                       </TableRow>
                     ) : (
                       sales.map((sale, index) => {
-                        const isOverdue = isDueDatePassed(sale.dueDate);
+                        const saleIsOverdue = isOverdue(sale);
                         return (
-                        <TableRow key={sale.id} className={isOverdue ? "bg-red-50 hover:bg-red-100" : ""}>
-                          <TableCell className={`font-medium ${isOverdue ? "text-red-800" : "text-black"}`}>{index + 1}</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{formatDate(sale.date)}</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.companyName}</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.ownerName}</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.vendorCompany}</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.shape}</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.carat}</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.color}</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.clarity}</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.lab}</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.certificateNumber}</TableCell>
-                          <TableCell className={`font-medium ${isOverdue ? "text-red-700" : "text-gray-700"}`}>
+                        <TableRow key={sale.id} className={saleIsOverdue ? "bg-red-50 hover:bg-red-100" : ""}>
+                          <TableCell className={`font-medium ${saleIsOverdue ? "text-red-800" : "text-black"}`}>{index + 1}</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{formatDate(sale.date)}</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{sale.companyName}</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{sale.ownerName}</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{sale.vendorCompany}</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{sale.shape}</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{sale.carat}</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{sale.color}</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{sale.clarity}</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{sale.lab}</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{sale.certificateNumber}</TableCell>
+                          <TableCell className={`font-medium ${saleIsOverdue ? "text-red-700" : "text-gray-700"}`}>
                             {formatCurrency(sale.totalPriceSoldINR)}
                           </TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>
                             {formatCurrency(sale.totalPricePurchasedINR)}
                           </TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>
                             {formatCurrency(sale.shippingCharge)}
                           </TableCell>
                           <TableCell className={`font-medium ${
-                            isOverdue 
+                            saleIsOverdue 
                               ? 'text-red-600' 
                               : (sale.totalPriceSoldINR - sale.totalPricePurchasedINR) >= 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
                             {formatCurrency(sale.totalPriceSoldINR - sale.totalPricePurchasedINR)}
                           </TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>{sale.employeeProfitPercent}%</TableCell>
-                          <TableCell className={isOverdue ? "text-red-700" : "text-gray-700"}>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>{sale.employeeProfitPercent}%</TableCell>
+                          <TableCell className={saleIsOverdue ? "text-red-700" : "text-gray-700"}>
                             {formatCurrency((sale.totalPriceSoldINR * sale.employeeProfitPercent) / 100)}
                           </TableCell>
                           <TableCell className={`font-medium ${
-                            isOverdue 
+                            saleIsOverdue 
                               ? 'text-red-600' 
                               : sale.finalProfit >= 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
                             {formatCurrency(sale.finalProfit)}
                           </TableCell>
-                          <TableCell className={`font-bold ${isOverdue ? "text-red-600" : "text-gray-700"}`}>{formatDate(sale.dueDate)}</TableCell>
+                          <TableCell className={`font-bold ${saleIsOverdue ? "text-red-600" : "text-gray-700"}`}>{formatDate(sale.dueDate)}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={`h-8 px-3 ${
+                                sale.paymentReceived 
+                                  ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' 
+                                  : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'
+                              }`}
+                              onClick={() => handlePaymentToggle(sale.id, sale.paymentReceived || false)}
+                            >
+                              {sale.paymentReceived ? 'Received' : 'Pending'}
+                            </Button>
+                          </TableCell>
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

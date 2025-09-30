@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         { color: { contains: search, mode: 'insensitive' } },
         { clarity: { contains: search, mode: 'insensitive' } },
         { lab: { contains: search, mode: 'insensitive' } },
+        { certificateNo: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -181,6 +182,7 @@ export async function POST(request: NextRequest) {
       polish: data.polish,
       sym: data.sym,
       lab: data.lab,
+      certificateNo: data.certificateNo || null,
       pricePerCarat: data.pricePerCarat ? parseFloat(data.pricePerCarat) : 0,
       finalAmount: data.finalAmount ? parseFloat(data.finalAmount) : 0,
       status: data.status,

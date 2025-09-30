@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Plus, Eye, FileText, Edit, Trash2, ChevronDown } from "lucide-react"
+import { Search, Plus, Eye, FileText, Edit, Trash2, ChevronDown, Download } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -192,6 +192,50 @@ export default function Dashboard() {
     setCurrentPage(prev => Math.max(prev - 1, 1))
   }
 
+  const handleExportCSV = async () => {
+    try {
+      const csvContent = [
+        ['Sr No', 'Company Name', 'Owner Name', 'Email', 'Phone', 'Sales Executive', 'Address Line 1', 'Address Line 2', 'Country', 'State', 'City', 'Postal Code', 'Website', 'Payment Terms', 'Carrier', 'Organization Type', 'Business Type', 'Business Reg No', 'PAN No', 'Last Updated'],
+        ...filteredShipments.map((shipment, index) => [
+          (index + 1).toString(),
+          shipment.companyName || '',
+          shipment.ownerName || '',
+          shipment.email || '',
+          shipment.phoneNo || '',
+          shipment.salesExecutive || '',
+          shipment.addressLine1 || '',
+          shipment.addressLine2 || '',
+          shipment.country || '',
+          shipment.state || '',
+          shipment.city || '',
+          shipment.postalCode || '',
+          shipment.website || '',
+          shipment.paymentTerms || '',
+          shipment.carrier || '',
+          shipment.organizationType || '',
+          shipment.businessType || '',
+          shipment.businessRegNo || '',
+          shipment.panNo || '',
+          new Date(shipment.updatedAt).toLocaleDateString('en-IN')
+        ])
+      ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `customer-vendor-list-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Customer/Vendor list exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed');
+    }
+  };
+
   if (loading) {
       return <CranberriLoader />;
   }
@@ -207,11 +251,20 @@ export default function Dashboard() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Customer/Vendor Management</h1>
         {(userRole === 'admin' || userRole === 'employee') && (
-             <Link href="/dashboard/create-shipment">
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleExportCSV}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" /> Export CSV
+            </Button>
+            <Link href="/dashboard/create-shipment">
               <Button className="flex items-center gap-2">
                 <Plus className="h-4 w-4" /> Create Master
               </Button>
             </Link>
+          </div>
         )}
       </div>
 

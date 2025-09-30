@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus } from 'lucide-react';
 
 const saleFormSchema = z.object({
   // Sale Information
@@ -62,6 +63,7 @@ interface VendorPurchase {
   certificate: string;
   companyName: string;
   shape: string;
+  carat: number;
   color: string;
   clarity: string;
   lab: string;
@@ -110,6 +112,33 @@ export function SaleFormDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vendorPurchases, setVendorPurchases] = useState<VendorPurchase[]>([]);
   const [loadingPurchases, setLoadingPurchases] = useState(false);
+  const [companies, setCompanies] = useState<Array<{id: string, companyName: string, ownerName: string}>>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [diamondItems, setDiamondItems] = useState<Array<{
+    id: string;
+    shape: string;
+    carat: number;
+    color: string;
+    clarity: string;
+    lab: string;
+    certificateNumber: string;
+    pricePerCaratSold: number;
+    totalPriceSoldINR: number;
+    pricePerCaratPurchase: number;
+    totalPricePurchasedINR: number;
+  }>>([{
+    id: '1',
+    shape: '',
+    carat: 0,
+    color: '',
+    clarity: '',
+    lab: '',
+    certificateNumber: '',
+    pricePerCaratSold: 0,
+    totalPriceSoldINR: 0,
+    pricePerCaratPurchase: 0,
+    totalPricePurchasedINR: 0,
+  }]);
 
   const [calculatedProfit, setCalculatedProfit] = useState<number>(0);
   const [finalCalculatedProfit, setFinalCalculatedProfit] = useState<number>(0);
@@ -140,12 +169,80 @@ export function SaleFormDialog({
     },
   });
 
-  // Fetch vendor purchases on component mount
+  // Fetch vendor purchases and companies on component mount
   useEffect(() => {
     if (open) {
       fetchVendorPurchases();
+      fetchCompanies();
     }
   }, [open]);
+
+  const fetchCompanies = async () => {
+    setLoadingCompanies(true);
+    try {
+      const response = await fetch('/api/companies');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched companies:', data);
+        // Handle both array format and object with companies property
+        if (Array.isArray(data)) {
+          setCompanies(data);
+        } else if (data.companies && Array.isArray(data.companies)) {
+          setCompanies(data.companies);
+        } else {
+          setCompanies([]);
+        }
+      } else {
+        console.error('Failed to fetch companies:', response.status);
+        setCompanies([]);
+      }
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+      setCompanies([]);
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
+  const handleCompanySelect = (companyId: string) => {
+    if (companyId === 'manual') return;
+    
+    const selectedCompany = companies.find(c => c.id === companyId);
+    if (selectedCompany) {
+      form.setValue('companyName', selectedCompany.companyName || '');
+      form.setValue('ownerName', selectedCompany.ownerName || '');
+      console.log('Selected company:', selectedCompany);
+    }
+  };
+
+  const addDiamondItem = () => {
+    const newItem = {
+      id: Date.now().toString(),
+      shape: '',
+      carat: 0,
+      color: '',
+      clarity: '',
+      lab: '',
+      certificateNumber: '',
+      pricePerCaratSold: 0,
+      totalPriceSoldINR: 0,
+      pricePerCaratPurchase: 0,
+      totalPricePurchasedINR: 0,
+    };
+    setDiamondItems([...diamondItems, newItem]);
+  };
+
+  const removeDiamondItem = (itemId: string) => {
+    if (diamondItems.length > 1) {
+      setDiamondItems(diamondItems.filter(item => item.id !== itemId));
+    }
+  };
+
+  const updateDiamondItem = (itemId: string, field: string, value: string | number) => {
+    setDiamondItems(diamondItems.map(item => 
+      item.id === itemId ? { ...item, [field]: value } : item
+    ));
+  };
 
   // Update form when sale is provided (editing mode)
   useEffect(() => {
@@ -187,16 +284,27 @@ export function SaleFormDialog({
   };
 
   const handleCertificateSelect = (certificateId: string) => {
+    if (certificateId === 'manual') return;
+    
     const purchase = vendorPurchases.find(p => p.id === certificateId);
     if (purchase) {
-      // Auto-fill purchase data
-      form.setValue('certificateNumber', purchase.certificate);
+      // Update the first diamond item with the selected certificate data
+      const updatedItems = [...diamondItems];
+      updatedItems[0] = {
+        ...updatedItems[0],
+        shape: purchase.shape,
+        carat: purchase.carat,
+        color: purchase.color,
+        clarity: purchase.clarity,
+        lab: purchase.lab,
+        certificateNumber: purchase.certificate,
+        pricePerCaratPurchase: purchase.pricePerCaratUSD,
+        totalPricePurchasedINR: purchase.inrPrice,
+      };
+      setDiamondItems(updatedItems);
+      
+      // Also set vendor company in the form
       form.setValue('vendorCompany', purchase.companyName);
-      form.setValue('shape', purchase.shape);
-      form.setValue('color', purchase.color);
-      form.setValue('clarity', purchase.clarity);
-      form.setValue('lab', purchase.lab);
-      form.setValue('totalPricePurchasedINR', String(purchase.inrPrice));
     }
   };
 
@@ -310,6 +418,31 @@ export function SaleFormDialog({
               </Card>
             )}
 
+            {/* Company Selection */}
+            {!isEditing && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Customer Selection</CardTitle>
+                  <CardDescription>Select a customer from your master list to auto-fill company and owner details</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Select onValueChange={handleCompanySelect} value="">
+                    <SelectTrigger className="border-gray-300 focus:border-black focus:ring-black">
+                      <SelectValue placeholder={loadingCompanies ? "Loading customers..." : "Select a customer"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 overflow-y-auto">
+                      <SelectItem value="manual">Enter Manually</SelectItem>
+                      {Array.isArray(companies) && companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.companyName} - {company.ownerName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Basic Sale Information */}
             <Card>
               <CardHeader>
@@ -361,100 +494,120 @@ export function SaleFormDialog({
             {/* Diamond Details */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Diamond Details</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Diamond Details</CardTitle>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-black text-black hover:bg-gray-100"
+                    onClick={addDiamondItem}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Item
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="vendorCompany"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-black">Vendor Company</FormLabel>
-                      <FormControl>
-                        <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Vendor company" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="shape"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-black">Shape</FormLabel>
-                      <FormControl>
-                        <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Round, Princess, etc." />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="carat"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-black">Carat</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="number" step="0.01" className="border-gray-300 focus:border-black focus:ring-black" placeholder="1.00" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="color"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-black">Color</FormLabel>
-                      <FormControl>
-                        <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="D, E, F, etc." />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="clarity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-black">Clarity</FormLabel>
-                      <FormControl>
-                        <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="VVS1, VS1, etc." />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="lab"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-black">Lab</FormLabel>
-                      <FormControl>
-                        <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="GIA, IGI, etc." />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              <FormField
-                control={form.control}
-                name="certificateNumber"
-                render={({ field }) => (
-                    <FormItem className="md:col-span-3">
-                    <FormLabel className="text-black">Certificate Number</FormLabel>
-                    <FormControl>
-                        <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Certificate number" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <CardContent className="space-y-4">
+                {/* Vendor Company Field */}
+                <div className="mb-4">
+                  <FormField
+                    control={form.control}
+                    name="vendorCompany"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-black">Vendor Company</FormLabel>
+                        <FormControl>
+                          <Input {...field} className="border-gray-300 focus:border-black focus:ring-black" placeholder="Vendor company" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                {diamondItems.map((item, index) => (
+                  <Card key={item.id} className="p-4 border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-medium text-black">Diamond Item {index + 1}</h4>
+                      {diamondItems.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeDiamondItem(item.id)}
+                          className="text-red-600 hover:bg-red-50 border-red-300"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <FormLabel className="text-black">Shape</FormLabel>
+                        <Input 
+                          value={item.shape}
+                          onChange={(e) => updateDiamondItem(item.id, 'shape', e.target.value)}
+                          className="border-gray-300 focus:border-black focus:ring-black" 
+                          placeholder="Round, Princess, etc." 
+                        />
+                      </div>
+                      
+                      <div>
+                        <FormLabel className="text-black">Carat</FormLabel>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          value={item.carat || ''}
+                          onChange={(e) => updateDiamondItem(item.id, 'carat', parseFloat(e.target.value) || 0)}
+                          className="border-gray-300 focus:border-black focus:ring-black" 
+                          placeholder="1.00" 
+                        />
+                      </div>
+                      
+                      <div>
+                        <FormLabel className="text-black">Color</FormLabel>
+                        <Input 
+                          value={item.color}
+                          onChange={(e) => updateDiamondItem(item.id, 'color', e.target.value)}
+                          className="border-gray-300 focus:border-black focus:ring-black" 
+                          placeholder="D, E, F, etc." 
+                        />
+                      </div>
+                      
+                      <div>
+                        <FormLabel className="text-black">Clarity</FormLabel>
+                        <Input 
+                          value={item.clarity}
+                          onChange={(e) => updateDiamondItem(item.id, 'clarity', e.target.value)}
+                          className="border-gray-300 focus:border-black focus:ring-black" 
+                          placeholder="VVS1, VS1, etc." 
+                        />
+                      </div>
+                      
+                      <div>
+                        <FormLabel className="text-black">Lab</FormLabel>
+                        <Input 
+                          value={item.lab}
+                          onChange={(e) => updateDiamondItem(item.id, 'lab', e.target.value)}
+                          className="border-gray-300 focus:border-black focus:ring-black" 
+                          placeholder="GIA, IGI, etc." 
+                        />
+                      </div>
+                      
+                      <div>
+                        <FormLabel className="text-black">Certificate Number</FormLabel>
+                        <Input 
+                          value={item.certificateNumber}
+                          onChange={(e) => updateDiamondItem(item.id, 'certificateNumber', e.target.value)}
+                          className="border-gray-300 focus:border-black focus:ring-black" 
+                          placeholder="Certificate number" 
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
               </CardContent>
             </Card>
 
