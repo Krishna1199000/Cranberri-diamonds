@@ -30,8 +30,8 @@ import {
 // Import the DiamondStatus from @prisma/client
 import { DiamondStatus } from "@prisma/client";
 
-// Import Prisma type
 import type { InventoryItem as PrismaInventoryItem } from "@prisma/client";
+import { canSeeTierPrices } from "@/lib/utils/pricing-tiers";
 
 // Import Diamond type for helper function
 import { Diamond } from "@/lib/utils/inventory";
@@ -76,6 +76,16 @@ export function InventoryTable({
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [activeMedia, setActiveMedia] = useState<{ type: string; url: string } | null>(null);
+  const showTierPrices = canSeeTierPrices(userRole);
+  const showActions = isAdmin || userRole === 'employee';
+
+  const columnCount =
+    1 + // Sr No
+    (isAdmin ? 1 : 0) +
+    (userRole === 'admin' ? 1 : 0) +
+    21 + // Status through Price
+    (showTierPrices ? 4 : 0) +
+    (showActions ? 1 : 0);
   
   const handleRowClick = (item: InventoryItemWithShipmentDetails, e: React.MouseEvent) => {
     // Don't redirect if clicking on buttons, checkboxes, or media icons
@@ -121,10 +131,7 @@ export function InventoryTable({
       'Flourence',
       'Price P/Ct',
       'Price',
-      'Green Price P/Ct',
-      'Green Price',
-      'Red Price P/Ct',
-      'Red Price'
+      ...(showTierPrices ? ['Green Price P/Ct', 'Green Price', 'Red Price P/Ct', 'Red Price'] : []),
     ];
 
     const rows = selectedItems.map((item, idx) => [
@@ -150,14 +157,18 @@ export function InventoryTable({
       item.flourence ?? '',
       item.pricePerCarat !== null && item.pricePerCarat !== undefined ? String(item.pricePerCarat) : '',
       String(item.finalAmount ?? ''),
-      item.greenPricePerCarat !== null && item.greenPricePerCarat !== undefined ? String(item.greenPricePerCarat) : '',
-      (item.greenPrice !== null && item.greenPrice !== undefined)
-        ? String(item.greenPrice)
-        : (item.greenPricePerCarat !== null && item.greenPricePerCarat !== undefined && item.size ? String(item.greenPricePerCarat * item.size) : ''),
-      item.redPricePerCarat !== null && item.redPricePerCarat !== undefined ? String(item.redPricePerCarat) : '',
-      (item.redPrice !== null && item.redPrice !== undefined)
-        ? String(item.redPrice)
-        : (item.redPricePerCarat !== null && item.redPricePerCarat !== undefined && item.size ? String(item.redPricePerCarat * item.size) : '')
+      ...(showTierPrices
+        ? [
+            item.greenPricePerCarat !== null && item.greenPricePerCarat !== undefined ? String(item.greenPricePerCarat) : '',
+            (item.greenPrice !== null && item.greenPrice !== undefined)
+              ? String(item.greenPrice)
+              : (item.greenPricePerCarat !== null && item.greenPricePerCarat !== undefined && item.size ? String(item.greenPricePerCarat * item.size) : ''),
+            item.redPricePerCarat !== null && item.redPricePerCarat !== undefined ? String(item.redPricePerCarat) : '',
+            (item.redPrice !== null && item.redPrice !== undefined)
+              ? String(item.redPrice)
+              : (item.redPricePerCarat !== null && item.redPricePerCarat !== undefined && item.size ? String(item.redPricePerCarat * item.size) : ''),
+          ]
+        : []),
     ]);
 
     const csv = [headers, ...rows]
@@ -394,20 +405,21 @@ export function InventoryTable({
               <TableHead className="text-white">Flourence</TableHead>
               <TableHead className="text-white">Price P/Ct</TableHead>
               <TableHead className="text-white">Price</TableHead>
-              <TableHead className="text-white bg-green-600">Green Price P/Ct</TableHead>
-              <TableHead className="text-white bg-green-600">Green Price</TableHead>
-              <TableHead className="text-white bg-red-600">Red Price P/Ct</TableHead>
-              <TableHead className="text-white bg-red-600">Red Price</TableHead>
-              {(isAdmin || userRole === 'employee') && <TableHead className="text-right text-white">Actions</TableHead>}
+              {showTierPrices && (
+                <>
+                  <TableHead className="text-white bg-green-600">Green Price P/Ct</TableHead>
+                  <TableHead className="text-white bg-green-600">Green Price</TableHead>
+                  <TableHead className="text-white bg-red-600">Red Price P/Ct</TableHead>
+                  <TableHead className="text-white bg-red-600">Red Price</TableHead>
+                </>
+              )}
+              {showActions && <TableHead className="text-right text-white">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={
-                  (isAdmin || userRole === 'employee') ? 29 : 
-                  27
-                } className="h-24 text-center">
+                <TableCell colSpan={columnCount} className="h-24 text-center">
                   No inventory items found.
                 </TableCell>
               </TableRow>
@@ -532,23 +544,27 @@ export function InventoryTable({
                     <TableCell>{item.flourence || '-'}</TableCell>
                     <TableCell>${formatNumber(item.pricePerCarat)}</TableCell>
                     <TableCell>${formatNumber(item.finalAmount)}</TableCell>
-                    <TableCell className="bg-green-100">${formatNumber(item.greenPricePerCarat)}</TableCell>
-                    <TableCell className="bg-green-100">
-                      {(item.greenPrice !== null && item.greenPrice !== undefined)
-                        ? `$${formatNumber(item.greenPrice)}`
-                        : (item.greenPricePerCarat !== null && item.greenPricePerCarat !== undefined && item.size
-                          ? `$${formatNumber(item.greenPricePerCarat * item.size)}`
-                          : '-')}
-                    </TableCell>
-                    <TableCell className="bg-red-100">${formatNumber(item.redPricePerCarat)}</TableCell>
-                    <TableCell className="bg-red-100">
-                      {(item.redPrice !== null && item.redPrice !== undefined)
-                        ? `$${formatNumber(item.redPrice)}`
-                        : (item.redPricePerCarat !== null && item.redPricePerCarat !== undefined && item.size
-                          ? `$${formatNumber(item.redPricePerCarat * item.size)}`
-                          : '-')}
-                    </TableCell>
-                    {(isAdmin || userRole === 'employee') && (
+                    {showTierPrices && (
+                      <>
+                        <TableCell className="bg-green-100">${formatNumber(item.greenPricePerCarat)}</TableCell>
+                        <TableCell className="bg-green-100">
+                          {(item.greenPrice !== null && item.greenPrice !== undefined)
+                            ? `$${formatNumber(item.greenPrice)}`
+                            : (item.greenPricePerCarat !== null && item.greenPricePerCarat !== undefined && item.size
+                              ? `$${formatNumber(item.greenPricePerCarat * item.size)}`
+                              : '-')}
+                        </TableCell>
+                        <TableCell className="bg-red-100">${formatNumber(item.redPricePerCarat)}</TableCell>
+                        <TableCell className="bg-red-100">
+                          {(item.redPrice !== null && item.redPrice !== undefined)
+                            ? `$${formatNumber(item.redPrice)}`
+                            : (item.redPricePerCarat !== null && item.redPricePerCarat !== undefined && item.size
+                              ? `$${formatNumber(item.redPricePerCarat * item.size)}`
+                              : '-')}
+                        </TableCell>
+                      </>
+                    )}
+                    {showActions && (
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-2">
                           {onAddToCart && (userRole === 'admin' || userRole === 'employee') && (

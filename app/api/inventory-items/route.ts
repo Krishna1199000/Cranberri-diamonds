@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from '@/lib/session';
 import { PrismaClient, DiamondStatus, Prisma } from '@prisma/client';
+import { stripTierPricesFromItems } from '@/lib/utils/pricing-tiers';
 
 const prisma = new PrismaClient();
 
@@ -13,6 +14,8 @@ interface InventoryItemWhereClause extends Prisma.InventoryItemWhereInput {
 // GET handler to fetch InventoryItems
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    const userRole = session?.role;
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || ""; 
@@ -84,7 +87,11 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' },
         include: { heldByShipment: true }
       });
-      return NextResponse.json({ items, total: items.length, pages: 1 });
+      return NextResponse.json({
+        items: stripTierPricesFromItems(items, userRole),
+        total: items.length,
+        pages: 1,
+      });
     }
 
     // Build orderBy clause
@@ -169,7 +176,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      items: paginatedItems,
+      items: stripTierPricesFromItems(paginatedItems, userRole),
       total,
       pages: Math.ceil(total / take)
     });

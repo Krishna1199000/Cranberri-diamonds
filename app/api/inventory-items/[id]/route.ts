@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient, Prisma, DiamondStatus } from '@prisma/client';
 import { getSession } from '@/lib/session';
+import { stripTierPrices } from '@/lib/utils/pricing-tiers';
 
 const prisma = new PrismaClient();
 
@@ -12,6 +13,7 @@ export async function GET(
   let resolvedParams: { id: string } | null = null;
   try {
     resolvedParams = await params;
+    const session = await getSession();
     const item = await prisma.inventoryItem.findUnique({
       where: { id: resolvedParams.id },
       include: { heldByShipment: true }
@@ -24,7 +26,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(item);
+    return NextResponse.json(stripTierPrices(item, session?.role));
   } catch (error) {
     const itemId = resolvedParams?.id || 'unknown';
     console.error(`Error fetching inventory item ${itemId}:`, error instanceof Error ? error.message : String(error));

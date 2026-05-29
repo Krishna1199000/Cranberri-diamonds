@@ -22,6 +22,39 @@ export function isInventoryStockId(stockId?: string | null): boolean {
   return Boolean(stockId?.trim() && !isLotBStockId(stockId));
 }
 
+export function canSeeTierPrices(userRole: string | undefined): boolean {
+  return userRole === 'admin' || userRole === 'employee';
+}
+
+type TierPriceFields = {
+  greenPricePerCarat?: number | null;
+  greenPrice?: number | null;
+  redPricePerCarat?: number | null;
+  redPrice?: number | null;
+};
+
+export function stripTierPrices<T extends TierPriceFields>(
+  item: T,
+  userRole: string | undefined
+): T {
+  if (canSeeTierPrices(userRole)) return item;
+  return {
+    ...item,
+    greenPricePerCarat: null,
+    greenPrice: null,
+    redPricePerCarat: null,
+    redPrice: null,
+  };
+}
+
+export function stripTierPricesFromItems<T extends TierPriceFields>(
+  items: T[],
+  userRole: string | undefined
+): T[] {
+  if (canSeeTierPrices(userRole)) return items;
+  return items.map((item) => stripTierPrices(item, userRole));
+}
+
 export function getEnteredPrice(item: DocumentItemWithPricing): number {
   return Number(item.enteredPricePerCarat ?? item.pricePerCarat);
 }
