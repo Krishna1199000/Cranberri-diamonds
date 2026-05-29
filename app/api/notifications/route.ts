@@ -27,6 +27,9 @@ export async function GET() {
       return NextResponse.json({ success: true, notifications: [] });
     }
 
+    const isEmployee = session.role === 'employee';
+    const ownerFilter = isEmployee ? { userId: session.userId } : {};
+
     const currentDate = new Date();
     const currentDateOnly = toDateOnly(currentDate);
     const notifications: Array<{
@@ -48,7 +51,7 @@ export async function GET() {
     let pendingInvoices: unknown[] = [];
     try {
       pendingInvoices = await invoiceDelegate.findMany({
-        where: { paymentStatus: 'PENDING' },
+        where: { paymentStatus: 'PENDING', ...ownerFilter },
         select: {
           id: true,
           invoiceNo: true,
@@ -69,6 +72,7 @@ export async function GET() {
       });
     } catch {
       pendingInvoices = await prisma.invoice.findMany({
+        where: ownerFilter,
         select: {
           id: true,
           invoiceNo: true,
@@ -100,7 +104,7 @@ export async function GET() {
     let activeMemos: unknown[] = [];
     try {
       activeMemos = await memoDelegate.findMany({
-        where: { memoStatus: 'ACTIVE' },
+        where: { memoStatus: 'ACTIVE', ...ownerFilter },
         select: {
           id: true,
           memoNo: true,
@@ -123,6 +127,7 @@ export async function GET() {
       });
     } catch {
       activeMemos = await prisma.memo.findMany({
+        where: ownerFilter,
         select: {
           id: true,
           memoNo: true,
