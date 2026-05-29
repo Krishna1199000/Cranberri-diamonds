@@ -3,12 +3,13 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { startOfDay, endOfDay, format } from 'date-fns';
+import { requireAdminAnalytics } from '@/lib/analytics/filters';
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== 'admin' && session.role !== 'employee')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!requireAdminAnalytics(session?.role)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const {

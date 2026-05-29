@@ -31,7 +31,6 @@ const navItems = [
     href: '/employee/sales',
     subItems: [
       { label: 'Sales Dashboard', href: '/employee/sales' },
-      { label: 'Analytics', href: '/employee/analytics' },
       { label: 'Requirements', href: '/employee/requirements' },
       { label: 'Performance', href: '/employee/performance' },
     ]

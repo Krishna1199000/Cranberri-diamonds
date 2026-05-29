@@ -4,6 +4,21 @@ import { getSession } from '@/lib/session';
 
 const prisma = new PrismaClient();
 
+async function getEmployeeCompanyFilter(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true },
+  });
+
+  if (!user?.name) {
+    return null;
+  }
+
+  return {
+    OR: [{ salesExecutive: user.name }, { userId }],
+  };
+}
+
 export async function GET() {
   try {
     const session = await getSession();
@@ -15,8 +30,34 @@ export async function GET() {
       );
     }
 
-    // Fetch all companies for dropdown
+    if (session.role !== 'admin' && session.role !== 'employee') {
+      return NextResponse.json(
+        { success: false, companies: [], message: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
+    if (!session.userId) {
+      return NextResponse.json(
+        { success: false, companies: [], message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.userId;
+
+    let whereClause: Record<string, unknown> = {};
+    if (session.role === 'employee') {
+      const employeeFilter = await getEmployeeCompanyFilter(userId);
+      if (!employeeFilter) {
+        return NextResponse.json({ success: true, companies: [] });
+      }
+      whereClause = employeeFilter;
+    }
+
+    // Fetch companies for dropdown (scoped for employees)
     const shipments = await prisma.shipment.findMany({
+      where: whereClause,
       select: {
         id: true,
         companyName: true,
@@ -88,6 +129,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (session.role !== 'admin' && session.role !== 'employee') {
+      return NextResponse.json(
+        { success: false, found: false, count: 0, results: [], message: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
+    if (!session.userId) {
+      return NextResponse.json(
+        { success: false, found: false, count: 0, results: [], message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.userId;
+
     const { searchTerm, searchType } = await request.json();
 
     if (!searchTerm || !searchType) {
@@ -140,8 +197,19 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Allow employees to search all companies (remove restriction)
-    // No need to filter by userId for employees
+    // Allow employees to search only their assigned / created companies
+    if (session.role === 'employee') {
+      const employeeFilter = await getEmployeeCompanyFilter(userId);
+      if (!employeeFilter) {
+        return NextResponse.json({
+          success: true,
+          found: false,
+          count: 0,
+          results: [],
+        });
+      }
+      whereCondition = { AND: [whereCondition, employeeFilter] };
+    }
 
     console.log('🔍 Company Search:', { searchTerm, searchType, whereCondition });
 
