@@ -4,6 +4,79 @@ import { getSession } from '@/lib/session';
 
 const prisma = new PrismaClient();
 
+export async function GET() {
+  try {
+    const session = await getSession();
+    
+    if (!session) {
+      return NextResponse.json(
+        { success: false, companies: [], message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Fetch all companies for dropdown
+    const shipments = await prisma.shipment.findMany({
+      select: {
+        id: true,
+        companyName: true,
+        ownerName: true,
+        phoneNo: true,
+        email: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        state: true,
+        country: true,
+        postalCode: true,
+      },
+      orderBy: {
+        companyName: 'asc'
+      },
+    });
+
+    // Transform to unique companies (group by company name)
+    const companies = shipments.reduce((acc: any[], shipment) => {
+      const existing = acc.find(c => c.name === shipment.companyName);
+      if (!existing) {
+        acc.push({
+          id: shipment.id,
+          name: shipment.companyName,
+          ownerName: shipment.ownerName || undefined,
+          phoneNo: shipment.phoneNo || undefined,
+          email: shipment.email || undefined,
+          addressLine1: shipment.addressLine1,
+          addressLine2: shipment.addressLine2,
+          city: shipment.city,
+          state: shipment.state,
+          country: shipment.country,
+          postalCode: shipment.postalCode,
+        });
+      }
+      return acc;
+    }, []);
+
+    return NextResponse.json({
+      success: true,
+      companies
+    });
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error fetching companies: ${errorMessage}`);
+    return NextResponse.json(
+      { 
+        success: false, 
+        companies: [], 
+        message: 'Failed to fetch companies' 
+      },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
@@ -67,10 +140,8 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Only search companies created by the current employee if they're not an admin
-    if (session.role === 'employee') {
-      whereCondition.userId = session.userId as string;
-    }
+    // Allow employees to search all companies (remove restriction)
+    // No need to filter by userId for employees
 
     console.log('🔍 Company Search:', { searchTerm, searchType, whereCondition });
 
@@ -125,7 +196,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Company search error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Company search error: ${errorMessage}`);
     return NextResponse.json(
       { 
         success: false, 

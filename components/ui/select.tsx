@@ -24,13 +24,13 @@ function useSelectContext() {
 }
 
 interface SelectProps {
-  value: string
+  value?: string
   onValueChange: (value: string) => void
   children: React.ReactNode
   disabled?: boolean
 }
 
-export function Select({ value, onValueChange, children, disabled = false }: SelectProps) {
+export function Select({ value = "", onValueChange, children, disabled = false }: SelectProps) {
   const [open, setOpen] = React.useState(false)
   const [activeItem, setActiveItem] = React.useState<string | null>(null)
   const selectRef = React.useRef<HTMLDivElement>(null)
@@ -92,10 +92,10 @@ export function SelectTrigger({ children, className, ...props }: SelectTriggerPr
 }
 
 interface SelectValueProps {
-  placeholder: string
+  placeholder?: string
 }
 
-export function SelectValue({ placeholder }: SelectValueProps) {
+export function SelectValue({ placeholder = "Select…" }: SelectValueProps) {
   const { value } = useSelectContext()
 
   return <span className="text-sm">{value ? value : <span className="text-muted-foreground">{placeholder}</span>}</span>

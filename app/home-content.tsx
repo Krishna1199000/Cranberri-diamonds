@@ -964,7 +964,16 @@ export default function Home() {
                 animate={isContactInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
                 transition={{ delay: 0.5 }}
               >
-                16, Chandrakant Bhavan, Marolnaka, Andheri (East) Mumbai 400 059
+                <div className="space-y-2">
+                  <div>
+                    <div className="font-medium">Mumbai Head Office</div>
+                    <div>Swastik Disa Corporate Park #517, Nityanand Nagar, Ghatkopar West, Mumbai, Maharashtra 400086</div>
+                  </div>
+                  <div>
+                    <div className="font-medium">Los Angeles Office</div>
+                    <div>550 S Hill St #705, Los Angeles, CA 90013, USA</div>
+                  </div>
+                </div>
               </motion.p>
 
               <motion.p

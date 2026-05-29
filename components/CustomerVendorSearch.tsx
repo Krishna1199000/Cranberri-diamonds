@@ -195,77 +195,32 @@ export function CustomerVendorSearch() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Badge variant={searchResults.found ? "default" : "secondary"}>
-                  {searchResults.found ? "FOUND" : "NOT FOUND"}
-                </Badge>
-                <span className="text-sm text-gray-600">
-                  {searchResults.count} result(s) for &ldquo;{searchTerm}&rdquo;
-                </span>
+              <div className="flex items-center justify-center gap-4 py-8">
+                {searchResults.found ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <CheckCircle className="h-16 w-16 text-green-500" />
+                    <Badge variant="default" className="text-lg px-4 py-2">
+                      FOUND
+                    </Badge>
+                    <span className="text-sm text-gray-600">
+                      {searchResults.count} result(s) found for &ldquo;{searchTerm}&rdquo;
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3">
+                    <XCircle className="h-16 w-16 text-red-500" />
+                    <Badge variant="secondary" className="text-lg px-4 py-2">
+                      NOT FOUND
+                    </Badge>
+                    <span className="text-sm text-gray-600">
+                      No customer/vendor found for &ldquo;{searchTerm}&rdquo;
+                    </span>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Try a different search term or search type.
+                    </p>
+                  </div>
+                )}
               </div>
-
-              {searchResults.found && searchResults.results.length > 0 && (
-                <div className="space-y-4">
-                  {searchResults.results.map((result) => (
-                    <Card key={result.id} className="border-l-4 border-l-green-500">
-                      <CardContent className="pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Building className="h-4 w-4 text-gray-500" />
-                              <span className="font-semibold">{result.companyName}</span>
-                            </div>
-                            {result.ownerName && (
-                              <div className="text-sm text-gray-600">
-                                Owner: {result.ownerName}
-                              </div>
-                            )}
-                            <div className="flex items-center gap-2">
-                              <Phone className="h-4 w-4 text-gray-500" />
-                              <span className="text-sm">{result.phoneNo}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-4 w-4 text-gray-500" />
-                              <span className="text-sm">{result.email}</span>
-                            </div>
-                            {result.website && (
-                              <div className="flex items-center gap-2">
-                                <Globe className="h-4 w-4 text-gray-500" />
-                                <span className="text-sm">{result.website}</span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <div className="text-sm">
-                              <div className="font-medium">Address:</div>
-                              <div className="text-gray-600">
-                                {result.addressLine1}
-                                {result.addressLine2 && <>, {result.addressLine2}</>}
-                                <br />
-                                {result.city}, {result.state} {result.postalCode}
-                                <br />
-                                {result.country}
-                              </div>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Created: {new Date(result.createdAt).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-
-              {!searchResults.found && (
-                <div className="text-center py-8 text-gray-500">
-                  <XCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <p>No customer/vendor found with the specified {searchOptions.find(opt => opt.value === searchType)?.label.toLowerCase()}.</p>
-                  <p className="text-sm mt-2">Try a different search term or search type.</p>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>

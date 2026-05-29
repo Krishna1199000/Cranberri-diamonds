@@ -148,7 +148,16 @@ const Footer = () => {
             <h4 className="font-medium text-lg mb-4">Contact Us</h4>
             <div className="space-y-3">
               <p className="text-sm text-gray-600">
-                16, Chandrakant Bhavan, Marolnaka, Andheri (East) Mumbai 400 059
+                <div className="space-y-2">
+                  <div>
+                    <div className="font-medium">Mumbai Head Office</div>
+                    <div>Swastik Disa Corporate Park #517, Nityanand Nagar, Ghatkopar West, Mumbai, Maharashtra 400086</div>
+                  </div>
+                  <div>
+                    <div className="font-medium">Los Angeles Office</div>
+                    <div>550 S Hill St #705, Los Angeles, CA 90013, USA</div>
+                  </div>
+                </div>
               </p>
               <p className="text-sm text-gray-600">
                 <Link 

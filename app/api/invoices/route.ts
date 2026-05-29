@@ -1,6 +1,6 @@
 // app/api/invoices/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { numberToWords, generateInvoiceNumber } from '@/lib/utils';
 import { generateInvoicePDFBuffer } from '@/lib/pdf-utils';
 import { generateInvoicePDFBufferServerless } from '@/lib/pdf-utils-serverless';
@@ -9,11 +9,17 @@ import { sendInvoiceEmail } from '@/lib/email';
 import { createPaymentReminderNotification } from '@/lib/notification-scheduler';
 import { getSession } from '@/lib/session';
 import { invoiceFormSchema } from '@/lib/validators/invoice';
+import {
+  collectInventoryStockIds,
+  fetchInventoryTierMap,
+  normalizeItemsToAskingPrices,
+  validateInventoryTierPricing,
+} from '@/lib/utils/pricing-tiers';
 
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     const userId = session?.userId as string | undefined;
@@ -23,20 +29,97 @@ export async function GET() {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    let whereClause = {};
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const employeeIds = searchParams.get('employeeIds')?.split(',').filter(Boolean) || [];
+    const companies = searchParams.get('companies')?.split(',').filter(Boolean) || [];
+    const states = searchParams.get('states')?.split(',').filter(Boolean) || [];
+    const shapes = searchParams.get('shapes')?.split(',').filter(Boolean) || [];
+    const colors = searchParams.get('colors')?.split(',').filter(Boolean) || [];
+    const clarities = searchParams.get('clarities')?.split(',').filter(Boolean) || [];
+    const labs = searchParams.get('labs')?.split(',').filter(Boolean) || [];
+    const caratMin = searchParams.get('caratMin');
+    const caratMax = searchParams.get('caratMax');
+    const dateStart = searchParams.get('dateStart');
+    const dateEnd = searchParams.get('dateEnd');
 
+    const whereClause: Prisma.InvoiceWhereInput = {};
+
+    // Role-based filtering
     if (userRole === 'employee') {
-        whereClause = { userId: userId };
-    } 
-    // Admins (or other roles) will have an empty whereClause, fetching all invoices.
+        whereClause.userId = userId;
+    } else if (userRole === 'admin' && employeeIds.length > 0) {
+        whereClause.userId = { in: employeeIds };
+    }
+
+    // Company filter
+    if (companies.length > 0) {
+        whereClause.companyName = { in: companies };
+    }
+
+    // State filter
+    if (states.length > 0) {
+        whereClause.state = { in: states };
+    }
+
+    // Date range filter
+    if (dateStart || dateEnd) {
+        whereClause.date = {};
+        if (dateStart) {
+            whereClause.date.gte = new Date(dateStart);
+        }
+        if (dateEnd) {
+            const endDate = new Date(dateEnd);
+            endDate.setHours(23, 59, 59, 999);
+            whereClause.date.lte = endDate;
+        }
+    }
+
+    // Item-based filters (shape, color, clarity, lab, carat)
+    const itemFilters: Prisma.InvoiceItemWhereInput = {};
+    if (shapes.length > 0) {
+        itemFilters.shape = { in: shapes };
+    }
+    if (colors.length > 0) {
+        itemFilters.color = { in: colors };
+    }
+    if (clarities.length > 0) {
+        itemFilters.clarity = { in: clarities };
+    }
+    if (labs.length > 0) {
+        itemFilters.lab = { in: labs };
+    }
+    if (caratMin || caratMax) {
+        itemFilters.carat = {};
+        if (caratMin) {
+            itemFilters.carat.gte = parseFloat(caratMin);
+        }
+        if (caratMax) {
+            itemFilters.carat.lte = parseFloat(caratMax);
+        }
+    }
+
+    // If any item filters exist, add them to the where clause
+    if (Object.keys(itemFilters).length > 0) {
+        whereClause.items = {
+            some: itemFilters
+        };
+    }
 
     const invoices = await prisma.invoice.findMany({
-      where: whereClause, // Apply the filter conditionally
+      where: whereClause,
       orderBy: {
         invoiceNo: 'desc'
       },
       include: {
-        items: true // Keep including items
+        items: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
     
@@ -75,6 +158,31 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: `Invalid input: ${errorMessage}`, details: validation.error.errors }, { status: 400 });
         }
         const validatedData = validation.data; // Contains shipmentId now
+
+        const stockIds = collectInventoryStockIds(validatedData.items);
+
+        if (stockIds.length > 0) {
+          const inventoryByStockId = await fetchInventoryTierMap(stockIds, (args) =>
+            prisma.inventoryItem.findMany(args)
+          );
+
+          const tierValidation = validateInventoryTierPricing(
+            validatedData.items,
+            inventoryByStockId,
+            userRole
+          );
+          if (!tierValidation.ok) {
+            return NextResponse.json(
+              { error: tierValidation.error },
+              { status: tierValidation.status }
+            );
+          }
+
+          validatedData.items = normalizeItemsToAskingPrices(
+            validatedData.items,
+            inventoryByStockId
+          );
+        }
         
         // --- Transaction for fetching latest invoice number and creating new one ---
         const createdInvoice = await prisma.$transaction(async (tx) => {
@@ -154,6 +262,7 @@ export async function POST(request: NextRequest) {
                   carat: Number(item.carat) || 0,
                   color: item.color,
                   clarity: item.clarity,
+                  shape: item.shape || null,
                   lab: item.lab,
                   reportNo: item.reportNo,
                   pricePerCarat: Number(item.pricePerCarat) || 0,
@@ -179,11 +288,14 @@ export async function POST(request: NextRequest) {
                 description: `Sale recorded from Invoice ${invoice.invoiceNo}`, // Link description
                 invoiceId: invoice.id, // Link sales entry to the invoice for cascade deletion
                 // trackingId, shipmentCarrier, profit, profitMargin, purchaseValue remain null for now
+                state: selectedShipment.state, // Add state from shipment
                 saleItems: {
                   create: invoice.items.map(invItem => ({
                     carat: invItem.carat, 
                     color: invItem.color,
                     clarity: invItem.clarity,
+                    shape: invItem.shape || null, // Add shape from invoice item
+                    lab: invItem.lab || null, // Add lab from invoice item
                     certificateNo: invItem.reportNo, // Map invoice reportNo to sale certificateNo
                     pricePerCarat: invItem.pricePerCarat,
                     totalValue: invItem.total, // Map invoice item total to sale item totalValue
@@ -244,7 +356,7 @@ export async function POST(request: NextRequest) {
                   } catch (serverlessError) {
                     console.error('❌ All PDF generation methods failed');
                     console.error('jsPDF error:', jspdfError);
-                    console.error('Puppeteer error:', puppeteerError);
+                    console.error('Puppeteer error:', puppeteerError); 
                     console.error('Resend error:', resendError);
                     console.error('Serverless error:', serverlessError);
                     throw new Error('All PDF generation methods failed');

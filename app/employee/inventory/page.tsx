@@ -5,9 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { InventorySearch } from "@/components/inventory/InventorySearch";
 import { EmployeeLayout } from "@/components/layout/EmployeeLayout";
+import { toast } from "sonner";
 import { FilterState } from "@/components/inventory/AdvancedFilters";
 // Import Prisma type instead of utils/inventory
 import type { InventoryItem as PrismaInventoryItem } from "@prisma/client";
+import { addToCart, buildCartStoneFromInventory, getCart } from "@/lib/utils/cart";
 
 // Use Prisma type
 type InventoryItemType = PrismaInventoryItem;
@@ -22,6 +24,7 @@ export default function EmployeeInventoryPage() {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [userId, setUserId] = useState<string>("");
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
     carat: "",
     colors: [],
@@ -33,6 +36,19 @@ export default function EmployeeInventoryPage() {
   
   // Fetch InventoryItems
   useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (res.ok) {
+          const user = await res.json();
+          setUserId(user.id);
+        }
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+      }
+    };
+    fetchCurrentUser();
+
     const fetchItems = async () => {
       setIsLoading(true);
       try {
@@ -100,13 +116,34 @@ export default function EmployeeInventoryPage() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
+
+  const handleAddToCart = (item: InventoryItemType) => {
+    if (!userId) {
+      toast.error("Unable to add to cart: user session missing.");
+      return;
+    }
+
+    const cartItem = buildCartStoneFromInventory(item);
+    if (!cartItem) {
+      toast.error("This stone is missing pricing tiers and cannot be added.");
+      return;
+    }
+
+    if (getCart(userId).some((stone) => stone.id === item.id)) {
+      toast.info("Stone already in cart");
+      return;
+    }
+
+    addToCart(userId, cartItem);
+    toast.success("Stone added to cart");
+  };
     
   return (
     <EmployeeLayout>
       <Card>
         <CardHeader>
           <CardTitle>Inventory</CardTitle>
-          <CardDescription>Browse available items and check their status.</CardDescription>
+          <CardDescription>Browse available items, add stones to cart, then open Cart from the header to generate an invoice or memo.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -120,7 +157,7 @@ export default function EmployeeInventoryPage() {
               isAdmin={false} // Employee view is not admin
               userRole="employee"
               onPageChange={handlePageChange}
-              // No onEdit, onStatusChange, onSelect for employee view (as per original code)
+              onAddToCart={handleAddToCart}
             />
           </div>
         </CardContent>

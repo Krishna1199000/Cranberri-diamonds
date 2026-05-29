@@ -5,10 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { shapes, additionalShapes, colors, clarities, cuts, labs, polishes, symms, flours, locations } from './data';
 import Image from 'next/image';
-import { LoadingSpinner } from "@/components/LoadingSpinner" // Import the loading component
+import { LoadingSpinner } from "@/components/LoadingSpinner"; // Import the loading component
+import { AdvancedFilters, FilterState } from "@/components/inventory/AdvancedFilters";
+import { Filter } from "lucide-react";
 
 export interface DiamondSearchProps {
   onSearch?: (params: URLSearchParams) => void;
@@ -33,6 +36,15 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [othersExpanded, setOthersExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+    carat: "",
+    colors: [],
+    clarities: [],
+    shapes: [],
+    sortBy: "",
+    sortOrder: 'desc'
+  });
 
   const handleShapeClick = (shapeId: string, isOthersButton: boolean) => {
     if (isOthersButton) {
@@ -61,25 +73,48 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
     });
   };
 
-  const handleSearch = async () => {
+  const handleFiltersChange = (newFilters: FilterState) => {
+    setAdvancedFilters(newFilters);
+    // Don't auto-trigger search on filter selection.
+    // Search should happen only when user clicks "Search Diamonds".
+  };
+
+  const handleSearchWithFilters = async (filters?: FilterState) => {
+    const activeFilters = filters || advancedFilters;
     setLoading(true);
     try {
       const searchParams = new URLSearchParams();
 
-      if (selectedShapes.length > 0) searchParams.set('shapes', selectedShapes.join(','));
-      if (caratFrom) searchParams.set('caratFrom', caratFrom);
-      if (caratTo) searchParams.set('caratTo', caratTo);
+      // Use advanced filters if available, otherwise use existing selections
+      const shapesToUse = activeFilters.shapes.length > 0 ? activeFilters.shapes : selectedShapes;
+      const colorsToUse = activeFilters.colors.length > 0 ? activeFilters.colors : selectedColors;
+      const claritiesToUse = activeFilters.clarities.length > 0 ? activeFilters.clarities : selectedClarities;
+
+      if (shapesToUse.length > 0) searchParams.set('shapes', shapesToUse.join(','));
+      if (activeFilters.carat) {
+        searchParams.set('caratFrom', activeFilters.carat);
+        searchParams.set('caratTo', activeFilters.carat);
+      } else {
+        if (caratFrom) searchParams.set('caratFrom', caratFrom);
+        if (caratTo) searchParams.set('caratTo', caratTo);
+      }
       if (stoneId) searchParams.set('stoneId', stoneId);
       if (priceFrom) searchParams.set('priceFrom', priceFrom);
       if (priceTo) searchParams.set('priceTo', priceTo);
-      if (selectedColors.length > 0) searchParams.set('colors', selectedColors.join(','));
-      if (selectedClarities.length > 0) searchParams.set('clarities', selectedClarities.join(','));
+      if (colorsToUse.length > 0) searchParams.set('colors', colorsToUse.join(','));
+      if (claritiesToUse.length > 0) searchParams.set('clarities', claritiesToUse.join(','));
       if (selectedCuts.length > 0) searchParams.set('cuts', selectedCuts.join(','));
       if (selectedLabs.length > 0) searchParams.set('labs', selectedLabs.join(','));
       if (selectedPolishes.length > 0) searchParams.set('polishes', selectedPolishes.join(','));
       if (selectedSymms.length > 0) searchParams.set('symms', selectedSymms.join(','));
       if (selectedFlours.length > 0) searchParams.set('flours', selectedFlours.join(','));
       if (selectedLocations.length > 0) searchParams.set('locations', selectedLocations.join(','));
+      
+      // Add sort parameters
+      if (activeFilters.sortBy) {
+        searchParams.set('sortBy', activeFilters.sortBy);
+        searchParams.set('sortOrder', activeFilters.sortOrder);
+      }
 
       if (onSearch) {
         onSearch(searchParams);
@@ -94,6 +129,10 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
     }
   };
 
+  const handleSearch = async () => {
+    await handleSearchWithFilters();
+  };
+
   // If loading is true, render the loading component
   if (loading) {
     return <LoadingSpinner />;
@@ -106,6 +145,7 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
       className={`bg-white rounded-xl shadow-lg p-8 ${className}`}
     >
       <div className="space-y-8">
+
         {/* Shapes Section */}
         <section>
           <Label className="text-lg font-semibold mb-4 block">Diamond Shapes</Label>
@@ -407,6 +447,28 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
           </div>
         </section>
 
+        {/* Advanced Filters Section - Above Search Button */}
+        <section className="border-t pt-6">
+          <div className="mb-4">
+            <Button 
+              variant="outline"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="w-full md:w-auto"
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              {showAdvancedFilters ? 'Hide Advanced Filters' : 'Advanced Filters'}
+            </Button>
+          </div>
+          {showAdvancedFilters && (
+            <div className="mb-6">
+              <AdvancedFilters 
+                onFiltersChange={handleFiltersChange}
+                initialFilters={advancedFilters}
+              />
+            </div>
+          )}
+        </section>
+
         {/* Action Buttons */}
         <section className="flex justify-center space-x-4 pt-6">
           <motion.button
@@ -420,10 +482,6 @@ export function DiamondSearch({ onSearch, className = '' }: DiamondSearchProps) 
           >
             {loading ? 'Searching...' : 'Search Diamonds'}
           </motion.button>
-
-          
-
-          
         </section>
       </div>
     </motion.div>

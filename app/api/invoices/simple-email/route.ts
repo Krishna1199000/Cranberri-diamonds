@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
                   <ul>
                       <li><strong>Email:</strong> accounts@cranberridiamonds.in</li>
                       <li><strong>Website:</strong> www.cranberridiamonds.in</li>
-                      <li><strong>Address:</strong> B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India</li>
+                      <li><strong>Address:</strong> Swastik Disa Corporate Park #517, Nityanand Nagar, Ghatkopar West, Mumbai, Maharashtra 400086</li>
                   </ul>
                   
                   <p>We truly appreciate your business and look forward to serving you again. Thank you for trusting Cranberri Diamonds with your diamond needs.</p>

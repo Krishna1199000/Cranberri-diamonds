@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, ArrowLeft } from "lucide-react";
 import { EmployeeLayout } from "@/components/layout/EmployeeLayout";
+import Link from "next/link";
 
 interface Report {
   id: string;
@@ -126,7 +127,15 @@ export default function EmployeePerformance() {
   return (
     <EmployeeLayout>
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Performance Report</h1>
+        <div className="flex items-center gap-4 mb-8">
+          <Link href="/employee/sales">
+            <Button variant="outline" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Sales Dashboard
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold">Performance Report</h1>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Report Form */}

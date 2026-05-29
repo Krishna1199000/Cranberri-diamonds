@@ -5,15 +5,18 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { InventorySearch } from "@/components/inventory/InventorySearch";
 import { AddEditInventoryForm, InventoryItemFormData } from "@/components/inventory/AddEditInventoryForm";
 import { StatusChangeDialog } from "@/components/inventory/StatusChangeDialog";
+import { ExcelUpload } from "@/components/inventory/ExcelUpload";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { FilterState } from "@/components/inventory/AdvancedFilters";
 
 // Import actual Prisma types
 import type { InventoryItem as PrismaInventoryItem, Shipment as PrismaShipment } from "@prisma/client"; 
+import { addToCart, buildCartStoneFromInventory, getCart } from "@/lib/utils/cart";
 
 // Use the Prisma type consistently
 type InventoryItemType = PrismaInventoryItem;
@@ -34,7 +37,7 @@ export default function AdminInventoryPage() {
   const [pageSize] = useState(10);
   const [refreshKey, setRefreshKey] = useState(0);
   
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isExcelUploadOpen, setIsExcelUploadOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItemType | undefined>(undefined); // Use correct type
@@ -44,6 +47,7 @@ export default function AdminInventoryPage() {
   const [shipments, setShipments] = useState<ShipmentOption[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [userId, setUserId] = useState<string>("");
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
     carat: "",
     colors: [],
@@ -55,6 +59,20 @@ export default function AdminInventoryPage() {
   
   // Fetch shipments for the dropdown
   useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (res.ok) {
+          const user = await res.json();
+          setUserId(user.id);
+        }
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+      }
+    };
+
+    fetchCurrentUser();
+
     const fetchShipments = async () => {
       try {
         const response = await fetch("/api/shipments");
@@ -136,31 +154,9 @@ export default function AdminInventoryPage() {
     fetchItems();
   }, [currentPage, pageSize, searchQuery, statusFilter, advancedFilters, refreshKey]);
   
-  const handleAddInventoryItem = async (data: InventoryItemFormData) => { 
-    setFormSubmitting(true);
-    try {
-      const response = await fetch("/api/inventory-items", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to add inventory item");
-      }
-      
-      setCurrentPage(1);
-      setRefreshKey(prevKey => prevKey + 1);
-    } catch (error) {
-      console.error("Error adding inventory item:", error);
-      alert("Failed to add inventory item: " + (error as Error).message);
-    } finally {
-      setFormSubmitting(false);
-    }
+  const handleUploadSuccess = () => {
+    setCurrentPage(1);
+    setRefreshKey(prevKey => prevKey + 1);
   };
   
   const handleEditInventoryItem = async (data: InventoryItemFormData) => {
@@ -183,6 +179,8 @@ export default function AdminInventoryPage() {
       }
       
       setRefreshKey(prevKey => prevKey + 1);
+      setIsEditDialogOpen(false); // Close dialog after successful update
+      setSelectedItem(undefined); // Clear selected item
 
     } catch (error) {
       console.error("Error updating inventory item:", error);
@@ -276,6 +274,27 @@ export default function AdminInventoryPage() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
+
+  const handleAddToCart = (item: InventoryItemType) => {
+    if (!userId) {
+      toast.error("Unable to add to cart: user session missing.");
+      return;
+    }
+
+    const cartItem = buildCartStoneFromInventory(item);
+    if (!cartItem) {
+      toast.error("This stone is missing pricing tiers and cannot be added.");
+      return;
+    }
+
+    if (getCart(userId).some((stone) => stone.id === item.id)) {
+      toast.info("Stone already in cart");
+      return;
+    }
+
+    addToCart(userId, cartItem);
+    toast.success("Stone added to cart");
+  };
   
   return (
     <AdminLayout>
@@ -289,13 +308,10 @@ export default function AdminInventoryPage() {
               </CardDescription>
             </div>
             <Button 
-              onClick={() => {
-                setSelectedItem(undefined);
-                setIsAddDialogOpen(true);
-              }}
+              onClick={() => setIsExcelUploadOpen(true)}
               className="ml-auto mr-2" 
             >
-              <Plus className="mr-2 h-4 w-4" /> Add Inventory
+              <Plus className="mr-2 h-4 w-4" /> Upload Excel
             </Button>
             <Button
               variant="outline"
@@ -328,20 +344,18 @@ export default function AdminInventoryPage() {
                   setSelectedItem(item); // Works: assigns InventoryItemType to state
                   setIsStatusDialogOpen(true);
                 }}
+                onAddToCart={handleAddToCart}
               />
             </div>
           </CardContent>
         </Card>
       </div>
       
-      {isAddDialogOpen && (
-        <AddEditInventoryForm 
-          isOpen={isAddDialogOpen}
-          onClose={() => setIsAddDialogOpen(false)}
-          onSubmit={handleAddInventoryItem}
-          isLoading={formSubmitting}
-          shipments={shipments}
-          // item prop is implicitly undefined here (Add mode)
+      {isExcelUploadOpen && (
+        <ExcelUpload
+          isOpen={isExcelUploadOpen}
+          onClose={() => setIsExcelUploadOpen(false)}
+          onUploadSuccess={handleUploadSuccess}
         />
       )}
       

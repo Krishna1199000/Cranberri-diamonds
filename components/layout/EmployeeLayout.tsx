@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
-import { Menu, Home, Search, Package, BarChart, DollarSign, Box, LogOut, FileText } from 'lucide-react';
+import { Menu, Home, Search, Package, DollarSign, Box, LogOut, FileText, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserProfileDropdown } from '@/components/UserProfileDropdown';
+import { NotificationProvider } from '@/components/notifications/NotificationProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,12 +25,37 @@ interface EmployeeLayoutProps {
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
   { label: 'Search Diamond', icon: Search, href: '/employee' },
-  { label: 'Inventory', icon: Box, href: '/employee/inventory' },
+  { 
+    label: 'Sales & Performance', 
+    icon: DollarSign, 
+    href: '/employee/sales',
+    subItems: [
+      { label: 'Sales Dashboard', href: '/employee/sales' },
+      { label: 'Analytics', href: '/employee/analytics' },
+      { label: 'Requirements', href: '/employee/requirements' },
+      { label: 'Performance', href: '/employee/performance' },
+    ]
+  },
+  { 
+    label: 'Inventory & Products', 
+    icon: Box, 
+    href: '/employee/inventory',
+    subItems: [
+      { label: 'Inventory', href: '/employee/inventory' },
+      { label: 'Parcel Goods', href: '/parcel-goods' },
+    ]
+  },
   { label: 'Cust-Vendor', icon: Package, href: '/dashboard' },
-  { label: 'Performance', icon: BarChart, href: '/employee/performance' },
-  { label: 'Sales', icon: DollarSign, href: '/employee/sales' },
-  { label: 'Parcel-Goods', icon: Box, href: '/parcel-goods' },
-  { label: 'Invoices', icon: FileText, href: '/invoices' },
+  { 
+    label: 'Invoices & Memos', 
+    icon: FileText, 
+    href: '/invoices',
+    subItems: [
+      { label: 'Invoices', href: '/invoices' },
+      { label: 'Memos', href: '/memos' },
+      { label: 'Cart', href: '/cart' },
+    ]
+  },
 ];
 
 export function EmployeeLayout({ children }: EmployeeLayoutProps) {
@@ -82,6 +108,7 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
   }
 
   return (
+    <NotificationProvider>
     <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Horizontal Header Navigation */}
       <header className="sticky top-0 z-50 w-full bg-white dark:bg-gray-800 shadow-md print:hidden">
@@ -96,7 +123,57 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
           {/* Desktop Navigation Links - Centered and spaced */}
           <nav className="hidden md:flex flex-1 justify-center items-center space-x-6">
             {navItems.map((item) => {
-              const isActive = pathname === item.href;
+              // For items with subItems, only check subItems for active state
+              // For items without subItems, only check exact match
+              let isActive = false;
+              if (item.subItems) {
+                // Only active if a subItem matches
+                isActive = item.subItems.some(sub => 
+                  pathname === sub.href || pathname.startsWith(sub.href + '/')
+                );
+              } else {
+                // For items without subItems, only exact match (no sub-paths)
+                isActive = pathname === item.href;
+              }
+              
+              if (item.subItems) {
+                return (
+                  <DropdownMenu key={item.label}>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className={clsx(
+                          "flex items-center space-x-1 text-sm font-medium transition-colors whitespace-nowrap",
+                          isActive
+                            ? "text-primary dark:text-primary-foreground font-semibold"
+                            : "text-foreground/70 dark:text-foreground/70 hover:text-primary dark:hover:text-primary-foreground"
+                        )}
+                      >
+                        <item.icon className={clsx("h-4 w-4", isActive ? "text-primary dark:text-primary-foreground" : "text-foreground/70 dark:text-foreground/70")}/>
+                        <span>{item.label}</span>
+                        <ChevronDown className="h-3 w-3 ml-1" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center">
+                      {item.subItems.map((subItem) => {
+                        const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/');
+                        return (
+                          <DropdownMenuItem key={subItem.label} asChild>
+                            <Link 
+                              href={subItem.href}
+                              className={clsx(
+                                isSubActive && "bg-primary/10 text-primary"
+                              )}
+                            >
+                              {subItem.label}
+                            </Link>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              }
+              
               return (
                 <Link
                   key={item.label}
@@ -137,7 +214,48 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {navItems.map((item) => {
-                    const isActive = pathname === item.href;
+                    // For items with subItems, only check subItems for active state
+                    // For items without subItems, only check exact match
+                    let isActive = false;
+                    if (item.subItems) {
+                      // Only active if a subItem matches
+                      isActive = item.subItems.some(sub => 
+                        pathname === sub.href || pathname.startsWith(sub.href + '/')
+                      );
+                    } else {
+                      // For items without subItems, only exact match (no sub-paths)
+                      isActive = pathname === item.href;
+                    }
+                    
+                    if (item.subItems) {
+                      return (
+                        <div key={item.label}>
+                          <div className={clsx(
+                            "px-2 py-1.5 text-sm font-semibold",
+                            isActive && "text-primary"
+                          )}>
+                            {item.label}
+                          </div>
+                          {item.subItems.map((subItem) => {
+                            const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/');
+                            return (
+                              <DropdownMenuItem key={subItem.label} asChild>
+                                <Link href={subItem.href} className={clsx(
+                                    "flex items-center space-x-2 pl-6", 
+                                    isSubActive 
+                                        ? "text-primary dark:text-primary-foreground font-semibold" 
+                                        : "text-foreground/80 dark:text-foreground/80"
+                                    )}
+                                >
+                                  <span>{subItem.label}</span>
+                                </Link>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <DropdownMenuItem key={item.label} asChild>
                         <Link href={item.href} className={clsx(
@@ -173,5 +291,6 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
            © {new Date().getFullYear()} Cranberri Diamond
        </footer> */}
     </div>
+    </NotificationProvider>
   );
 } 

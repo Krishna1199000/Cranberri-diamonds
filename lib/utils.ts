@@ -6,13 +6,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number | string): string {
+export function formatCurrency(amount: number | string | null | undefined): string {
+  if (amount === null || amount === undefined) return '-';
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  if (isNaN(num)) return '0.00';
+  if (isNaN(num)) return '-';
   return num.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+}
+
+export function formatDate(date: Date | string, formatStr?: string): string {
+  const d = new Date(date);
+  if (formatStr) {
+    return format(d, formatStr);
+  }
+  return format(d, 'PPP'); // Default to 'January 1st, 2023' format
 }
 
 export function formatDateWithSuffix(date: Date | string): string {
@@ -199,6 +208,35 @@ export function generateMemoNumber(lastMemoNo: string | null | undefined, memoDa
   const nextLetter = 'A';
   const paddedNum = nextNum.toString().padStart(4, '0');
   return `${prefix}${paddedNum}${nextLetter}/${datePart}`;
+}
+
+// Generate Jangad No for Delivery Challan (001A, 001B, 002A, etc.)
+export function generateJangadNumber(lastJangadNo: string | null | undefined): string {
+  if (!lastJangadNo) {
+    return '001A';
+  }
+
+  // Parse the format: 001A, 001B, 002A, etc.
+  const match = lastJangadNo.match(/^(\d+)([A-Z])$/);
+  
+  if (!match) {
+    // If format doesn't match, start from 001A
+    return '001A';
+  }
+
+  const numberPart = parseInt(match[1], 10);
+  const letterPart = match[2];
+  const nextLetterCode = letterPart.charCodeAt(0);
+
+  // If current letter is 'Z', increment number and reset to 'A'
+  if (letterPart === 'Z') {
+    const nextNumber = numberPart + 1;
+    return `${nextNumber.toString().padStart(3, '0')}A`;
+  }
+
+  // Otherwise, increment letter
+  const nextLetter = String.fromCharCode(nextLetterCode + 1);
+  return `${numberPart.toString().padStart(3, '0')}${nextLetter}`;
 }
 
 export function extractTokenFromCookies(request: Request): string | null {

@@ -1,164 +1,256 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getSession } from '@/lib/session';
 
 const prisma = new PrismaClient();
 
-// GET: Fetch notifications for the logged-in user
+function toDateOnly(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function isOverdue(expiryDate: Date, currentDateOnly: Date): boolean {
+  return currentDateOnly > toDateOnly(expiryDate);
+}
+
 export async function GET() {
   try {
     const session = await getSession();
-    const userId = session?.userId as string | undefined;
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    if (!session?.userId) {
+      return NextResponse.json(
+        { success: false, notifications: [], message: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
-    let notifications = await prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        invoice: {
-          select: {
-            invoiceNo: true,
-            companyName: true,
-            totalAmount: true,
-          }
-        }
-      }
+    if (session.role !== 'admin' && session.role !== 'employee') {
+      return NextResponse.json({ success: true, notifications: [] });
+    }
+
+    const currentDate = new Date();
+    const currentDateOnly = toDateOnly(currentDate);
+    const notifications: Array<{
+      id: string;
+      type: 'invoice' | 'memo';
+      title: string;
+      clientName: string;
+      documentNumber: string;
+      stoneSummary: string;
+      issueDate: Date;
+      daysOverdue: number;
+      amount: number;
+      priority: 'high' | 'medium' | 'low';
+    }> = [];
+
+    const invoiceDelegate = prisma.invoice as unknown as {
+      findMany: (args: unknown) => Promise<unknown[]>;
+    };
+    let pendingInvoices: unknown[] = [];
+    try {
+      pendingInvoices = await invoiceDelegate.findMany({
+        where: { paymentStatus: 'PENDING' },
+        select: {
+          id: true,
+          invoiceNo: true,
+          companyName: true,
+          totalAmount: true,
+          date: true,
+          dueDate: true,
+          items: {
+            select: {
+              description: true,
+              carat: true,
+              color: true,
+              clarity: true,
+            },
+          },
+        },
+        orderBy: { dueDate: 'asc' },
+      });
+    } catch {
+      pendingInvoices = await prisma.invoice.findMany({
+        select: {
+          id: true,
+          invoiceNo: true,
+          companyName: true,
+          totalAmount: true,
+          date: true,
+          dueDate: true,
+          items: {
+            select: {
+              description: true,
+              carat: true,
+              color: true,
+              clarity: true,
+            },
+          },
+        },
+        orderBy: { dueDate: 'asc' },
+      });
+    }
+
+    const overdueInvoices = pendingInvoices.filter((invoice) => {
+      const typed = invoice as { dueDate: Date };
+      return typed.dueDate && isOverdue(new Date(typed.dueDate), currentDateOnly);
     });
 
-    // If no notifications exist, create 3 dummy notifications for demo purposes
-    if (notifications.length === 0) {
-      await prisma.notification.createMany({
-        data: [
-          {
-            userId,
-            type: 'payment_reminder',
-            title: 'Payment Reminder',
-            message: 'Payment reminder for invoice CD-0095A from ABC Diamonds Ltd. Amount: ₹2,50,000.00',
-            read: false,
-            dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-          },
-          {
-            userId,
-            type: 'system',
-            title: 'New Order Received',
-            message: 'New diamond order received from XYZ Jewelers. Order value: ₹1,85,000.00. Please review and process.',
-            read: false,
-            dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-          },
-          {
-            userId,
-            type: 'payment_reminder',
-            title: 'Overdue Payment Alert',
-            message: 'Payment overdue for invoice CD-0092B from Diamond Enterprises. Amount: ₹3,25,500.00. Please follow up immediately.',
-            read: false,
-            dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-          }
-        ]
-      });
-
-      // Fetch the newly created notifications
-      notifications = await prisma.notification.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          invoice: {
+    const memoDelegate = prisma.memo as unknown as {
+      findMany: (args: unknown) => Promise<unknown[]>;
+    };
+    let activeMemos: unknown[] = [];
+    try {
+      activeMemos = await memoDelegate.findMany({
+        where: { memoStatus: 'ACTIVE' },
+        select: {
+          id: true,
+          memoNo: true,
+          companyName: true,
+          totalAmount: true,
+          date: true,
+          dueDate: true,
+          memoTerms: true,
+          paymentTerms: true,
+          items: {
             select: {
-              invoiceNo: true,
-              companyName: true,
-              totalAmount: true,
-            }
-          }
-        }
+              description: true,
+              carat: true,
+              color: true,
+              clarity: true,
+            },
+          },
+        },
+        orderBy: { date: 'asc' },
+      });
+    } catch {
+      activeMemos = await prisma.memo.findMany({
+        select: {
+          id: true,
+          memoNo: true,
+          companyName: true,
+          totalAmount: true,
+          date: true,
+          dueDate: true,
+          memoTerms: true,
+          paymentTerms: true,
+          items: {
+            select: {
+              description: true,
+              carat: true,
+              color: true,
+              clarity: true,
+            },
+          },
+        },
+        orderBy: { date: 'asc' },
       });
     }
 
-    return NextResponse.json({ notifications });
+    const getMemoExpiryDate = (memo: {
+      date: Date;
+      dueDate?: Date;
+      memoTerms?: number;
+      paymentTerms?: number;
+    }) => {
+      if (memo.dueDate) return new Date(memo.dueDate);
+      const expiry = new Date(memo.date);
+      expiry.setDate(expiry.getDate() + (memo.memoTerms ?? memo.paymentTerms ?? 0));
+      return expiry;
+    };
+
+    const overdueMemos = activeMemos.filter((memo) => {
+      const typed = memo as {
+        date: Date;
+        dueDate?: Date;
+        memoTerms?: number;
+        paymentTerms?: number;
+      };
+      return isOverdue(getMemoExpiryDate(typed), currentDateOnly);
+    });
+
+    overdueInvoices.forEach((invoice) => {
+      const typedInvoice = invoice as {
+        id: string;
+        invoiceNo: string;
+        companyName: string;
+        totalAmount: number;
+        date: Date;
+        dueDate: Date;
+        items: Array<{ carat: number; color: string; clarity: string }>;
+      };
+      const dueDateOnly = toDateOnly(new Date(typedInvoice.dueDate));
+      const daysOverdue = Math.floor(
+        (currentDateOnly.getTime() - dueDateOnly.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      notifications.push({
+        id: `invoice-${typedInvoice.id}`,
+        type: 'invoice',
+        title: `Overdue Invoice — ${typedInvoice.invoiceNo}`,
+        clientName: typedInvoice.companyName,
+        documentNumber: typedInvoice.invoiceNo,
+        stoneSummary: '',
+        issueDate: typedInvoice.date,
+        daysOverdue,
+        amount: typedInvoice.totalAmount,
+        priority: daysOverdue > 30 ? 'high' : daysOverdue > 15 ? 'medium' : 'low',
+      });
+    });
+
+    overdueMemos.forEach((memo) => {
+      const typedMemo = memo as {
+        id: string;
+        memoNo: string;
+        companyName: string;
+        totalAmount: number;
+        date: Date;
+        dueDate?: Date;
+        memoTerms?: number;
+        paymentTerms?: number;
+        items: Array<{ carat: number; color: string; clarity: string }>;
+      };
+      const memoExpiryDate = getMemoExpiryDate(typedMemo);
+      const daysOverdue = Math.floor(
+        (currentDateOnly.getTime() - toDateOnly(memoExpiryDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const stoneSummary = typedMemo.items
+        .map((item) => `${item.carat}ct ${item.color} ${item.clarity}`)
+        .join(', ');
+
+      notifications.push({
+        id: `memo-${typedMemo.id}`,
+        type: 'memo',
+        title: `Overdue Memo — ${typedMemo.memoNo}`,
+        clientName: typedMemo.companyName,
+        documentNumber: typedMemo.memoNo,
+        stoneSummary,
+        issueDate: typedMemo.date,
+        daysOverdue,
+        amount: typedMemo.totalAmount,
+        priority: daysOverdue > 30 ? 'high' : daysOverdue > 15 ? 'medium' : 'low',
+      });
+    });
+
+    // Latest issue date first, then oldest
+    notifications.sort(
+      (a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime()
+    );
+
+    return NextResponse.json({
+      success: true,
+      notifications,
+    });
   } catch (error) {
-    console.error('Error fetching notifications:', error instanceof Error ? error.message : String(error));
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error fetching notifications: ${errorMessage}`);
+    return NextResponse.json(
+      {
+        success: false,
+        notifications: [],
+        message: 'Failed to fetch notifications',
+      },
+      { status: 500 }
+    );
   } finally {
     await prisma.$disconnect();
   }
 }
-
-// POST: Mark notification as read
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getSession();
-    const userId = session?.userId as string | undefined;
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
-    const { notificationId } = await request.json();
-
-    if (!notificationId) {
-      return NextResponse.json({ error: 'Notification ID is required' }, { status: 400 });
-    }
-
-    // Update the notification to mark as read
-    const updatedNotification = await prisma.notification.update({
-      where: { 
-        id: notificationId,
-        userId // Ensure user can only mark their own notifications as read
-      },
-      data: { read: true }
-    });
-
-    return NextResponse.json({ notification: updatedNotification });
-  } catch (error) {
-    console.error('Error updating notification:', error instanceof Error ? error.message : String(error));
-    return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
-} 
-
-// DELETE: Delete notification (admin only)
-export async function DELETE(request: NextRequest) {
-  try {
-    const session = await getSession();
-    const userId = session?.userId as string | undefined;
-    const userRole = session?.role as string | undefined;
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
-    // Only allow admins to delete notifications
-    if (userRole !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Only admins can delete notifications' }, { status: 403 });
-    }
-
-    const { notificationId } = await request.json();
-
-    if (!notificationId) {
-      return NextResponse.json({ error: 'Notification ID is required' }, { status: 400 });
-    }
-
-    // Check if notification exists
-    const existingNotification = await prisma.notification.findUnique({
-      where: { id: notificationId }
-    });
-
-    if (!existingNotification) {
-      return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
-    }
-
-    // Delete the notification
-    await prisma.notification.delete({
-      where: { id: notificationId }
-    });
-
-    return NextResponse.json({ message: 'Notification deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting notification:', error instanceof Error ? error.message : String(error));
-    return NextResponse.json({ error: 'Failed to delete notification' }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
-} 

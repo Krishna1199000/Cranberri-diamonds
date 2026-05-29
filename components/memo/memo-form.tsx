@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm, useFieldArray, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { typedZodResolver } from "@/lib/utils/typed-zod-resolver";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,16 +9,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, Trash2 } from "lucide-react";
+import { CalendarIcon, Loader2, Trash2, Search, Check } from "lucide-react";
 import { cn, calculateTotal, formatCurrency, generateMemoNumber } from "@/lib/utils"; // Import generateMemoNumber from utils
 import { format } from "date-fns";
 import { MemoFormValues, memoFormSchema } from "@/lib/validators/memo"; // Import memo schema and types
+import { isInventoryStockId } from "@/lib/utils/pricing-tiers";
 
 import { toast } from "sonner";
 import { MemoPreview } from "./memo-preview"; // Import MemoPreview (to be created)
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { Checkbox } from "@/components/ui/checkbox";
+import { useRouter, useSearchParams } from 'next/navigation'; // Import useRouter
+import { clearCart } from "@/lib/utils/cart";
 
 // Type for shipment data (reusable or import)
 interface ShipmentForMemo {
@@ -42,6 +45,8 @@ interface MemoFormProps {
 // Rename component and accept props
 export function MemoForm({ initialData }: MemoFormProps) {
     const router = useRouter(); // Initialize router
+    const searchParams = useSearchParams();
+    const fromCart = searchParams.get("fromCart") === "true";
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Update preview data type for Memo
     const [previewData, setPreviewData] = useState<(MemoFormValues & { id?: string; memoNo?: string; companyName?: string; addressLine1?: string; addressLine2?: string | null; city?: string; state?: string; country?: string; postalCode?: string; totalAmount?: number; subtotal?: number; }) | null>(null);
@@ -50,10 +55,16 @@ export function MemoForm({ initialData }: MemoFormProps) {
     const [memoNoLoading, setMemoNoLoading] = useState(true); // Renamed state
     const [shipmentsList, setShipmentsList] = useState<ShipmentForMemo[]>([]);
     const [shipmentsLoading, setShipmentsLoading] = useState(true);
+    const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+    const [inventoryLoading, setInventoryLoading] = useState(false);
+    const [inventorySearchInput, setInventorySearchInput] = useState("");
+    const [inventorySearch, setInventorySearch] = useState("");
+    const [selectedStockIds, setSelectedStockIds] = useState<string[]>([]);
+    const [inventoryPopoverOpen, setInventoryPopoverOpen] = useState(false);
 
     // Use MemoFormValues and memoFormSchema - MOVED TO TOP
     const form = useForm<MemoFormValues>({
-        resolver: zodResolver(memoFormSchema),
+        resolver: typedZodResolver(memoFormSchema),
         defaultValues: initialData ? {
             ...initialData,
             date: initialData.date instanceof Date ? initialData.date : new Date(initialData.date),
@@ -76,7 +87,9 @@ export function MemoForm({ initialData }: MemoFormProps) {
                     clarity: "",
                     lab: "",
                     reportNo: "",
+                    stockId: "",
                     pricePerCarat: 0.01,
+                    enteredPricePerCarat: 0.01,
                 },
             ],
         }
@@ -175,6 +188,82 @@ export function MemoForm({ initialData }: MemoFormProps) {
         fetchShipments();
     }, []);
 
+    // Fetch inventory items
+    useEffect(() => {
+        const fetchInventory = async () => {
+            setInventoryLoading(true);
+            try {
+                const response = await fetch("/api/inventory-items?take=1000");
+                const data = await response.json();
+                if (data.items) {
+                    setInventoryItems(data.items);
+                }
+            } catch (error) {
+                console.error("Failed to fetch inventory:", error);
+                toast.error("Failed to load inventory items");
+            } finally {
+                setInventoryLoading(false);
+            }
+        };
+        fetchInventory();
+    }, []);
+
+    // Filter inventory items based on search
+    const filteredInventoryItems = inventoryItems.filter(item => {
+        if (!inventorySearch) return true;
+        const searchLower = inventorySearch.toLowerCase();
+        return (
+            item.stockId?.toLowerCase().includes(searchLower) ||
+            item.shape?.toLowerCase().includes(searchLower) ||
+            item.color?.toLowerCase().includes(searchLower) ||
+            item.clarity?.toLowerCase().includes(searchLower)
+        );
+    });
+
+    // Handle adding selected inventory items to form
+    const handleAddInventoryItems = () => {
+        if (selectedStockIds.length === 0) {
+            toast.error("Please select at least one inventory item");
+            return;
+        }
+
+        const selectedItems = inventoryItems.filter(item => 
+            selectedStockIds.includes(item.stockId)
+        );
+
+        // Clear existing items first
+        const currentItems = form.getValues("items");
+        if (currentItems.length === 1 && !currentItems[0].description && !currentItems[0].stockId) {
+            remove(0);
+        }
+
+        // Add selected items
+        selectedItems.forEach(item => {
+            append({
+                description: `${item.shape || ''} ${item.size || 0}ct ${item.color || ''} ${item.clarity || ''}`.trim(),
+                carat: item.size || 0.01,
+                color: item.color || '',
+                clarity: item.clarity || '',
+                lab: item.lab || '',
+                reportNo: item.certificateNo || item.stockId || '',
+                stockId: item.stockId || '',
+                pricePerCarat: item.pricePerCarat || 0.01,
+                enteredPricePerCarat: item.pricePerCarat || 0.01,
+            });
+        });
+
+        // Clear selection and close popover
+        setSelectedStockIds([]);
+        setInventoryPopoverOpen(false);
+        setInventorySearchInput("");
+        setInventorySearch("");
+        toast.success(`Added ${selectedItems.length} item(s) to memo`);
+    };
+
+    const handleInventorySearch = () => {
+        setInventorySearch(inventorySearchInput.trim());
+    };
+
     const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "items",
@@ -222,6 +311,9 @@ export function MemoForm({ initialData }: MemoFormProps) {
                     ...item,
                     carat: Number(item.carat) || 0,
                     pricePerCarat: Number(item.pricePerCarat) || 0,
+                    enteredPricePerCarat: item.enteredPricePerCarat != null
+                      ? Number(item.enteredPricePerCarat)
+                      : undefined,
                     // Include ID if it exists (for PUT to potentially identify items? - check API PUT logic)
                     id: item.id, 
                 }))
@@ -266,6 +358,19 @@ export function MemoForm({ initialData }: MemoFormProps) {
                     throw new Error("Memo created, but failed to retrieve complete details for preview.");
                 }
                 toast.success("Memo created successfully: " + result.memo.memoNo); // Use memoNo
+
+                if (fromCart) {
+                    try {
+                        const userRes = await fetch("/api/auth/me", { credentials: "include" });
+                        if (userRes.ok) {
+                            const user = await userRes.json();
+                            clearCart(user.id);
+                        }
+                    } catch {
+                        // non-blocking
+                    }
+                }
+
                 setLastMemoNo(result.memo.memoNo); // Update lastMemoNo
                 setPreviewData({
                     ...submissionData,
@@ -499,7 +604,94 @@ export function MemoForm({ initialData }: MemoFormProps) {
             <Card>
                 <CardContent className="pt-6">
                     <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Memo Items</h3> {/* Updated Title */}
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-medium">Memo Items</h3>
+                            <Popover open={inventoryPopoverOpen} onOpenChange={setInventoryPopoverOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button type="button" variant="outline" className="flex items-center gap-2">
+                                        <Search className="h-4 w-4" />
+                                        Add from Inventory
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-96 p-4" align="end">
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label>Search Inventory</Label>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    placeholder="Search by Stock ID, Shape, Color, Clarity..."
+                                                    value={inventorySearchInput}
+                                                    onChange={(e) => setInventorySearchInput(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter") {
+                                                            e.preventDefault();
+                                                            handleInventorySearch();
+                                                        }
+                                                    }}
+                                                />
+                                                <Button type="button" variant="outline" onClick={handleInventorySearch}>
+                                                    Search
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div className="max-h-64 overflow-y-auto border rounded-md p-2 space-y-2">
+                                            {inventoryLoading ? (
+                                                <div className="flex items-center justify-center py-4">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                </div>
+                                            ) : filteredInventoryItems.length === 0 ? (
+                                                <p className="text-sm text-muted-foreground text-center py-4">
+                                                    No inventory items found
+                                                </p>
+                                            ) : (
+                                                filteredInventoryItems.map((item) => (
+                                                    <div
+                                                        key={item.id}
+                                                        className="flex items-center space-x-2 p-2 hover:bg-accent rounded-md"
+                                                    >
+                                                        <Checkbox
+                                                            id={`memo-inventory-${item.id}`}
+                                                            checked={selectedStockIds.includes(item.stockId)}
+                                                            onChange={(e) => {
+                                                                const isChecked = e.target.checked;
+                                                                if (isChecked) {
+                                                                    setSelectedStockIds([...selectedStockIds, item.stockId]);
+                                                                } else {
+                                                                    setSelectedStockIds(selectedStockIds.filter(id => id !== item.stockId));
+                                                                }
+                                                            }}
+                                                        />
+                                                        <label
+                                                            htmlFor={`memo-inventory-${item.id}`}
+                                                            className="flex-1 text-sm cursor-pointer"
+                                                        >
+                                                            <div className="font-medium">{item.stockId}</div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {item.shape} {item.size}ct {item.color} {item.clarity}
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-muted-foreground">
+                                                {selectedStockIds.length} selected
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                onClick={handleAddInventoryItems}
+                                                disabled={selectedStockIds.length === 0}
+                                                className="flex items-center gap-2"
+                                            >
+                                                <Check className="h-4 w-4" />
+                                                Add Selected
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
 
                         {/* Memo items section (same structure) */}
                         {fields.map((field, index) => (
@@ -608,19 +800,63 @@ export function MemoForm({ initialData }: MemoFormProps) {
                                             </p>
                                         )}
                                     </div>
+                                    {/* Stock ID */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`items.${index}.stockId`}>Stock ID</Label>
+                                        <Input
+                                            id={`items.${index}.stockId`}
+                                            {...form.register(`items.${index}.stockId`)}
+                                            placeholder="Optional Stock ID"
+                                        />
+                                        {form.formState.errors.items?.[index]?.stockId && (
+                                            <p className="text-sm text-red-500">
+                                                {form.formState.errors.items[index]?.stockId?.message}
+                                            </p>
+                                        )}
+                                    </div>
                                     {/* Price/ct */}
                                     <div className="space-y-2">
-                                        <Label htmlFor={`items.${index}.pricePerCarat`}>Price/ct (USD)</Label>
-                                        <Input
-                                            id={`items.${index}.pricePerCarat`}
-                                            type="number"
-                                            step="0.01"
-                                            min="0.01"
-                                            {...form.register(`items.${index}.pricePerCarat`, { 
+                                        {isInventoryStockId(form.watch(`items.${index}.stockId`)) ? (
+                                          <>
+                                            <Label htmlFor={`items.${index}.pricePerCarat`}>Asking Price/ct (USD)</Label>
+                                            <Input
+                                              id={`items.${index}.pricePerCarat`}
+                                              type="number"
+                                              step="0.01"
+                                              readOnly
+                                              className="bg-muted"
+                                              {...form.register(`items.${index}.pricePerCarat`, {
                                                 valueAsNumber: true,
-                                                setValueAs: v => Number(v) || 0.01
-                                            })}
-                                        />
+                                                setValueAs: (v) => Number(v) || 0.01,
+                                              })}
+                                            />
+                                            <Label htmlFor={`items.${index}.enteredPricePerCarat`}>Entered Price/ct (USD)</Label>
+                                            <Input
+                                              id={`items.${index}.enteredPricePerCarat`}
+                                              type="number"
+                                              step="0.01"
+                                              min="0.01"
+                                              {...form.register(`items.${index}.enteredPricePerCarat`, {
+                                                valueAsNumber: true,
+                                                setValueAs: (v) => Number(v) || 0.01,
+                                              })}
+                                            />
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Label htmlFor={`items.${index}.pricePerCarat`}>Price/ct (USD)</Label>
+                                            <Input
+                                              id={`items.${index}.pricePerCarat`}
+                                              type="number"
+                                              step="0.01"
+                                              min="0.01"
+                                              {...form.register(`items.${index}.pricePerCarat`, {
+                                                valueAsNumber: true,
+                                                setValueAs: (v) => Number(v) || 0.01,
+                                              })}
+                                            />
+                                          </>
+                                        )}
                                         {form.formState.errors.items?.[index]?.pricePerCarat && (
                                             <p className="text-sm text-red-500">
                                                 {form.formState.errors.items[index]?.pricePerCarat?.message}
@@ -654,7 +890,9 @@ export function MemoForm({ initialData }: MemoFormProps) {
                                     clarity: "",
                                     lab: "",
                                     reportNo: "",
+                                    stockId: "",
                                     pricePerCarat: 0.01,
+                                    enteredPricePerCarat: 0.01,
                                 })
                             }
                         >

@@ -12,8 +12,7 @@ import Link from "next/link";
 type FetchedMemoData = MemoFormValues & {
     id: string;
     memoNo: string;
-    // Add any other fields fetched from the API that aren't in MemoFormValues
-    // (like createdAt, updatedAt if needed, but not directly used by form)
+    memoStatus?: 'ACTIVE' | 'RETURNED' | 'DISMISSED';
 };
 
 export default function EditMemoPage() {
@@ -43,7 +42,11 @@ export default function EditMemoPage() {
                 }
                 const data = await response.json();
                 if (data.memo) {
-                    // Convert date strings back to Date objects for the form
+                    if (data.memo.memoStatus === 'RETURNED') {
+                        throw new Error(
+                          'Returned memos are permanent audit records and cannot be edited.'
+                        );
+                    }
                     const memoWithDates = {
                         ...data.memo,
                         date: new Date(data.memo.date),

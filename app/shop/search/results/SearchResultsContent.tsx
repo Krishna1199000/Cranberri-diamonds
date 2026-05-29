@@ -16,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { getStatusColor, getStatusDisplay } from "@/lib/utils/inventory";
 import { LoadingCards } from "@/components/loading";
-import { Video, FileText, Search } from "lucide-react";
+import { Video, FileText, Search, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 
 import {
@@ -233,7 +233,17 @@ export default function SearchResultsContent() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Search Results</h1>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              onClick={() => router.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold">Search Results</h1>
+          </div>
           <div className="space-x-4">
             <Button 
               variant="outline" 

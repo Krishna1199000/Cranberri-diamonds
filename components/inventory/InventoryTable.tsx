@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 import { getStatusColor, getStatusDisplay, formatNumber } from "@/lib/utils/inventory";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingCards } from "@/components/loading";
-import { Eye, FileCog, Image as ImageIcon, Video, FileText } from "lucide-react";
+import { Edit, FileCog } from "lucide-react";
 import { MediaPreview } from "./MediaPreview";
+import { useRouter } from "next/navigation";
 import { 
   Pagination as PaginationContainer,
   PaginationContent, 
@@ -55,6 +56,7 @@ interface InventoryTableProps {
   onEdit?: (item: InventoryItemWithShipmentDetails) => void; 
   onStatusChange?: (item: InventoryItemWithShipmentDetails) => void; 
   onSelect?: (selected: string[]) => void;
+  onAddToCart?: (item: InventoryItemWithShipmentDetails) => void;
 }
 
 export function InventoryTable({ 
@@ -68,10 +70,26 @@ export function InventoryTable({
   onPageChange,
   onEdit,
   onStatusChange,
-  onSelect
+  onSelect,
+  onAddToCart
 }: InventoryTableProps) {
+  const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [activeMedia, setActiveMedia] = useState<{ type: string; url: string } | null>(null);
+  
+  const handleRowClick = (item: InventoryItemWithShipmentDetails, e: React.MouseEvent) => {
+    // Don't redirect if clicking on buttons, checkboxes, or media icons
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('input[type="checkbox"]') ||
+      target.closest('[role="button"]') ||
+      target.closest('.media-icon')
+    ) {
+      return;
+    }
+    router.push(`/shop/search/results/${item.id}`);
+  };
 
   const exportSelectedToCSV = async () => {
     if (!selected.length) return;
@@ -93,8 +111,20 @@ export function InventoryTable({
       'Polish',
       'Sym',
       'Lab',
-      'Price/Ct',
-      'Amount'
+      'Report No',
+      'Location',
+      'Measurement',
+      'Ratio',
+      'Table',
+      'Depth',
+      'Growth Type',
+      'Flourence',
+      'Price P/Ct',
+      'Price',
+      'Green Price P/Ct',
+      'Green Price',
+      'Red Price P/Ct',
+      'Red Price'
     ];
 
     const rows = selectedItems.map((item, idx) => [
@@ -110,8 +140,24 @@ export function InventoryTable({
       item.polish ?? '',
       item.sym ?? '',
       item.lab ?? '',
-      String(item.pricePerCarat ?? ''),
-      String(item.finalAmount ?? '')
+      item.certificateNo ?? '',
+      item.location ?? '',
+      item.measurement ?? '',
+      item.ratio !== null && item.ratio !== undefined ? String(item.ratio) : '',
+      item.table !== null && item.table !== undefined ? String(item.table) : '',
+      item.depth !== null && item.depth !== undefined ? String(item.depth) : '',
+      item.growthType ?? '',
+      item.flourence ?? '',
+      item.pricePerCarat !== null && item.pricePerCarat !== undefined ? String(item.pricePerCarat) : '',
+      String(item.finalAmount ?? ''),
+      item.greenPricePerCarat !== null && item.greenPricePerCarat !== undefined ? String(item.greenPricePerCarat) : '',
+      (item.greenPrice !== null && item.greenPrice !== undefined)
+        ? String(item.greenPrice)
+        : (item.greenPricePerCarat !== null && item.greenPricePerCarat !== undefined && item.size ? String(item.greenPricePerCarat * item.size) : ''),
+      item.redPricePerCarat !== null && item.redPricePerCarat !== undefined ? String(item.redPricePerCarat) : '',
+      (item.redPrice !== null && item.redPrice !== undefined)
+        ? String(item.redPrice)
+        : (item.redPricePerCarat !== null && item.redPricePerCarat !== undefined && item.size ? String(item.redPricePerCarat * item.size) : '')
     ]);
 
     const csv = [headers, ...rows]
@@ -210,15 +256,15 @@ export function InventoryTable({
       color: item.color,
       clarity: item.clarity,
       cut: item.cut ?? null,
-      polish: item.polish,
-      sym: item.sym,
+      polish: item.polish ?? null,
+      sym: item.sym ?? null,
       floro: '',
-      lab: item.lab,
+      lab: item.lab ?? null,
       rapPrice: 0,
       rapAmount: 0,
       discount: 0,
-      pricePerCarat: item.pricePerCarat,
-      finalAmount: item.finalAmount,
+      pricePerCarat: item.pricePerCarat ?? null,
+      finalAmount: item.finalAmount ?? 0,
       measurement: '',
       length: null,
       width: null,
@@ -324,7 +370,7 @@ export function InventoryTable({
                 </TableHead>
               )}
               <TableHead className="w-14 text-white">Sr No.</TableHead>
-              {(userRole === 'admin' || userRole === 'employee') && (
+              {userRole === 'admin' && (
                 <TableHead className="text-white">Held By Company</TableHead>
               )}
               <TableHead className="text-white">Status</TableHead>
@@ -337,20 +383,30 @@ export function InventoryTable({
               <TableHead className="text-white">Cut</TableHead>
               <TableHead className="text-white">Polish</TableHead>
               <TableHead className="text-white">Sym</TableHead>
-              <TableHead className="text-white">Certificate</TableHead>
               <TableHead className="text-white">Lab</TableHead>
-              <TableHead className="text-white">Price/Ct</TableHead>
-              <TableHead className="text-white">Amount</TableHead>
-              {isAdmin && <TableHead className="text-right text-white">Actions</TableHead>}
+              <TableHead className="text-white">Report No</TableHead>
+              <TableHead className="text-white">Location</TableHead>
+              <TableHead className="text-white">Measurement</TableHead>
+              <TableHead className="text-white">Ratio</TableHead>
+              <TableHead className="text-white">Table</TableHead>
+              <TableHead className="text-white">Depth</TableHead>
+              <TableHead className="text-white">Growth Type</TableHead>
+              <TableHead className="text-white">Flourence</TableHead>
+              <TableHead className="text-white">Price P/Ct</TableHead>
+              <TableHead className="text-white">Price</TableHead>
+              <TableHead className="text-white bg-green-600">Green Price P/Ct</TableHead>
+              <TableHead className="text-white bg-green-600">Green Price</TableHead>
+              <TableHead className="text-white bg-red-600">Red Price P/Ct</TableHead>
+              <TableHead className="text-white bg-red-600">Red Price</TableHead>
+              {(isAdmin || userRole === 'employee') && <TableHead className="text-right text-white">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={
-                  isAdmin ? 
-                    (userRole === 'customer' ? 16 : 17) : 
-                    (userRole === 'customer' ? 15 : 16)
+                  (isAdmin || userRole === 'employee') ? 29 : 
+                  27
                 } className="h-24 text-center">
                   No inventory items found.
                 </TableCell>
@@ -363,9 +419,13 @@ export function InventoryTable({
                                     : "-";
 
                 return (
-                  <TableRow key={item.id}>
+                  <TableRow 
+                    key={item.id}
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    onClick={(e) => handleRowClick(item, e)}
+                  >
                     {isAdmin && (
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox 
                           checked={selected.includes(item.id)}
                           onChange={e => handleSelect(item.id, e.target.checked)}
@@ -373,7 +433,7 @@ export function InventoryTable({
                       </TableCell>
                     )}
                     <TableCell>{(currentPage - 1) * pageSize + index + 1}</TableCell>
-                    {(userRole === 'admin' || userRole === 'employee') && (
+                    {userRole === 'admin' && (
                       <TableCell>{companyName}</TableCell>
                     )}
                     <TableCell className={getStatusColor(currentStatus)}>
@@ -383,36 +443,74 @@ export function InventoryTable({
                     </TableCell>
                     <TableCell className="font-medium">{item.stockId}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        {item.imageUrl && (
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => handleMediaClick('image', item.imageUrl || null)}
+                      <div className="flex gap-3 items-center">
+                        {item.imageUrl && item.imageUrl.trim() !== '' && (
+                          <span
+                            className="text-xl cursor-pointer hover:scale-110 transition-transform media-icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMediaClick('image', item.imageUrl || null);
+                            }}
+                            title="View Image"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleMediaClick('image', item.imageUrl || null);
+                              }
+                            }}
                           >
-                            <ImageIcon className="h-4 w-4" />
-                          </Button>
+                            🖼️
+                          </span>
                         )}
-                        {item.videoUrl && (
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => handleMediaClick('video', item.videoUrl || null)}
+                        {item.videoUrl && item.videoUrl.trim() !== '' && (
+                          <span
+                            className="text-xl cursor-pointer hover:scale-110 transition-transform media-icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/shop/search/results/${item.id}`);
+                            }}
+                            title="View Details"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                router.push(`/shop/search/results/${item.id}`);
+                              }
+                            }}
                           >
-                            <Video className="h-4 w-4" />
-                          </Button>
+                            🎥
+                          </span>
                         )}
-                        {item.certUrl && (
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => handleMediaClick('certificate', item.certUrl || null)}
+                        {item.certUrl && item.certUrl.trim() !== '' && (
+                          <span
+                            className="text-xl cursor-pointer hover:scale-110 transition-transform media-icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMediaClick('certificate', item.certUrl || null);
+                            }}
+                            title="View Certificate"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleMediaClick('certificate', item.certUrl || null);
+                              }
+                            }}
                           >
-                            <FileText className="h-4 w-4" />
-                          </Button>
+                            📄
+                          </span>
+                        )}
+                        {(!item.imageUrl || item.imageUrl.trim() === '') && 
+                         (!item.videoUrl || item.videoUrl.trim() === '') && 
+                         (!item.certUrl || item.certUrl.trim() === '') && (
+                          <span className="text-xs text-gray-400">-</span>
                         )}
                       </div>
                     </TableCell>
@@ -421,29 +519,79 @@ export function InventoryTable({
                     <TableCell>{item.color}</TableCell>
                     <TableCell>{item.clarity}</TableCell>
                     <TableCell>{item.cut || '-'}</TableCell>
-                    <TableCell>{item.polish}</TableCell>
-                    <TableCell>{item.sym}</TableCell>
+                    <TableCell>{item.polish || '-'}</TableCell>
+                    <TableCell>{item.sym || '-'}</TableCell>
+                    <TableCell>{item.lab || '-'}</TableCell>
                     <TableCell>{item.certificateNo || '-'}</TableCell>
-                    <TableCell>{item.lab}</TableCell>
+                    <TableCell>{item.location || '-'}</TableCell>
+                    <TableCell>{item.measurement || '-'}</TableCell>
+                    <TableCell>{item.ratio !== null && item.ratio !== undefined ? formatNumber(item.ratio) : '-'}</TableCell>
+                    <TableCell>{item.table !== null && item.table !== undefined ? formatNumber(item.table) : '-'}</TableCell>
+                    <TableCell>{item.depth !== null && item.depth !== undefined ? formatNumber(item.depth) : '-'}</TableCell>
+                    <TableCell>{item.growthType || '-'}</TableCell>
+                    <TableCell>{item.flourence || '-'}</TableCell>
                     <TableCell>${formatNumber(item.pricePerCarat)}</TableCell>
                     <TableCell>${formatNumber(item.finalAmount)}</TableCell>
-                    {isAdmin && (
-                      <TableCell className="text-right">
+                    <TableCell className="bg-green-100">${formatNumber(item.greenPricePerCarat)}</TableCell>
+                    <TableCell className="bg-green-100">
+                      {(item.greenPrice !== null && item.greenPrice !== undefined)
+                        ? `$${formatNumber(item.greenPrice)}`
+                        : (item.greenPricePerCarat !== null && item.greenPricePerCarat !== undefined && item.size
+                          ? `$${formatNumber(item.greenPricePerCarat * item.size)}`
+                          : '-')}
+                    </TableCell>
+                    <TableCell className="bg-red-100">${formatNumber(item.redPricePerCarat)}</TableCell>
+                    <TableCell className="bg-red-100">
+                      {(item.redPrice !== null && item.redPrice !== undefined)
+                        ? `$${formatNumber(item.redPrice)}`
+                        : (item.redPricePerCarat !== null && item.redPricePerCarat !== undefined && item.size
+                          ? `$${formatNumber(item.redPricePerCarat * item.size)}`
+                          : '-')}
+                    </TableCell>
+                    {(isAdmin || userRole === 'employee') && (
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => onStatusChange && onStatusChange(item)}
-                          >
-                            <FileCog className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => onEdit && onEdit(item)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          {onAddToCart && (userRole === 'admin' || userRole === 'employee') && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onAddToCart(item);
+                              }}
+                            >
+                              Add to Cart
+                            </Button>
+                          )}
+                          {isAdmin && (
+                            <>
+                              <Button
+                                variant="outline" 
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onStatusChange) {
+                                    onStatusChange(item);
+                                  }
+                                }}
+                              >
+                                <FileCog className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline" 
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onEdit) {
+                                    onEdit(item);
+                                  }
+                                }}
+                                title="Edit Item"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     )}

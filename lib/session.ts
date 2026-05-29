@@ -1,7 +1,15 @@
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 
-export async function getSession() {
+export type SessionPayload = {
+  userId?: string;
+  role?: string;
+  email?: string;
+  name?: string;
+  [key: string]: unknown;
+};
+
+export async function getSession(): Promise<SessionPayload | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
@@ -28,7 +36,7 @@ export async function getSession() {
       if (process.env.NODE_ENV === 'development') {
         console.log('Session payload:', payload);
       }
-      return payload;
+      return payload as SessionPayload;
     } catch (jwtError) {
       console.error('JWT verification error:', jwtError);
       return null;

@@ -482,7 +482,7 @@ export function generateInvoiceHTML(invoice: InvoiceData): string {
 
       <!-- Company Address -->
       <div class="company-address">
-        <p>B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India</p>
+        <p>Swastik Disa Corporate Park #517, Nityanand Nagar, Ghatkopar West, Mumbai, Maharashtra 400086</p>
         <p><a href="https://www.cranberridiamonds.in" target="_blank">www.cranberridiamonds.in</a></p>
       </div>
 

@@ -6,9 +6,13 @@ export const diamondItemSchema = z.object({
   carat: z.coerce.number().min(0.01, "Carat must be greater than 0"),
   color: z.string().min(1, "Color is required"),
   clarity: z.string().min(1, "Clarity is required"),
+  shape: z.string().optional(),
   lab: z.string().min(1, "Lab is required"),
   reportNo: z.string().min(1, "Report number is required"),
+  stockId: z.string().optional(), // Stock ID field
   pricePerCarat: z.coerce.number().min(0.01, "Price per carat must be greater than 0"),
+  /** Internal negotiation price — validated against tiers; not shown on client documents. */
+  enteredPricePerCarat: z.coerce.number().min(0.01).optional(),
 });
 
 export type DiamondItem = z.infer<typeof diamondItemSchema>;

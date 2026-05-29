@@ -16,6 +16,7 @@ interface Notification {
   read: boolean;
   dueDate?: string;
   createdAt: string;
+  issueDate?: string;
   invoice?: {
     invoiceNo: string;
     companyName: string;
@@ -148,6 +149,14 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const getRelativeCreatedAt = (createdAt?: string, issueDate?: string, dueDate?: string) => {
+    const timeSource = createdAt || issueDate || dueDate;
+    if (!timeSource) return 'Unknown time';
+    const parsedDate = new Date(timeSource);
+    if (Number.isNaN(parsedDate.getTime())) return 'Unknown time';
+    return formatDistanceToNow(parsedDate, { addSuffix: true });
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -207,7 +216,7 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
                     )}
                     
                     <div className="text-xs text-gray-400">
-                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                      {getRelativeCreatedAt(notification.createdAt, notification.issueDate, notification.dueDate)}
                     </div>
                   </div>
                   

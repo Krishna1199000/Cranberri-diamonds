@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { typedZodResolver } from "@/lib/utils/typed-zod-resolver";
 import { z } from "zod";
 import { 
   Form,
@@ -46,17 +46,26 @@ const inventoryFormSchema = z.object({
   color: z.string().min(1, "Color is required"),
   clarity: z.string().min(1, "Clarity is required"),
   cut: z.string().optional(),
-  polish: z.string().min(1, "Polish is required"),
-  sym: z.string().min(1, "Symmetry is required"),
-  lab: z.string().min(1, "Lab is required"),
+  polish: z.string().optional().nullable(),
+  sym: z.string().optional().nullable(),
+  lab: z.string().optional().nullable(),
   certificateNo: z.string().optional().nullable(),
-  pricePerCarat: z.coerce.number().positive("Price per carat must be positive"),
-  finalAmount: z.coerce.number().positive("Final amount must be positive"),
+  pricePerCarat: z.coerce.number().nonnegative("Price per carat must be non-negative").optional().nullable(),
+  finalAmount: z.coerce.number().nonnegative("Final amount must be non-negative"),
   videoUrl: z.string().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
   certUrl: z.string().optional().nullable(),
   measurement: z.string().optional().nullable(),
   location: z.string().optional().nullable(),
+  ratio: z.coerce.number().nonnegative("Ratio must be non-negative").optional().nullable(),
+  table: z.coerce.number().nonnegative("Table must be non-negative").optional().nullable(),
+  depth: z.coerce.number().nonnegative("Depth must be non-negative").optional().nullable(),
+  growthType: z.string().optional().nullable(),
+  flourence: z.string().optional().nullable(),
+  greenPricePerCarat: z.coerce.number().nonnegative("Green price per carat must be non-negative").optional().nullable(),
+  greenPrice: z.coerce.number().nonnegative("Green price must be non-negative").optional().nullable(),
+  redPricePerCarat: z.coerce.number().nonnegative("Red price per carat must be non-negative").optional().nullable(),
+  redPrice: z.coerce.number().nonnegative("Red price must be non-negative").optional().nullable(),
   status: z.nativeEnum(DiamondStatus),
   heldByShipmentId: z.string().optional().nullable(),
 });
@@ -75,6 +84,12 @@ interface AddEditInventoryFormProps {
   shipments: ShipmentOption[];
 }
 
+/** react-hook-form may pass null for optional fields; HTML inputs reject null. */
+function inputValue(value: unknown): string | number {
+  if (value === null || value === undefined) return "";
+  return value as string | number;
+}
+
 export function AddEditInventoryForm({
   isOpen,
   onClose,
@@ -86,7 +101,7 @@ export function AddEditInventoryForm({
   const [isShipmentRequired, setIsShipmentRequired] = useState(false);
   
   const form = useForm<InventoryItemFormData>({
-    resolver: zodResolver(inventoryFormSchema),
+    resolver: typedZodResolver(inventoryFormSchema),
     defaultValues: {
       stockId: "",
       shape: "",
@@ -104,6 +119,15 @@ export function AddEditInventoryForm({
       certUrl: "",
       measurement: "",
       location: "",
+      ratio: undefined,
+      table: undefined,
+      depth: undefined,
+      growthType: "",
+      flourence: "",
+      greenPricePerCarat: undefined,
+      greenPrice: undefined,
+      redPricePerCarat: undefined,
+      redPrice: undefined,
       status: DiamondStatus.AVAILABLE,
       heldByShipmentId: undefined,
     },
@@ -111,18 +135,48 @@ export function AddEditInventoryForm({
   
   const watchedSize = form.watch("size");
   const watchedPricePerCarat = form.watch("pricePerCarat");
+  const watchedGreenPricePerCarat = form.watch("greenPricePerCarat");
+  const watchedRedPricePerCarat = form.watch("redPricePerCarat");
 
   useEffect(() => {
-    const sizeNum = typeof watchedSize === 'number' ? watchedSize : parseFloat(String(watchedSize));
-    const pricePerCaratNum = typeof watchedPricePerCarat === 'number' ? watchedPricePerCarat : parseFloat(String(watchedPricePerCarat));
+    const sizeNum = typeof watchedSize === 'number' ? watchedSize : parseFloat(String(watchedSize || 0));
+    const pricePerCaratNum = watchedPricePerCarat !== null && watchedPricePerCarat !== undefined
+      ? (typeof watchedPricePerCarat === 'number' ? watchedPricePerCarat : parseFloat(String(watchedPricePerCarat)))
+      : null;
 
-    if (!isNaN(sizeNum) && !isNaN(pricePerCaratNum) && sizeNum > 0 && pricePerCaratNum > 0) {
+    if (!isNaN(sizeNum) && pricePerCaratNum !== null && !isNaN(pricePerCaratNum) && sizeNum > 0 && pricePerCaratNum > 0) {
       const calculatedAmount = parseFloat((sizeNum * pricePerCaratNum).toFixed(2));
       form.setValue("finalAmount", calculatedAmount, { shouldValidate: true });
     } else {
       form.setValue("finalAmount", 0, { shouldValidate: true });
     }
   }, [watchedSize, watchedPricePerCarat, form.setValue, form]);
+
+  // Auto-calculate green price total
+  useEffect(() => {
+    const sizeNum = typeof watchedSize === 'number' ? watchedSize : parseFloat(String(watchedSize || 0));
+    const greenPricePerCaratNum = watchedGreenPricePerCarat !== null && watchedGreenPricePerCarat !== undefined
+      ? (typeof watchedGreenPricePerCarat === 'number' ? watchedGreenPricePerCarat : parseFloat(String(watchedGreenPricePerCarat)))
+      : null;
+
+    if (!isNaN(sizeNum) && greenPricePerCaratNum !== null && !isNaN(greenPricePerCaratNum) && sizeNum > 0 && greenPricePerCaratNum > 0) {
+      const calculatedGreenPrice = parseFloat((sizeNum * greenPricePerCaratNum).toFixed(2));
+      form.setValue("greenPrice", calculatedGreenPrice, { shouldValidate: true });
+    }
+  }, [watchedSize, watchedGreenPricePerCarat, form.setValue, form]);
+
+  // Auto-calculate red price total
+  useEffect(() => {
+    const sizeNum = typeof watchedSize === 'number' ? watchedSize : parseFloat(String(watchedSize || 0));
+    const redPricePerCaratNum = watchedRedPricePerCarat !== null && watchedRedPricePerCarat !== undefined
+      ? (typeof watchedRedPricePerCarat === 'number' ? watchedRedPricePerCarat : parseFloat(String(watchedRedPricePerCarat)))
+      : null;
+
+    if (!isNaN(sizeNum) && redPricePerCaratNum !== null && !isNaN(redPricePerCaratNum) && sizeNum > 0 && redPricePerCaratNum > 0) {
+      const calculatedRedPrice = parseFloat((sizeNum * redPricePerCaratNum).toFixed(2));
+      form.setValue("redPrice", calculatedRedPrice, { shouldValidate: true });
+    }
+  }, [watchedSize, watchedRedPricePerCarat, form.setValue, form]);
   
   useEffect(() => {
     if (item) {
@@ -143,6 +197,15 @@ export function AddEditInventoryForm({
         certUrl: item.certUrl ?? "",
         measurement: (item as Record<string, unknown>).measurement as string ?? "",
         location: (item as Record<string, unknown>).location as string ?? "",
+        ratio: (item as Record<string, unknown>).ratio as number ?? undefined,
+        table: (item as Record<string, unknown>).table as number ?? undefined,
+        depth: (item as Record<string, unknown>).depth as number ?? undefined,
+        growthType: (item as Record<string, unknown>).growthType as string ?? "",
+        flourence: (item as Record<string, unknown>).flourence as string ?? "",
+        greenPricePerCarat: (item as Record<string, unknown>).greenPricePerCarat as number ?? undefined,
+        greenPrice: (item as Record<string, unknown>).greenPrice as number ?? undefined,
+        redPricePerCarat: (item as Record<string, unknown>).redPricePerCarat as number ?? undefined,
+        redPrice: (item as Record<string, unknown>).redPrice as number ?? undefined,
         status: item.status,
         heldByShipmentId: item.heldByShipmentId ?? undefined,
       });
@@ -204,7 +267,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Stock ID*</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter stock ID" 
                       />
                     </FormControl>
@@ -221,7 +284,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Shape*</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter shape" 
                       />
                     </FormControl>
@@ -240,7 +303,7 @@ export function AddEditInventoryForm({
                       <Input 
                         type="number" 
                         step="0.01" 
-                        {...field} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter carat weight" 
                       />
                     </FormControl>
@@ -257,7 +320,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Color*</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter color" 
                       />
                     </FormControl>
@@ -274,7 +337,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Clarity*</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter clarity" 
                       />
                     </FormControl>
@@ -291,8 +354,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Cut</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
-                        value={field.value || ""} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter cut (optional)" 
                       />
                     </FormControl>
@@ -309,7 +371,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Polish*</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter polish" 
                       />
                     </FormControl>
@@ -326,7 +388,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Symmetry*</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter symmetry" 
                       />
                     </FormControl>
@@ -343,8 +405,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Certificate Number</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
-                        value={field.value || ""} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter certificate number (optional)" 
                       />
                     </FormControl>
@@ -361,7 +422,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Lab*</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter lab" 
                       />
                     </FormControl>
@@ -382,7 +443,7 @@ export function AddEditInventoryForm({
                       <Input 
                         type="number" 
                         step="0.01" 
-                        {...field} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter price per carat" 
                       />
                     </FormControl>
@@ -401,7 +462,7 @@ export function AddEditInventoryForm({
                       <Input 
                         type="number" 
                         step="0.01" 
-                        {...field} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Calculated automatically" 
                         readOnly
                         className="bg-gray-100"
@@ -422,8 +483,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Image URL</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
-                        value={field.value || ""} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter image URL" 
                       />
                     </FormControl>
@@ -440,8 +500,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Video URL</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
-                        value={field.value || ""} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter video URL" 
                       />
                     </FormControl>
@@ -458,8 +517,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Certificate URL</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
-                        value={field.value || ""} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter certificate URL" 
                       />
                     </FormControl>
@@ -478,8 +536,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Measurement</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
-                        value={field.value || ""} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter measurement" 
                       />
                     </FormControl>
@@ -496,8 +553,7 @@ export function AddEditInventoryForm({
                     <FormLabel>Location</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field} 
-                        value={field.value || ""} 
+                        {...field} value={inputValue(field.value)} 
                         placeholder="Enter location" 
                       />
                     </FormControl>
@@ -505,6 +561,185 @@ export function AddEditInventoryForm({
                   </FormItem>
                 )}
               />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="ratio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ratio</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        {...field} value={inputValue(field.value)} 
+                        placeholder="Enter ratio" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="table"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Table</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        {...field} value={inputValue(field.value)} 
+                        placeholder="Enter table" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="depth"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Depth</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        {...field} value={inputValue(field.value)} 
+                        placeholder="Enter depth" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="growthType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Growth Type</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} value={inputValue(field.value)} 
+                        placeholder="Enter growth type" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="flourence"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fluorescence</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} value={inputValue(field.value)} 
+                        placeholder="Enter fluorescence" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-green-700">Green Price</h3>
+                <FormField
+                  control={form.control}
+                  name="greenPricePerCarat"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Green Price/Ct</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          {...field} value={inputValue(field.value)} 
+                          placeholder="Enter green price per carat" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="greenPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Green Price (Total)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          {...field} value={inputValue(field.value)} 
+                          placeholder="Enter green price total" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="font-semibold text-red-700">Red Price</h3>
+                <FormField
+                  control={form.control}
+                  name="redPricePerCarat"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Red Price/Ct</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          {...field} value={inputValue(field.value)} 
+                          placeholder="Enter red price per carat" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="redPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Red Price (Total)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          {...field} value={inputValue(field.value)} 
+                          placeholder="Enter red price total" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -549,7 +784,9 @@ export function AddEditInventoryForm({
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select company" />
+                            {field.value
+                              ? shipments.find((shipment) => shipment.id === field.value)?.companyName || "Select company"
+                              : <SelectValue placeholder="Select company" />}
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>

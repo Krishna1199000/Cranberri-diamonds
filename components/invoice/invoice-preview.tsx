@@ -113,7 +113,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
 
                 {/* Company Address and Website */}
                 <div className="text-center -mt-2 mb-2 print:mb-1">
-                    <p className="text-xs print:text-[8px] text-gray-600">B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India</p>
+                    <p className="text-xs print:text-[8px] text-gray-600">Swastik Disa Corporate Park #517, Nityanand Nagar, Ghatkopar West, Mumbai, Maharashtra 400086</p>
                     <p className="text-xs print:text-[8px] text-gray-600">
                         <a href="https://www.cranberridiamonds.in" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                             www.cranberridiamonds.in

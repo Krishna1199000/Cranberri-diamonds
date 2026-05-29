@@ -19,18 +19,18 @@ interface InventoryItem {
   color: string;
   clarity: string;
   cut: string | null;
-  polish: string;
-  sym: string;
-  lab: string;
-  pricePerCarat: number;
+  polish: string | null;
+  sym: string | null;
+  lab: string | null;
+  pricePerCarat: number | null;
   finalAmount: number;
   status: 'AVAILABLE' | 'HOLD' | 'MEMO' | 'SOLD';
   certUrl?: string | null;
 }
 
 interface DiamondSelectorProps {
-  onCreateInvoice: (selectedDiamonds: InventoryItem[]) => void;
-  onCreateMemo: (selectedDiamonds: InventoryItem[]) => void;
+  onCreateInvoice: (selectedDiamonds: InventoryItem[]) => void | Promise<void>;
+  onCreateMemo: (selectedDiamonds: InventoryItem[]) => void | Promise<void>;
 }
 
 export function DiamondSelector({ onCreateInvoice, onCreateMemo }: DiamondSelectorProps) {
@@ -46,13 +46,16 @@ export function DiamondSelector({ onCreateInvoice, onCreateMemo }: DiamondSelect
   const fetchDiamonds = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/inventory-items?status=AVAILABLE&take=100');
+      // Fetch both AVAILABLE and MEMO status items
+      const response = await fetch('/api/inventory-items?take=100');
       const data = await response.json();
       
       if (data.items) {
-        // Only show available diamonds for selection
-        const availableDiamonds = data.items.filter((item: InventoryItem) => item.status === 'AVAILABLE');
-        setDiamonds(availableDiamonds);
+        // Show available and memo diamonds for selection
+        const selectableDiamonds = data.items.filter((item: InventoryItem) => 
+          item.status === 'AVAILABLE' || item.status === 'MEMO'
+        );
+        setDiamonds(selectableDiamonds);
       }
     } catch (error) {
       console.error('Failed to fetch diamonds:', error);
@@ -187,7 +190,7 @@ export function DiamondSelector({ onCreateInvoice, onCreateMemo }: DiamondSelect
               {diamonds.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={13} className="text-center py-8 text-gray-500">
-                    No available diamonds found
+                    No available or memo diamonds found
                   </TableCell>
                 </TableRow>
               ) : (
@@ -209,9 +212,9 @@ export function DiamondSelector({ onCreateInvoice, onCreateMemo }: DiamondSelect
                     <TableCell>{diamond.color}</TableCell>
                     <TableCell>{diamond.clarity}</TableCell>
                     <TableCell>{diamond.cut || '-'}</TableCell>
-                    <TableCell>{diamond.polish}</TableCell>
-                    <TableCell>{diamond.sym}</TableCell>
-                    <TableCell>{diamond.lab}</TableCell>
+                    <TableCell>{diamond.polish || '-'}</TableCell>
+                    <TableCell>{diamond.sym || '-'}</TableCell>
+                    <TableCell>{diamond.lab || '-'}</TableCell>
                     <TableCell>{formatCurrency(diamond.pricePerCarat)}</TableCell>
                     <TableCell>{formatCurrency(diamond.finalAmount)}</TableCell>
                     <TableCell>

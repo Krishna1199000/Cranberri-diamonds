@@ -66,6 +66,7 @@ export async function POST(req: Request) {
       saleDate: new Date(data.saleDate),
       isNoSale: data.isNoSale || false,
       companyName: data.companyName || null,
+      state: data.state || null,
       trackingId: data.trackingId || null,
       shipmentCarrier: data.shipmentCarrier || null,
       totalSaleValue: data.totalSaleValue ? parseFloat(data.totalSaleValue) : null,
@@ -83,6 +84,8 @@ export async function POST(req: Request) {
             carat: item.carat ? parseFloat(item.carat) : null,
             color: item.color || null,
             clarity: item.clarity || null,
+            shape: item.shape || null,
+            lab: item.lab || null,
             certificateNo: item.certificateNo || null,
             pricePerCarat: item.pricePerCarat ? parseFloat(item.pricePerCarat) : null,
             totalValue: item.totalValue ? parseFloat(item.totalValue) : null
@@ -128,8 +131,16 @@ export async function GET(req: Request) {
     const period = searchParams.get('period') || '7';
     const start = searchParams.get('start');
     const end = searchParams.get('end');
-    const employeeId = searchParams.get('employeeId');
-    console.log("GET /api/sales - Params:", { period, start, end, employeeId });
+    const employeeIdsParam = searchParams.get('employeeIds'); // comma-separated
+    const companyNamesParam = searchParams.get('companies'); // comma-separated
+    const statesParam = searchParams.get('states'); // comma-separated
+    const colorsParam = searchParams.get('colors');
+    const claritiesParam = searchParams.get('clarities');
+    const labsParam = searchParams.get('labs');
+    const shapesParam = searchParams.get('shapes');
+    const caratMinParam = searchParams.get('caratMin');
+    const caratMaxParam = searchParams.get('caratMax');
+    console.log("GET /api/sales - Params:", { period, start, end, employeeIdsParam, companyNamesParam, statesParam, colorsParam, claritiesParam, labsParam, shapesParam, caratMinParam, caratMaxParam });
     
     if (!session) {
       console.log("GET /api/sales - Unauthorized (No session)");
@@ -153,11 +164,49 @@ export async function GET(req: Request) {
       };
     }
 
+    // Build filters
+    const employeeIds = employeeIdsParam
+      ? employeeIdsParam.split(',').map(id => id.trim()).filter(Boolean)
+      : [];
+    const companies = companyNamesParam
+      ? companyNamesParam.split(',').map(c => c.trim()).filter(Boolean)
+      : [];
+    const states = statesParam
+      ? statesParam.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    const colors = colorsParam ? colorsParam.split(',').map(c => c.trim()).filter(Boolean) : [];
+    const clarities = claritiesParam ? claritiesParam.split(',').map(c => c.trim()).filter(Boolean) : [];
+    const labs = labsParam ? labsParam.split(',').map(c => c.trim()).filter(Boolean) : [];
+    const shapes = shapesParam ? shapesParam.split(',').map(c => c.trim()).filter(Boolean) : [];
+    const caratMin = caratMinParam ? parseFloat(caratMinParam) : undefined;
+    const caratMax = caratMaxParam ? parseFloat(caratMaxParam) : undefined;
+
     const where: Prisma.SalesEntryWhereInput = {
       saleDate: dateFilter,
-      // Apply employee filter only if the user is an employee OR if an admin specifically filters
-      ...(session.role === 'employee' && !employeeId ? { employeeId: session.userId as string } : {}),
-      ...(employeeId && employeeId !== 'all' ? { employeeId: employeeId as string } : {})
+      ...(session.role === 'employee' && employeeIds.length === 0 ? { employeeId: session.userId as string } : {}),
+      ...(employeeIds.length > 0 && !employeeIds.includes('all') ? { employeeId: { in: employeeIds } } : {}),
+      ...(companies.length > 0 ? { companyName: { in: companies } } : {}),
+      ...(states.length > 0 ? { state: { in: states } } : {}),
+      ...(colors.length > 0 || clarities.length > 0 || labs.length > 0 || shapes.length > 0 || caratMin !== undefined || caratMax !== undefined
+        ? {
+            saleItems: {
+              some: {
+                ...(colors.length > 0 ? { color: { in: colors } } : {}),
+                ...(clarities.length > 0 ? { clarity: { in: clarities } } : {}),
+                ...(labs.length > 0 ? { lab: { in: labs } } : {}),
+                ...(shapes.length > 0 ? { shape: { in: shapes } } : {}),
+                ...(caratMin !== undefined || caratMax !== undefined
+                  ? {
+                      carat: {
+                        ...(caratMin !== undefined ? { gte: caratMin } : {}),
+                        ...(caratMax !== undefined ? { lte: caratMax } : {}),
+                      },
+                    }
+                  : {}),
+              },
+            },
+          }
+        : {}),
     };
     console.log("GET /api/sales - Prisma WHERE clause:", JSON.stringify(where));
 
@@ -255,11 +304,14 @@ export async function PUT(req: Request) {
         trackingId: data.trackingId || null,
         shipmentCarrier: data.shipmentCarrier || null,
         companyName: data.companyName || null,
+        state: data.state || null,
         saleItems: data.isNoSale ? undefined : {
           create: saleItems.map(item => ({
             carat: item.carat ? parseFloat(item.carat) : null,
             color: item.color || null,
             clarity: item.clarity || null,
+            shape: item.shape || null,
+            lab: item.lab || null,
             certificateNo: item.certificateNo || null,
             pricePerCarat: item.pricePerCarat ? parseFloat(item.pricePerCarat) : null,
             totalValue: item.totalValue ? parseFloat(item.totalValue) : null

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Edit2, Trash2, ChevronDown, ChevronUp } from "lucide-react"
@@ -103,8 +103,8 @@ export function SalesTable({ salesData, refreshData }: SalesTableProps) {
           <tbody className="bg-white divide-y divide-gray-200">
             {salesData && salesData.length > 0 ? (
               salesData.map((entry) => (
-                <>
-                  <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
+                <React.Fragment key={entry.id}>
+                  <tr className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <Button
                         variant="default"
@@ -153,7 +153,7 @@ export function SalesTable({ salesData, refreshData }: SalesTableProps) {
                     </td>
                   </tr>
                   {expandedRow === entry.id && !entry.isNoSale && entry.saleItems && entry.saleItems.length > 0 && (
-                    <tr>
+                    <tr key={`${entry.id}-details`}>
                       <td colSpan={6} className="px-4 py-4 bg-gray-50">
                         <div className="border rounded-lg overflow-hidden">
                           <table className="min-w-full divide-y divide-gray-200">
@@ -216,7 +216,7 @@ export function SalesTable({ salesData, refreshData }: SalesTableProps) {
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               ))
             ) : (
               <tr>

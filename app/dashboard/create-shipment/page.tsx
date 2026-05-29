@@ -45,9 +45,6 @@ const tradeBodyMemberships = ["AGS", "AGTA", "JA", "JBT", "Other"]
 const authorizedByOptions = ["Urmil Wadhvana", "Smith Pujara"]
 const accountManagerOptions = ["Urmil Wadhvana", "Smith Pujara"]
 
-const leadSourceOptions = ["Urmil Wadhvana", "Smith Pujara"]
-const partyGroupOptions = ["Customer"]
-
 const defaultReferences = [
   { companyName: "", contactPerson: "", contactNo: "" },
   { companyName: "", contactPerson: "", contactNo: "" },
@@ -93,7 +90,7 @@ export default function CreateShipment() {
     limit: 0
   })
 
-  const [salesExecutiveOptions, setSalesExecutiveOptions] = useState<Array<{ id: string, name: string }>>([])
+  const [, setSalesExecutiveOptions] = useState<Array<{ id: string, name: string }>>([])
 
   useEffect(() => {
     fetchSalesExecutives()
@@ -600,21 +597,12 @@ export default function CreateShipment() {
                   <label className="block text-sm font-medium text-gray-700">
                     Party Group <span className="text-red-500">*</span>
                   </label>
-                  <Select
+                  <Input
+                    required
                     value={formData.partyGroup}
-                    onValueChange={(value) => handleChange('partyGroup', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Party Group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {partyGroupOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => handleChange('partyGroup', e.target.value)}
+                    placeholder="Enter Party Group"
+                  />
                 </div>
               </div>
 
@@ -623,42 +611,24 @@ export default function CreateShipment() {
                   <label className="block text-sm font-medium text-gray-700">
                     Sales Executive <span className="text-red-500">*</span>
                   </label>
-                  <Select
+                  <Input
+                    required
                     value={formData.salesExecutive}
-                    onValueChange={(value) => handleChange('salesExecutive', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Sales Executive" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {salesExecutiveOptions.map((option) => (
-                        <SelectItem key={option.id} value={option.name}>
-                          {option.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => handleChange('salesExecutive', e.target.value)}
+                    placeholder="Enter Sales Executive"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Lead Source <span className="text-red-500">*</span>
                   </label>
-                  <Select
+                  <Input
+                    required
                     value={formData.leadSource}
-                    onValueChange={(value) => handleChange('leadSource', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Lead Source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {leadSourceOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => handleChange('leadSource', e.target.value)}
+                    placeholder="Enter Lead Source"
+                  />
                 </div>
               </div>
 

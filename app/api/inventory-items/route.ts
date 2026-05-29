@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
     }
 
     // If a list of IDs is provided, fetch exactly those (used for CSV export across pages)
+    // Skip deduplication for CSV export as we want the exact items selected
     if (idsParam) {
       const ids = idsParam.split(',').map(id => id.trim()).filter(Boolean);
       const items = await prisma.inventoryItem.findMany({
@@ -87,35 +88,88 @@ export async function GET(request: NextRequest) {
     }
 
     // Build orderBy clause
-    let orderBy: Prisma.InventoryItemOrderByWithRelationInput = { createdAt: 'desc' }; // Default sorting
-    
     if (sortBy) {
       const validSortFields = ['size', 'color', 'clarity', 'shape', 'pricePerCarat', 'finalAmount', 'createdAt'];
       if (validSortFields.includes(sortBy)) {
-        orderBy = { [sortBy]: sortOrder };
+        // Sorting is applied after deduplication below.
       }
     }
 
-    const [items, total] = await Promise.all([
-      prisma.inventoryItem.findMany({
-        where, // Use the typed where clause
-        take,
-        skip,
-        orderBy,
-        include: {
-          heldByShipment: true
+    // Fetch all items matching the filter (we'll deduplicate after)
+    const allItems = await prisma.inventoryItem.findMany({
+      where, // Use the typed where clause
+      orderBy: { createdAt: 'desc' }, // Always sort by createdAt desc first to get latest
+      include: {
+        heldByShipment: true
+      }
+    });
+
+    // Helper function to normalize Stock ID for comparison (handles CDS-001 vs CDS-01 vs CDS-1)
+    const normalizeStockId = (stockId: string): string => {
+      if (!stockId) return '';
+      // Convert to uppercase and remove extra spaces
+      let normalized = stockId.toUpperCase().trim();
+      // Try to normalize number patterns (e.g., CDS-001 -> CDS-1, CDS-01 -> CDS-1)
+      // Match pattern like "CDS-001" or "CDS-01" and normalize to "CDS-1"
+      normalized = normalized.replace(/-0+(\d+)$/, '-$1'); // Remove leading zeros after dash
+      return normalized;
+    };
+
+    // Deduplicate by normalized Stock ID - keep only the latest (already sorted by createdAt desc)
+    const stockIdMap = new Map<string, typeof allItems[0]>();
+    for (const item of allItems) {
+      const normalizedId = normalizeStockId(item.stockId);
+      // If we haven't seen this normalized ID, or this one is newer, keep it
+      if (!stockIdMap.has(normalizedId)) {
+        stockIdMap.set(normalizedId, item);
+      } else {
+        const existing = stockIdMap.get(normalizedId)!;
+        // Compare by createdAt to ensure we keep the latest
+        if (new Date(item.createdAt) > new Date(existing.createdAt)) {
+          stockIdMap.set(normalizedId, item);
         }
-      }),
-      prisma.inventoryItem.count({ where })
-    ]);
+      }
+    }
+
+    // Convert map values back to array
+    const deduplicatedItems = Array.from(stockIdMap.values());
+
+    // Apply the requested sorting (if sortBy was specified, re-sort the deduplicated items)
+    if (sortBy && sortBy !== 'createdAt') {
+      const validSortFields = ['size', 'color', 'clarity', 'shape', 'pricePerCarat', 'finalAmount', 'createdAt'];
+      if (validSortFields.includes(sortBy)) {
+        deduplicatedItems.sort((a, b) => {
+          const aVal = a[sortBy as keyof typeof a];
+          const bVal = b[sortBy as keyof typeof b];
+          if (aVal === null || aVal === undefined) return 1;
+          if (bVal === null || bVal === undefined) return -1;
+          if (typeof aVal === 'number' && typeof bVal === 'number') {
+            return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+          }
+          if (typeof aVal === 'string' && typeof bVal === 'string') {
+            return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+          }
+          return 0;
+        });
+      }
+    } else if (!sortBy || sortBy === 'createdAt') {
+      // Keep createdAt desc order (latest first)
+      deduplicatedItems.sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    }
+
+    // Apply pagination after deduplication
+    const total = deduplicatedItems.length;
+    const paginatedItems = deduplicatedItems.slice(skip, skip + take);
     
     // Remove sensitive logging in production
     if (process.env.NODE_ENV === 'development') {
-      console.log("Fetched inventory items in /api/inventory-items (first 5):", JSON.stringify(items.slice(0, 5), null, 2));
+      console.log("Fetched inventory items in /api/inventory-items (first 5):", JSON.stringify(paginatedItems.slice(0, 5), null, 2));
     }
 
     return NextResponse.json({
-      items,
+      items: paginatedItems,
       total,
       pages: Math.ceil(total / take)
     });
@@ -148,7 +202,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Simplified validation based on InventoryItem essential fields
-    const requiredFields = ['stockId', 'shape', 'size', 'color', 'clarity', 'polish', 'sym', 'lab', 'pricePerCarat', 'finalAmount', 'status'];
+    const requiredFields = ['stockId', 'shape', 'size', 'color', 'clarity', 'polish', 'sym', 'lab', 'pricePerCarat', 'greenPricePerCarat', 'redPricePerCarat', 'status'];
 
     for (const field of requiredFields) {
       if (data[field] === undefined || data[field] === null || (typeof data[field] === 'string' && data[field].trim() === '')) {
@@ -171,11 +225,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const size = data.size ? parseFloat(data.size) : 0;
+    const askingPricePerCarat = data.pricePerCarat ? parseFloat(data.pricePerCarat) : 0;
+    const greenPricePerCarat = data.greenPricePerCarat ? parseFloat(data.greenPricePerCarat) : 0;
+    const redPricePerCarat = data.redPricePerCarat ? parseFloat(data.redPricePerCarat) : 0;
+
+    if (greenPricePerCarat > askingPricePerCarat) {
+      return NextResponse.json(
+        { error: "Green price per carat cannot be greater than asking price per carat" },
+        { status: 400 }
+      );
+    }
+
+    if (redPricePerCarat > greenPricePerCarat) {
+      return NextResponse.json(
+        { error: "Red price per carat cannot be greater than green price per carat" },
+        { status: 400 }
+      );
+    }
+
+    const finalAmount = data.finalAmount ? parseFloat(data.finalAmount) : (size * askingPricePerCarat);
+    const greenPrice = data.greenPrice ? parseFloat(data.greenPrice) : (size * greenPricePerCarat);
+    const redPrice = data.redPrice ? parseFloat(data.redPrice) : (size * redPricePerCarat);
+
     // Create new InventoryItem data object
     const inventoryItemCreateData: Prisma.InventoryItemCreateInput = {
       stockId: data.stockId,
       shape: data.shape,
-      size: data.size ? parseFloat(data.size) : 0,
+      size,
       color: data.color,
       clarity: data.clarity,
       cut: data.cut || null,
@@ -183,8 +260,12 @@ export async function POST(request: NextRequest) {
       sym: data.sym,
       lab: data.lab,
       certificateNo: data.certificateNo || null,
-      pricePerCarat: data.pricePerCarat ? parseFloat(data.pricePerCarat) : 0,
-      finalAmount: data.finalAmount ? parseFloat(data.finalAmount) : 0,
+      pricePerCarat: askingPricePerCarat,
+      finalAmount,
+      greenPricePerCarat,
+      greenPrice,
+      redPricePerCarat,
+      redPrice,
       status: data.status,
       videoUrl: data.videoUrl || null,
       imageUrl: data.imageUrl || null,

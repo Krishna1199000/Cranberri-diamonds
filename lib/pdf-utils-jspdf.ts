@@ -177,7 +177,7 @@ export async function generateInvoicePDFBufferJsPDF(invoice: InvoiceData): Promi
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(107, 114, 128); // #6b7280 - gray-600
-    doc.text('B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India', 105, currentY, { align: 'center' });
+    doc.text('Swastik Disa Corporate Park #517, Nityanand Nagar, Ghatkopar West, Mumbai, Maharashtra 400086', 105, currentY, { align: 'center' });
     
     currentY += 4;
     doc.setTextColor(37, 99, 235); // #2563eb - blue-600

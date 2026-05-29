@@ -9,14 +9,14 @@ export type Diamond = {
   color: string;
   clarity: string;
   cut: string | null;
-  polish: string;
-  sym: string;
+  polish: string | null;
+  sym: string | null;
   floro: string;
-  lab: string;
+  lab: string | null;
   rapPrice: number;
   rapAmount: number;
   discount: number;
-  pricePerCarat: number;
+  pricePerCarat: number | null;
   finalAmount: number;
   measurement: string;
   length: number | null;
@@ -103,7 +103,10 @@ export const getStatusDisplay = (diamond: Diamond): string => {
   }
 };
 
-export const formatNumber = (num: number, decimals = 2) => {
+export const formatNumber = (num: number | null | undefined, decimals = 2) => {
+  if (num === null || num === undefined || isNaN(num)) {
+    return '-';
+  }
   return num.toLocaleString('en-US', { 
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals

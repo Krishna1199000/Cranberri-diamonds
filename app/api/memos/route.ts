@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, InvoiceType } from '@prisma/client'; // Import InvoiceType
+import { PrismaClient, Prisma, InvoiceType } from '@prisma/client'; // Import InvoiceType
 import { numberToWords, generateMemoNumber } from '@/lib/utils'; // Import generateMemoNumber from utils
 import { getSession } from '@/lib/session';
 import { memoFormSchema } from '@/lib/validators/memo';
+import {
+  collectInventoryStockIds,
+  fetchInventoryTierMap,
+  normalizeItemsToAskingPrices,
+  validateInventoryTierPricing,
+} from '@/lib/utils/pricing-tiers';
 
 const prisma = new PrismaClient();
 
 
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     const userId = session?.userId as string | undefined;
@@ -18,22 +24,122 @@ export async function GET() {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    let whereClause = {};
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const employeeIds = searchParams.get('employeeIds')?.split(',').filter(Boolean) || [];
+    const companies = searchParams.get('companies')?.split(',').filter(Boolean) || [];
+    const states = searchParams.get('states')?.split(',').filter(Boolean) || [];
+    const shapes = searchParams.get('shapes')?.split(',').filter(Boolean) || [];
+    const colors = searchParams.get('colors')?.split(',').filter(Boolean) || [];
+    const clarities = searchParams.get('clarities')?.split(',').filter(Boolean) || [];
+    const labs = searchParams.get('labs')?.split(',').filter(Boolean) || [];
+    const caratMin = searchParams.get('caratMin');
+    const caratMax = searchParams.get('caratMax');
+    const dateStart = searchParams.get('dateStart');
+    const dateEnd = searchParams.get('dateEnd');
+    const status = searchParams.get('status');
 
+    const whereClause: Prisma.MemoWhereInput = {};
+
+    // Role-based filtering
     if (userRole === 'employee') {
-        whereClause = { userId: userId };
+        whereClause.userId = userId;
+    } else if (userRole === 'admin' && employeeIds.length > 0) {
+        whereClause.userId = { in: employeeIds };
     }
-    // Admins (or other roles) will have an empty whereClause, fetching all memos.
 
-    const memos = await prisma.memo.findMany({
-      where: whereClause, // Apply the filter conditionally
-      orderBy: {
-        memoNo: 'desc' // Order by memoNo
-      },
-      include: {
-        items: true // Keep including items
+    // Backward-compatible status behavior:
+    // If schema migration isn't applied yet, we cannot query memoStatus safely.
+    // `RETURNED` data is served by /api/memos/returned, so keep this endpoint focused on current memos.
+    if (status === 'RETURNED') {
+      return NextResponse.json({ memos: [] });
+    }
+
+    // Company filter
+    if (companies.length > 0) {
+        whereClause.companyName = { in: companies };
+    }
+
+    // State filter
+    if (states.length > 0) {
+        whereClause.state = { in: states };
+    }
+
+    // Date range filter
+    if (dateStart || dateEnd) {
+        whereClause.date = {};
+        if (dateStart) {
+            whereClause.date.gte = new Date(dateStart);
+        }
+        if (dateEnd) {
+            const endDate = new Date(dateEnd);
+            endDate.setHours(23, 59, 59, 999);
+            whereClause.date.lte = endDate;
+        }
+    }
+
+    // Item-based filters (shape, color, clarity, lab, carat)
+    const itemFilters: Prisma.MemoItemWhereInput = {};
+    if (shapes.length > 0) {
+        itemFilters.shape = { in: shapes };
+    }
+    if (colors.length > 0) {
+        itemFilters.color = { in: colors };
+    }
+    if (clarities.length > 0) {
+        itemFilters.clarity = { in: clarities };
+    }
+    if (labs.length > 0) {
+        itemFilters.lab = { in: labs };
+    }
+    if (caratMin || caratMax) {
+        itemFilters.carat = {};
+        if (caratMin) {
+            itemFilters.carat.gte = parseFloat(caratMin);
+        }
+        if (caratMax) {
+            itemFilters.carat.lte = parseFloat(caratMax);
+        }
+    }
+
+    // If any item filters exist, add them to the where clause
+    if (Object.keys(itemFilters).length > 0) {
+        whereClause.items = {
+            some: itemFilters
+        };
+    }
+
+    const include = {
+      items: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true
+        }
       }
-    });
+    };
+
+    const orderBy = { memoNo: 'desc' as const };
+
+    // Current memos tab: only ACTIVE (open) memos
+    let memos;
+    try {
+      memos = await prisma.memo.findMany({
+        where: { ...whereClause, memoStatus: 'ACTIVE' },
+        orderBy,
+        include,
+      });
+    } catch {
+      const allMemos = await prisma.memo.findMany({
+        where: whereClause,
+        orderBy,
+        include,
+      });
+      memos = allMemos.filter(
+        (m) => (m as { memoStatus?: string }).memoStatus === 'ACTIVE' || !(m as { memoStatus?: string }).memoStatus
+      );
+    }
 
     // Add no-cache headers
     const headers = new Headers();
@@ -41,7 +147,7 @@ export async function GET() {
     headers.set('Pragma', 'no-cache');
     headers.set('Expires', '0');
 
-    return NextResponse.json({ memos }, { headers }); // Return memos
+    return NextResponse.json({ memos }, { headers });
   } catch (error) {
     console.error('Error fetching memos: ', String(error));
     return NextResponse.json({ error: 'Failed to fetch memos' }, { status: 500 });
@@ -70,6 +176,31 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: `Invalid input: ${errorMessage}`, details: validation.error.errors }, { status: 400 });
         }
         const validatedData = validation.data;
+
+        const stockIds = collectInventoryStockIds(validatedData.items);
+
+        if (stockIds.length > 0) {
+          const inventoryByStockId = await fetchInventoryTierMap(stockIds, (args) =>
+            prisma.inventoryItem.findMany(args)
+          );
+
+          const tierValidation = validateInventoryTierPricing(
+            validatedData.items,
+            inventoryByStockId,
+            userRole
+          );
+          if (!tierValidation.ok) {
+            return NextResponse.json(
+              { error: tierValidation.error },
+              { status: tierValidation.status }
+            );
+          }
+
+          validatedData.items = normalizeItemsToAskingPrices(
+            validatedData.items,
+            inventoryByStockId
+          );
+        }
 
         // --- Transaction for fetching latest memo number and creating new one ---
         const createdMemo = await prisma.$transaction(async (tx) => {
@@ -148,6 +279,7 @@ export async function POST(request: NextRequest) {
                   carat: Number(item.carat) || 0,
                   color: item.color,
                   clarity: item.clarity,
+                  shape: item.shape || null,
                   lab: item.lab,
                   reportNo: item.reportNo,
                   pricePerCarat: Number(item.pricePerCarat) || 0,

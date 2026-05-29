@@ -9,8 +9,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let resolvedParams: { id: string } | null = null;
   try {
-    const resolvedParams = await params;
+    resolvedParams = await params;
     const item = await prisma.inventoryItem.findUnique({
       where: { id: resolvedParams.id },
       include: { heldByShipment: true }
@@ -25,7 +26,8 @@ export async function GET(
 
     return NextResponse.json(item);
   } catch (error) {
-    console.error(`Error fetching inventory item ${params}:`, error);
+    const itemId = resolvedParams?.id || 'unknown';
+    console.error(`Error fetching inventory item ${itemId}:`, error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: "Failed to fetch inventory item" },
       { status: 500 }
@@ -82,6 +84,22 @@ export async function PUT(request: NextRequest,
     if (data.certUrl !== undefined) updateData.certUrl = data.certUrl;
     if (data.measurement !== undefined) updateData.measurement = data.measurement;
     if (data.location !== undefined) updateData.location = data.location;
+    const parsedRatio = data.ratio !== null && data.ratio !== undefined ? parseFloat(data.ratio) : NaN;
+    if (data.ratio !== undefined) updateData.ratio = isNaN(parsedRatio) ? null : parsedRatio;
+    const parsedTable = data.table !== null && data.table !== undefined ? parseFloat(data.table) : NaN;
+    if (data.table !== undefined) updateData.table = isNaN(parsedTable) ? null : parsedTable;
+    const parsedDepth = data.depth !== null && data.depth !== undefined ? parseFloat(data.depth) : NaN;
+    if (data.depth !== undefined) updateData.depth = isNaN(parsedDepth) ? null : parsedDepth;
+    if (data.growthType !== undefined) updateData.growthType = data.growthType;
+    if (data.flourence !== undefined) updateData.flourence = data.flourence;
+    const parsedGreenPricePerCarat = data.greenPricePerCarat !== null && data.greenPricePerCarat !== undefined ? parseFloat(data.greenPricePerCarat) : NaN;
+    if (data.greenPricePerCarat !== undefined) updateData.greenPricePerCarat = isNaN(parsedGreenPricePerCarat) ? null : parsedGreenPricePerCarat;
+    const parsedGreenPrice = data.greenPrice !== null && data.greenPrice !== undefined ? parseFloat(data.greenPrice) : NaN;
+    if (data.greenPrice !== undefined) updateData.greenPrice = isNaN(parsedGreenPrice) ? null : parsedGreenPrice;
+    const parsedRedPricePerCarat = data.redPricePerCarat !== null && data.redPricePerCarat !== undefined ? parseFloat(data.redPricePerCarat) : NaN;
+    if (data.redPricePerCarat !== undefined) updateData.redPricePerCarat = isNaN(parsedRedPricePerCarat) ? null : parsedRedPricePerCarat;
+    const parsedRedPrice = data.redPrice !== null && data.redPrice !== undefined ? parseFloat(data.redPrice) : NaN;
+    if (data.redPrice !== undefined) updateData.redPrice = isNaN(parsedRedPrice) ? null : parsedRedPrice;
 
     if (data.stockId && data.stockId !== existingItem.stockId) {
         const conflict = await prisma.inventoryItem.findUnique({
@@ -103,6 +121,67 @@ export async function PUT(request: NextRequest,
       } else {
         updateData.heldByShipment = { disconnect: true }; 
       }
+    }
+
+    const effectiveAskingRaw =
+      updateData.pricePerCarat !== undefined
+        ? updateData.pricePerCarat
+        : existingItem.pricePerCarat;
+    const effectiveGreenRaw =
+      updateData.greenPricePerCarat !== undefined
+        ? updateData.greenPricePerCarat
+        : existingItem.greenPricePerCarat;
+    const effectiveRedRaw =
+      updateData.redPricePerCarat !== undefined
+        ? updateData.redPricePerCarat
+        : existingItem.redPricePerCarat;
+    const effectiveAsking = Number(effectiveAskingRaw);
+    const effectiveGreen = Number(effectiveGreenRaw);
+    const effectiveRed = Number(effectiveRedRaw);
+    const effectiveSize =
+      updateData.size !== undefined
+        ? Number(updateData.size)
+        : Number(existingItem.size);
+
+    if (
+      effectiveAskingRaw === null ||
+      effectiveAskingRaw === undefined ||
+      effectiveGreenRaw === null ||
+      effectiveGreenRaw === undefined ||
+      effectiveRedRaw === null ||
+      effectiveRedRaw === undefined ||
+      !Number.isFinite(effectiveAsking) ||
+      !Number.isFinite(effectiveGreen) ||
+      !Number.isFinite(effectiveRed)
+    ) {
+      return NextResponse.json(
+        { error: "Asking, green and red price per carat are required for every stone" },
+        { status: 400 }
+      );
+    }
+
+    if (effectiveGreen > effectiveAsking) {
+      return NextResponse.json(
+        { error: "Green price per carat cannot be greater than asking price per carat" },
+        { status: 400 }
+      );
+    }
+
+    if (effectiveRed > effectiveGreen) {
+      return NextResponse.json(
+        { error: "Red price per carat cannot be greater than green price per carat" },
+        { status: 400 }
+      );
+    }
+
+    if (updateData.finalAmount === undefined) {
+      updateData.finalAmount = Number((effectiveSize * effectiveAsking).toFixed(2));
+    }
+    if (updateData.greenPrice === undefined) {
+      updateData.greenPrice = Number((effectiveSize * effectiveGreen).toFixed(2));
+    }
+    if (updateData.redPrice === undefined) {
+      updateData.redPrice = Number((effectiveSize * effectiveRed).toFixed(2));
     }
 
     const updatedItem = await prisma.inventoryItem.update({

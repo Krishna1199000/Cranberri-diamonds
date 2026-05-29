@@ -16,10 +16,10 @@ interface InventoryItem {
   color: string;
   clarity: string;
   cut: string | null;
-  polish: string;
-  sym: string;
-  lab: string;
-  pricePerCarat: number;
+  polish: string | null;
+  sym: string | null;
+  lab: string | null;
+  pricePerCarat: number | null;
   finalAmount: number;
   status: 'AVAILABLE' | 'HOLD' | 'MEMO' | 'SOLD';
   certUrl?: string | null;
@@ -36,9 +36,11 @@ export default function CreateFromInventoryPage() {
         carat: diamond.size,
         color: diamond.color,
         clarity: diamond.clarity,
-        lab: diamond.lab,
+        lab: diamond.lab || '',
         reportNo: diamond.stockId,
-        pricePerCarat: diamond.pricePerCarat,
+        stockId: diamond.stockId,
+        pricePerCarat: diamond.pricePerCarat ?? 0,
+        enteredPricePerCarat: diamond.pricePerCarat ?? 0,
       }));
 
       // Get the latest invoice number
@@ -87,9 +89,11 @@ export default function CreateFromInventoryPage() {
         carat: diamond.size,
         color: diamond.color,
         clarity: diamond.clarity,
-        lab: diamond.lab,
+        lab: diamond.lab || '',
         reportNo: diamond.stockId,
-        pricePerCarat: diamond.pricePerCarat,
+        stockId: diamond.stockId,
+        pricePerCarat: diamond.pricePerCarat ?? 0,
+        enteredPricePerCarat: diamond.pricePerCarat ?? 0,
       }));
 
       // Get the latest memo number

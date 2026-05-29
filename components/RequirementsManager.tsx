@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,28 +8,59 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RequirementCreateDialog } from "@/components/requirements/RequirementCreateDialog";
+import { RequirementEntryForm } from "@/components/requirements/RequirementEntryForm";
+import { defaultRequirementSpec, parseRequirementDescription, type RequirementSpec } from "@/lib/requirements/types";
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 import { 
-  Plus, 
   Edit, 
   Trash2, 
   CheckCircle, 
   Clock, 
   User, 
   MapPin, 
-  FileText
+  FileText,
+  Users,
+  ChevronDown,
+  Filter
 } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 
 interface Requirement {
   id: string;
   customerName: string;
   description: string;
+  summary?: string;
+  personName?: string;
   state: string;
   country: string;
   isCompleted: boolean;
   createdAt: string;
   updatedAt: string;
+  date?: string;
+  requirementDate?: string;
+  phoneNumber?: string;
+  email?: string;
+  notes?: string | null;
+  budget?: number | null;
+  spec?: RequirementSpec | null;
+  isLegacy?: boolean;
   employee: {
     id: string;
     name: string;
@@ -44,27 +75,23 @@ interface RequirementsManagerProps {
 
 export function RequirementsManager({ userRole, currentUserId }: RequirementsManagerProps) {
   const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [allRequirements, setAllRequirements] = useState<Requirement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [loggedByName, setLoggedByName] = useState("");
   const [updating, setUpdating] = useState(false);
   const [completing, setCompleting] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRequirement, setEditingRequirement] = useState<Requirement | null>(null);
-  const [formData, setFormData] = useState({
-    customerName: '',
-    description: '',
-    state: '',
-    country: ''
-  });
-
-
-
-  useEffect(() => {
-    fetchRequirements();
-  }, []);
-
+  
+  // Filter states
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  const [availableEmployees, setAvailableEmployees] = useState<{ id: string; name: string }[]>([]);
+  const [availableStates, setAvailableStates] = useState<string[]>([]);
+  
   const fetchRequirements = async () => {
     setLoading(true);
     try {
@@ -73,10 +100,31 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
       });
       const data = await response.json();
       
-      if (data.success) {
-        setRequirements(data.requirements);
+      if (data.success && Array.isArray(data.requirements)) {
+        setAllRequirements(data.requirements);
+        // Extract unique employees and states
+        const uniqueEmployees = new Map<string, { id: string; name: string }>();
+        const uniqueStates = new Set<string>();
+        
+        data.requirements.forEach((req: Requirement) => {
+          if (req.employee) {
+            uniqueEmployees.set(req.employee.id, {
+              id: req.employee.id,
+              name: req.employee.name
+            });
+          }
+          if (req.state) {
+            uniqueStates.add(req.state);
+          }
+        });
+        
+        setAvailableEmployees(Array.from(uniqueEmployees.values()));
+        setAvailableStates(Array.from(uniqueStates).sort());
+        
+        // Apply filters
+        applyFilters(data.requirements);
       } else {
-        toast.error('Failed to fetch requirements');
+        toast.error(data.message || 'Failed to fetch requirements');
       }
     } catch (error) {
       console.error('Error fetching requirements:', error);
@@ -86,43 +134,21 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
     }
   };
 
-  const handleCreateRequirement = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (userRole !== 'employee') {
-      toast.error('Only employees can create requirements');
-      return;
-    }
-
-    if (creating) return; // Prevent double submission
-
-    setCreating(true);
-    try {
-      const response = await fetch('/api/requirements', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-        credentials: 'include'
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success('Requirement created successfully');
-        setFormData({ customerName: '', description: '', state: '', country: '' });
-        setIsCreateDialogOpen(false);
-        // Add new requirement to the list instead of fetching all
-        setRequirements(prev => [data.requirement, ...prev]);
-      } else {
-        toast.error(data.message || 'Failed to create requirement');
+  useEffect(() => {
+    fetchRequirements();
+    const loadUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me", { credentials: "include" });
+        if (response.ok) {
+          const user = await response.json();
+          setLoggedByName(user.name || user.email || "");
+        }
+      } catch {
+        /* ignore */
       }
-    } catch (error) {
-      console.error('Error creating requirement:', error);
-      toast.error('Failed to create requirement');
-    } finally {
-      setCreating(false);
-    }
-  };
+    };
+    loadUser();
+  }, []);
 
   const handleEditRequirement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,7 +160,19 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
       const response = await fetch(`/api/requirements/${editingRequirement.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          customerName: editFormData.customerName,
+          personName: editFormData.personName,
+          state: editFormData.state,
+          country: editFormData.country,
+          phoneNumber: editFormData.phoneNumber,
+          email: editFormData.email,
+          requirementDate: editFormData.requirementDate,
+          notes: editFormData.notes,
+          budget: editFormData.budget,
+          spec: editFormData.spec,
+          description: editFormData.legacyDescription,
+        }),
         credentials: 'include'
       });
 
@@ -144,11 +182,13 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
         toast.success('Requirement updated successfully');
         setIsEditDialogOpen(false);
         setEditingRequirement(null);
-        setFormData({ customerName: '', description: '', state: '', country: '' });
-        // Update the specific requirement in the list
-        setRequirements(prev => prev.map(req => 
-          req.id === editingRequirement.id ? data.requirement : req
-        ));
+        resetEditForm();
+        setAllRequirements((prev) =>
+          prev.map((req) => (req.id === editingRequirement.id ? data.requirement : req))
+        );
+        setRequirements((prev) =>
+          prev.map((req) => (req.id === editingRequirement.id ? data.requirement : req))
+        );
       } else {
         toast.error(data.message || 'Failed to update requirement');
       }
@@ -223,13 +263,58 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
     }
   };
 
+  const resetEditForm = () => {
+    setEditFormData({
+      customerName: '',
+      personName: '',
+      state: '',
+      country: '',
+      phoneNumber: '',
+      email: '',
+      requirementDate: new Date().toISOString().split('T')[0],
+      notes: '',
+      budget: '',
+      spec: defaultRequirementSpec(),
+      isLegacy: false,
+      legacyDescription: '',
+    });
+  };
+
+  const [editFormData, setEditFormData] = useState({
+    customerName: '',
+    personName: '',
+    state: '',
+    country: '',
+    phoneNumber: '',
+    email: '',
+    requirementDate: new Date().toISOString().split('T')[0],
+    notes: '',
+    budget: '' as string | number,
+    spec: defaultRequirementSpec(),
+    isLegacy: false,
+    legacyDescription: '',
+  });
+
   const openEditDialog = (requirement: Requirement) => {
     setEditingRequirement(requirement);
-    setFormData({
+    const reqDate = requirement.requirementDate || requirement.date
+      ? new Date(requirement.requirementDate || requirement.date!).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+    const parsed = requirement.spec ?? parseRequirementDescription(requirement.description).spec;
+    const isLegacy = requirement.isLegacy ?? !parsed;
+    setEditFormData({
       customerName: requirement.customerName,
-      description: requirement.description,
+      personName: requirement.personName || '',
       state: requirement.state,
-      country: requirement.country || ''
+      country: requirement.country || '',
+      phoneNumber: requirement.phoneNumber || '',
+      email: requirement.email || '',
+      requirementDate: reqDate,
+      notes: requirement.notes || '',
+      budget: requirement.budget ?? '',
+      spec: parsed ?? defaultRequirementSpec(),
+      isLegacy,
+      legacyDescription: isLegacy ? requirement.description : '',
     });
     setIsEditDialogOpen(true);
   };
@@ -242,6 +327,99 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
     return userRole === 'admin' || (userRole === 'employee' && requirement.employee.id === currentUserId);
   };
 
+  // Chart data calculations
+  const requirementsOverTimeData = useMemo(() => {
+    if (!requirements || requirements.length === 0) {
+      return [];
+    }
+    
+    const grouped: Record<string, { date: string; count: number; timestamp: number }> = {};
+    
+    requirements.forEach(req => {
+      const dateObj = new Date(req.createdAt);
+      const dateStr = dateObj.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+      const dateKey = dateObj.toISOString().split('T')[0];
+      
+      if (grouped[dateKey]) {
+        grouped[dateKey].count += 1;
+      } else {
+        grouped[dateKey] = {
+          date: dateStr,
+          count: 1,
+          timestamp: dateObj.getTime()
+        };
+      }
+    });
+    
+    const result = Object.keys(grouped).map(key => ({
+      date: grouped[key].date,
+      count: grouped[key].count,
+      timestamp: grouped[key].timestamp
+    }));
+    
+    result.sort((a, b) => a.timestamp - b.timestamp);
+    
+    return result.map(({ date, count }) => ({ date, count }));
+  }, [requirements]);
+
+  // Apply filters function
+  const applyFilters = (data: Requirement[]) => {
+    let filtered = [...data];
+    
+    // Filter by employees
+    if (selectedEmployees.length > 0) {
+      filtered = filtered.filter(req => selectedEmployees.includes(req.employee.id));
+    }
+    
+    // Filter by states
+    if (selectedStates.length > 0) {
+      filtered = filtered.filter(req => selectedStates.includes(req.state));
+    }
+    
+    // Filter by statuses
+    if (selectedStatuses.length > 0) {
+      if (selectedStatuses.includes('completed') && !selectedStatuses.includes('pending')) {
+        filtered = filtered.filter(req => req.isCompleted);
+      } else if (selectedStatuses.includes('pending') && !selectedStatuses.includes('completed')) {
+        filtered = filtered.filter(req => !req.isCompleted);
+      }
+    }
+    
+    // Filter by date range
+    if (dateRange.start && dateRange.end) {
+      const startDate = new Date(dateRange.start);
+      const endDate = new Date(dateRange.end);
+      endDate.setHours(23, 59, 59, 999);
+      
+      filtered = filtered.filter(req => {
+        const reqDate = new Date(req.createdAt);
+        return reqDate >= startDate && reqDate <= endDate;
+      });
+    }
+    
+    setRequirements(filtered);
+  };
+
+  // Apply filters when filter states change
+  useEffect(() => {
+    if (allRequirements.length > 0) {
+      applyFilters(allRequirements);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEmployees, selectedStates, selectedStatuses, dateRange, allRequirements]);
+
+  const requirementsByStatusData = useMemo(() => {
+    const completed = requirements.filter(r => r.isCompleted).length;
+    const pending = requirements.filter(r => !r.isCompleted).length;
+    return [
+      { name: 'Completed', value: completed, fill: '#10b981' },
+      { name: 'Pending', value: pending, fill: '#f59e0b' }
+    ];
+  }, [requirements]);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -251,64 +429,11 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
               <FileText className="h-5 w-5" />
               Requirements Management
             </CardTitle>
-            {userRole === 'employee' && (
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Requirement
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Requirement</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleCreateRequirement} className="space-y-4">
-                    <div>
-                      <Label htmlFor="customerName">Customer Name</Label>
-                      <Input
-                        id="customerName"
-                        value={formData.customerName}
-                        onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                        rows={4}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="state">State</Label>
-                      <Input
-                        id="state"
-                        value={formData.state}
-                        onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                        placeholder="Enter state"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="country">Country</Label>
-                      <Input
-                        id="country"
-                        value={formData.country}
-                        onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                        placeholder="Enter country"
-                        required
-                      />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={creating}>
-                      {creating ? 'Creating Requirement...' : 'Create Requirement'}
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
+            {(userRole === 'employee' || userRole === 'admin') && (
+              <RequirementCreateDialog
+                loggedByName={loggedByName}
+                onCreated={fetchRequirements}
+              />
             )}
           </div>
         </CardHeader>
@@ -316,13 +441,291 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
           {loading ? (
             <div className="text-center py-8">Loading requirements...</div>
           ) : (
+            <>
+              {/* Professional Filter Bar */}
+              <div className="mb-6 p-4 border rounded-lg bg-white shadow-sm">
+                <h2 className="text-xl font-semibold mb-4">Filter Requirements</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Employees Filter */}
+                  {userRole === 'admin' && (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium">Employees</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full justify-between"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Users className="w-4 h-4" />
+                              {selectedEmployees.length === 0
+                                ? "All employees"
+                                : `${selectedEmployees.length} selected`}
+                            </span>
+                            <ChevronDown className="w-4 h-4 opacity-60" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-3 space-y-2">
+                          <div className="font-semibold text-sm mb-1">Select employees</div>
+                          <div className="space-y-1 max-h-56 overflow-y-auto">
+                            {availableEmployees.map((emp) => (
+                              <label key={emp.id} className="flex items-center gap-2 text-sm">
+                                <Checkbox
+                                  checked={selectedEmployees.includes(emp.id)}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked
+                                    setSelectedEmployees((prev) => {
+                                      if (checked) {
+                                        return [...prev, emp.id]
+                                      } else {
+                                        return prev.filter((id) => id !== emp.id)
+                                      }
+                                    })
+                                  }}
+                                />
+                                <span>{emp.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+
+                  {/* States Filter */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">States</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-between"
+                        >
+                          <span className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            {selectedStates.length === 0
+                              ? "All states"
+                              : `${selectedStates.length} selected`}
+                          </span>
+                          <ChevronDown className="w-4 h-4 opacity-60" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3 space-y-2">
+                        <div className="font-semibold text-sm mb-1">Select states</div>
+                        <div className="space-y-1 max-h-56 overflow-y-auto">
+                          {availableStates.map((state) => (
+                            <label key={state} className="flex items-center gap-2 text-sm">
+                              <Checkbox
+                                checked={selectedStates.includes(state)}
+                                onChange={(e) => {
+                                  const checked = e.target.checked
+                                  setSelectedStates((prev) => {
+                                    if (checked) {
+                                      return [...prev, state]
+                                    } else {
+                                      return prev.filter((s) => s !== state)
+                                    }
+                                  })
+                                }}
+                              />
+                              <span>{state}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">Status</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-between"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Filter className="w-4 h-4" />
+                            {selectedStatuses.length === 0
+                              ? "All statuses"
+                              : `${selectedStatuses.length} selected`}
+                          </span>
+                          <ChevronDown className="w-4 h-4 opacity-60" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3 space-y-2">
+                        <div className="font-semibold text-sm mb-1">Select statuses</div>
+                        <div className="space-y-1">
+                          <label className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={selectedStatuses.includes('completed')}
+                              onChange={(e) => {
+                                const checked = e.target.checked
+                                setSelectedStatuses((prev) => {
+                                  if (checked) {
+                                    return [...prev, 'completed']
+                                  } else {
+                                    return prev.filter((s) => s !== 'completed')
+                                  }
+                                })
+                              }}
+                            />
+                            <span className="flex items-center gap-2">
+                              <CheckCircle className="w-3 h-3 text-green-500" />
+                              Completed
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={selectedStatuses.includes('pending')}
+                              onChange={(e) => {
+                                const checked = e.target.checked
+                                setSelectedStatuses((prev) => {
+                                  if (checked) {
+                                    return [...prev, 'pending']
+                                  } else {
+                                    return prev.filter((s) => s !== 'pending')
+                                  }
+                                })
+                              }}
+                            />
+                            <span className="flex items-center gap-2">
+                              <Clock className="w-3 h-3 text-orange-500" />
+                              Pending
+                            </span>
+                          </label>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Date Range Filter */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">Date Range</label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="date"
+                        placeholder="Start Date"
+                        value={dateRange.start}
+                        onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                        className="w-full"
+                      />
+                      <Input
+                        type="date"
+                        placeholder="End Date"
+                        value={dateRange.end}
+                        onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Requirements Analytics Charts */}
+              {requirements.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  {/* Requirements Over Time */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold">Requirements Over Time</CardTitle>
+                      <CardDescription>Track requirement creation trends</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[350px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={requirementsOverTimeData} margin={{ top: 5, right: 20, left: 0, bottom: 60 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis 
+                              dataKey="date" 
+                              tick={{ fontSize: 11, fill: '#6b7280' }}
+                              angle={-45}
+                              textAnchor="end"
+                              height={80}
+                              interval={requirementsOverTimeData.length > 15 ? Math.floor(requirementsOverTimeData.length / 10) : 0}
+                              minTickGap={10}
+                            />
+                            <YAxis 
+                              tick={{ fontSize: 11, fill: '#6b7280' }}
+                              tickLine={{ stroke: '#d1d5db' }}
+                              axisLine={{ stroke: '#d1d5db' }}
+                            />
+                            <Tooltip 
+                              contentStyle={{
+                                backgroundColor: 'white',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                padding: '12px'
+                              }}
+                              labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
+                            />
+                            <Legend 
+                              wrapperStyle={{ paddingTop: '20px' }}
+                            />
+                            <Bar dataKey="count" name="Requirements" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Requirements by Status */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold">Requirements by Status</CardTitle>
+                      <CardDescription>View completion status distribution</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[350px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={requirementsByStatusData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              outerRadius={100}
+                              dataKey="value"
+                            >
+                              {requirementsByStatusData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              contentStyle={{
+                                backgroundColor: 'white',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                padding: '12px'
+                              }}
+                            />
+                            <Legend 
+                              wrapperStyle={{ paddingTop: '20px' }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Customer</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>State</TableHead>
-                  <TableHead>Country</TableHead>
+                  <TableHead>Person Name</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Phone/Email</TableHead>
                   <TableHead>Employee</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
@@ -332,7 +735,7 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
               <TableBody>
                 {requirements.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                       No requirements found
                     </TableCell>
                   </TableRow>
@@ -346,8 +749,8 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="max-w-xs truncate" title={requirement.description}>
-                          {requirement.description}
+                        <div className="max-w-xs truncate" title={requirement.summary || requirement.description}>
+                          {requirement.summary || requirement.description}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -356,10 +759,17 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
                           {requirement.state}
                         </div>
                       </TableCell>
+                      <TableCell>{requirement.personName || 'N/A'}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          {requirement.country || 'N/A'}
+                        {requirement.requirementDate || requirement.date
+                          ? new Date(requirement.requirementDate || requirement.date!).toLocaleDateString()
+                          : new Date(requirement.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {requirement.phoneNumber && <div>{requirement.phoneNumber}</div>}
+                          {requirement.email && <div className="text-gray-600">{requirement.email}</div>}
+                          {!requirement.phoneNumber && !requirement.email && <span className="text-gray-400">N/A</span>}
                         </div>
                       </TableCell>
                       <TableCell>{requirement.employee.name}</TableCell>
@@ -430,58 +840,122 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
                 )}
               </TableBody>
             </Table>
+            </>
           )}
         </CardContent>
       </Card>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Requirement</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEditRequirement} className="space-y-4">
-            <div>
-              <Label htmlFor="editCustomerName">Customer Name</Label>
-              <Input
-                id="editCustomerName"
-                value={formData.customerName}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                required
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editCustomerName">Company name</Label>
+                <Input
+                  id="editCustomerName"
+                  value={editFormData.customerName}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, customerName: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editPersonName">Person name</Label>
+                <Input
+                  id="editPersonName"
+                  value={editFormData.personName}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, personName: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editState">State</Label>
+                <Input
+                  id="editState"
+                  value={editFormData.state}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, state: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editCountry">Country</Label>
+                <Input
+                  id="editCountry"
+                  value={editFormData.country}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, country: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editRequirementDate">Requirement date</Label>
+                <Input
+                  id="editRequirementDate"
+                  type="date"
+                  value={editFormData.requirementDate}
+                  onChange={(e) =>
+                    setEditFormData((prev) => ({ ...prev, requirementDate: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editBudget">Budget</Label>
+                <Input
+                  id="editBudget"
+                  type="number"
+                  value={editFormData.budget}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, budget: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editPhoneNumber">Phone</Label>
+                <Input
+                  id="editPhoneNumber"
+                  type="tel"
+                  value={editFormData.phoneNumber}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editEmail">Email</Label>
+                <Input
+                  id="editEmail"
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
             </div>
+            {editFormData.isLegacy ? (
+              <div>
+                <Label>Legacy description</Label>
+                <Textarea
+                  value={editFormData.legacyDescription}
+                  onChange={(e) =>
+                    setEditFormData((prev) => ({ ...prev, legacyDescription: e.target.value }))
+                  }
+                  rows={4}
+                  required
+                />
+              </div>
+            ) : (
+              <RequirementEntryForm
+                spec={editFormData.spec}
+                onChange={(spec) => setEditFormData((prev) => ({ ...prev, spec }))}
+              />
+            )}
             <div>
-              <Label htmlFor="editDescription">Description</Label>
+              <Label>Notes</Label>
               <Textarea
-                id="editDescription"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                rows={4}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="editState">State</Label>
-              <Input
-                id="editState"
-                value={formData.state}
-                onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                placeholder="Enter state"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="editCountry">Country</Label>
-              <Input
-                id="editCountry"
-                value={formData.country}
-                onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                placeholder="Enter country"
-                required
+                value={editFormData.notes}
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                rows={2}
               />
             </div>
             <Button type="submit" className="w-full" disabled={updating}>
-              {updating ? 'Updating Requirement...' : 'Update Requirement'}
+              {updating ? 'Updating…' : 'Update requirement'}
             </Button>
           </form>
         </DialogContent>

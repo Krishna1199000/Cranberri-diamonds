@@ -32,9 +32,16 @@ export function ContactSection() {
               <div>
                 <h3 className="font-semibold mb-2">Address</h3>
                 <p className="text-gray-600">
-                  16, Chandrakant Bhavan, Marolnaka,
-                  <br />
-                  Andheri (East) Mumbai 400 059
+                <div className="space-y-3">
+                  <div>
+                    <div className="font-semibold">Mumbai Head Office</div>
+                    <div>Swastik Disa Corporate Park #517, Nityanand Nagar, Ghatkopar West, Mumbai, Maharashtra 400086</div>
+                  </div>
+                  <div>
+                    <div className="font-semibold">Los Angeles Office</div>
+                    <div>550 S Hill St #705, Los Angeles, CA 90013, USA</div>
+                  </div>
+                </div>
                 </p>
               </div>
             </div>

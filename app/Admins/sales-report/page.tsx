@@ -20,10 +20,12 @@ import {
   PieChart,
   Pie,
 } from "recharts"
-import { Calendar, Download, TrendingUp, Users } from "lucide-react"
+import { Calendar, Download, TrendingUp, Users, ArrowLeft, Building2, ChevronDown } from "lucide-react"
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import Link from "next/link"
 import { SaleEntry, EmployeeStats } from "@/types/sales"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox"
 
 // Import components
 import SalesTable from "@/components/SalesTable"
@@ -34,7 +36,18 @@ export default function AdminSalesReport() {
   const [filteredData, setFilteredData] = useState<SaleEntry[]>([])
   const [period, setPeriod] = useState("30")
   const [customPeriod, setCustomPeriod] = useState({ start: "", end: "" })
-  const [selectedEmployee, setSelectedEmployee] = useState("all")
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>(["all"])
+  const [companies, setCompanies] = useState<string[]>([])
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
+  const [colors, setColors] = useState<string[]>([])
+  const [clarities, setClarities] = useState<string[]>([])
+  const [shapes, setShapes] = useState<string[]>([])
+  const [labs, setLabs] = useState<string[]>([])
+  const [states, setStates] = useState<string[]>([])
+  const [caratRange, setCaratRange] = useState<{ min: string; max: string }>({ min: "", max: "" })
+  const [availableShapes, setAvailableShapes] = useState<string[]>([])
+  const [availableLabs, setAvailableLabs] = useState<string[]>([])
+  const [availableStates, setAvailableStates] = useState<string[]>([])
   const [employeeStats, setEmployeeStats] = useState<EmployeeStats[]>([])
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ffc658"]
@@ -60,6 +73,54 @@ export default function AdminSalesReport() {
       toast.error("Failed to fetch employees")
     }
   }
+
+  // Fetch companies for filter
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const resp = await fetch("/api/companies")
+        if (!resp.ok) return
+        const data = await resp.json()
+        if (Array.isArray(data)) {
+          setCompanies(data.map((c: { companyName?: string }) => c.companyName).filter(Boolean) as string[])
+        }
+      } catch (err) {
+        console.error("Error fetching companies", err)
+      }
+    }
+    fetchCompanies()
+  }, [])
+
+  // Fetch unique values for filters
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const resp = await fetch("/api/sales?period=365")
+        if (!resp.ok) return
+        const data = await resp.json()
+        if (data.success && Array.isArray(data.entries)) {
+          const uniqueShapes = new Set<string>()
+          const uniqueLabs = new Set<string>()
+          const uniqueStates = new Set<string>()
+          
+          data.entries.forEach((entry: { state?: string; saleItems?: Array<{ shape?: string; lab?: string }> }) => {
+            if (entry.state) uniqueStates.add(entry.state)
+            entry.saleItems?.forEach((item) => {
+              if (item.shape) uniqueShapes.add(item.shape)
+              if (item.lab) uniqueLabs.add(item.lab)
+            })
+          })
+          
+          setAvailableShapes(Array.from(uniqueShapes).sort())
+          setAvailableLabs(Array.from(uniqueLabs).sort())
+          setAvailableStates(Array.from(uniqueStates).sort())
+        }
+      } catch (err) {
+        console.error("Error fetching filter options", err)
+      }
+    }
+    fetchFilterOptions()
+  }, [])
 
   const applyFilters = useCallback((data: SaleEntry[], employeeId: string) => {
     let filtered = [...data]
@@ -108,6 +169,33 @@ export default function AdminSalesReport() {
         let url = `/api/sales?period=${period}`
         if (period === "custom" && customPeriod.start && customPeriod.end) {
           url = `/api/sales?start=${customPeriod.start}&end=${customPeriod.end}`
+        }
+        if (selectedEmployees.length > 0 && !selectedEmployees.includes("all")) {
+          url += `&employeeIds=${selectedEmployees.join(",")}`
+        }
+        if (selectedCompanies.length > 0) {
+          url += `&companies=${selectedCompanies.join(",")}`
+        }
+        if (colors.length > 0) {
+          url += `&colors=${colors.join(",")}`
+        }
+        if (clarities.length > 0) {
+          url += `&clarities=${clarities.join(",")}`
+        }
+        if (shapes.length > 0) {
+          url += `&shapes=${shapes.join(",")}`
+        }
+        if (labs.length > 0) {
+          url += `&labs=${labs.join(",")}`
+        }
+        if (states.length > 0) {
+          url += `&states=${states.join(",")}`
+        }
+        if (caratRange.min) {
+          url += `&caratMin=${caratRange.min}`
+        }
+        if (caratRange.max) {
+          url += `&caratMax=${caratRange.max}`
         }
         const response = await fetch(url)
         const data = await response.json()
@@ -165,17 +253,21 @@ export default function AdminSalesReport() {
       }
     }
     performFetch()
-  }, [period, customPeriod])
+  }, [period, customPeriod, selectedEmployees, selectedCompanies, colors, clarities, shapes, labs, states, caratRange])
 
   useEffect(() => {
     if (salesData.length > 0) {
-      applyFilters(salesData, selectedEmployee)
+      // Use selectedEmployees instead of selectedEmployee for filtering
+      const employeeId = selectedEmployees.length === 1 && !selectedEmployees.includes("all") 
+        ? selectedEmployees[0] 
+        : "all"
+      applyFilters(salesData, employeeId)
       calculateEmployeeStats(salesData)
     } else {
       setFilteredData([])
       setEmployeeStats([])
     }
-  }, [salesData, selectedEmployee, applyFilters, calculateEmployeeStats])
+  }, [salesData, selectedEmployees, applyFilters, calculateEmployeeStats])
 
   const getChartData = () => {
     if (!Array.isArray(filteredData) || filteredData.length === 0) {
@@ -267,11 +359,16 @@ export default function AdminSalesReport() {
   return (
     <AdminLayout>
        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Sales Report Dashboard</h1>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
             <Link href="/Admins/sales">
-              <Button variant="outline">Back to Sales</Button>
+              <Button variant="outline" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Sales Dashboard
+              </Button>
             </Link>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Sales Report</h1>
+          </div>
+          <div className="flex gap-2">
             <Button 
               variant="outline" 
               className="flex items-center gap-2"
@@ -281,6 +378,274 @@ export default function AdminSalesReport() {
               <Download className="h-4 w-4" />
               Export Report
             </Button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="mb-6 p-4 border rounded-lg bg-white shadow-sm">
+          <h2 className="text-xl font-semibold mb-4">Filter Sales Data</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Employees</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      {selectedEmployees.includes("all") || selectedEmployees.length === 0
+                        ? "All employees"
+                        : `${selectedEmployees.length} selected`}
+                    </span>
+                    <ChevronDown className="w-4 h-4 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3 space-y-2">
+                  <div className="font-semibold text-sm mb-1">Select employees</div>
+                  <div className="space-y-1 max-h-56 overflow-y-auto">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={selectedEmployees.includes("all")}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedEmployees(["all"])
+                          } else {
+                            setSelectedEmployees([])
+                          }
+                        }}
+                      />
+                      <span>All employees</span>
+                    </label>
+                    {employees.map((emp) => (
+                      <label key={emp.id} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={
+                            !selectedEmployees.includes("all") &&
+                            selectedEmployees.includes(emp.id)
+                          }
+                          onChange={(e) => {
+                            const checked = e.target.checked
+                            setSelectedEmployees((prev) => {
+                              if (checked) {
+                                const base = prev.includes("all") ? [] : prev
+                                return [...base, emp.id]
+                              } else {
+                                return prev.filter((id) => id !== emp.id)
+                              }
+                            })
+                          }}
+                        />
+                        <span>{emp.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Companies</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      {selectedCompanies.length === 0
+                        ? "All companies"
+                        : `${selectedCompanies.length} selected`}
+                    </span>
+                    <ChevronDown className="w-4 h-4 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3 space-y-2">
+                  <div className="font-semibold text-sm mb-1">Select companies</div>
+                  <div className="space-y-1 max-h-56 overflow-y-auto">
+                    {companies.map((c) => (
+                      <label key={c} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={selectedCompanies.includes(c)}
+                          onChange={(e) => {
+                            const checked = e.target.checked
+                            setSelectedCompanies((prev) => {
+                              if (checked) {
+                                return [...prev, c]
+                              } else {
+                                return prev.filter((v) => v !== c)
+                              }
+                            })
+                          }}
+                        />
+                        <span>{c}</span>
+                      </label>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">State</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      {states.length === 0 ? "All states" : `${states.length} selected`}
+                    </span>
+                    <ChevronDown className="w-4 h-4 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3 space-y-2">
+                  <div className="font-semibold text-sm mb-1">Select states</div>
+                  <div className="space-y-1 max-h-56 overflow-y-auto">
+                    {availableStates.map((s) => (
+                      <label key={s} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={states.includes(s)}
+                          onChange={(e) => {
+                            const checked = e.target.checked
+                            setStates((prev) => {
+                              if (checked) {
+                                return [...prev, s]
+                              } else {
+                                return prev.filter((v) => v !== s)
+                              }
+                            })
+                          }}
+                        />
+                        <span>{s}</span>
+                      </label>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Shape</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      {shapes.length === 0 ? "All shapes" : `${shapes.length} selected`}
+                    </span>
+                    <ChevronDown className="w-4 h-4 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3 space-y-2">
+                  <div className="font-semibold text-sm mb-1">Select shapes</div>
+                  <div className="space-y-1 max-h-56 overflow-y-auto">
+                    {availableShapes.map((s) => (
+                      <label key={s} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={shapes.includes(s)}
+                          onChange={(e) => {
+                            const checked = e.target.checked
+                            setShapes((prev) => {
+                              if (checked) {
+                                return [...prev, s]
+                              } else {
+                                return prev.filter((v) => v !== s)
+                              }
+                            })
+                          }}
+                        />
+                        <span>{s}</span>
+                      </label>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Lab</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      {labs.length === 0 ? "All labs" : `${labs.length} selected`}
+                    </span>
+                    <ChevronDown className="w-4 h-4 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3 space-y-2">
+                  <div className="font-semibold text-sm mb-1">Select labs</div>
+                  <div className="space-y-1 max-h-56 overflow-y-auto">
+                    {availableLabs.map((l) => (
+                      <label key={l} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={labs.includes(l)}
+                          onChange={(e) => {
+                            const checked = e.target.checked
+                            setLabs((prev) => {
+                              if (checked) {
+                                return [...prev, l]
+                              } else {
+                                return prev.filter((v) => v !== l)
+                              }
+                            })
+                          }}
+                        />
+                        <span>{l}</span>
+                      </label>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Colors</label>
+              <Input
+                placeholder="Comma separated (e.g. D,E,F)"
+                value={colors.join(",")}
+                onChange={(e) => setColors(e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Clarities</label>
+              <Input
+                placeholder="Comma separated (e.g. IF,VVS1)"
+                value={clarities.join(",")}
+                onChange={(e) => setClarities(e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Carat Range</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Min"
+                  value={caratRange.min}
+                  onChange={(e) => setCaratRange(prev => ({ ...prev, min: e.target.value }))}
+                />
+                <Input
+                  placeholder="Max"
+                  value={caratRange.max}
+                  onChange={(e) => setCaratRange(prev => ({ ...prev, max: e.target.value }))}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -342,33 +707,16 @@ export default function AdminSalesReport() {
               </CardContent>
           </Card>
           
-           <Card>
-             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                 <CardTitle className="text-sm font-medium">Employee Filter</CardTitle>
-                 <Users className="h-4 w-4 text-muted-foreground" />
-             </CardHeader>
-             <CardContent>
-               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                 <SelectTrigger>
-                   <SelectValue placeholder="All Employees" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="all">All Employees</SelectItem>
-                   {employees.map((employee) => (
-                     <SelectItem key={employee.id} value={employee.id}>
-                       {employee.name}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-             </CardContent>
-           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <Card>
              <CardHeader>
-                  <CardTitle>Sales Over Time</CardTitle>
+                  <CardTitle>
+                    {selectedEmployees.includes("all") || selectedEmployees.length === 0
+                      ? "Sales Over Time" 
+                      : `Sales Over Time - ${selectedEmployees.length} employee(s)`}
+                  </CardTitle>
               </CardHeader>
               <CardContent>
                  <div className="h-[300px]">
@@ -417,53 +765,105 @@ export default function AdminSalesReport() {
 
           <Card>
              <CardHeader>
-                  <CardTitle>Top Employees by Sales</CardTitle>
+                  <CardTitle>
+                    {selectedEmployees.includes("all") || selectedEmployees.length === 0
+                      ? "Top Employees by Sales" 
+                      : `Sales by ${selectedEmployees.length} employee(s)`}
+                  </CardTitle>
               </CardHeader>
               <CardContent>
                  <div className="h-[300px]">
-                   {getEmployeeChartData().length > 0 ? (
-                     <ResponsiveContainer width="100%" height="100%">
-                       <BarChart data={getEmployeeChartData()} layout="vertical">
-                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                         <XAxis 
-                           type="number" 
-                           tick={{ fontSize: 12 }}
-                           tickLine={{ stroke: '#ccc' }}
-                           axisLine={{ stroke: '#ccc' }}
-                           tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                         />
-                         <YAxis 
-                           type="category" 
-                           dataKey="name" 
-                           width={80} 
-                           tick={{ fontSize: 12 }}
-                           tickLine={{ stroke: '#ccc' }}
-                           axisLine={{ stroke: '#ccc' }}
-                         />
-                         <Tooltip 
-                           formatter={(value: number) => [`$${value.toLocaleString()}`, 'Total Sales']}
-                           contentStyle={{
-                             backgroundColor: 'white',
-                             border: '1px solid #ccc',
-                             borderRadius: '6px',
-                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                           }}
-                         />
-                         <Bar dataKey="sales" name="Total Sales ($)" radius={[0, 4, 4, 0]}>
-                           {getEmployeeChartData().map((entry, index) => (
-                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                           ))}
-                         </Bar>
-                       </BarChart>
-                     </ResponsiveContainer>
-                   ) : (
-                     <div className="flex items-center justify-center h-full text-gray-500">
-                       <div className="text-center">
-                         <div className="text-4xl mb-2">👥</div>
-                         <p>No employee data available</p>
-                         <p className="text-sm mt-1">Try adjusting your filters or time period</p>
+                   {selectedEmployees.includes("all") || selectedEmployees.length === 0 ? (
+                     getEmployeeChartData().length > 0 ? (
+                       <ResponsiveContainer width="100%" height="100%">
+                         <BarChart data={getEmployeeChartData()} layout="vertical">
+                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                           <XAxis 
+                             type="number" 
+                             tick={{ fontSize: 12 }}
+                             tickLine={{ stroke: '#ccc' }}
+                             axisLine={{ stroke: '#ccc' }}
+                             tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                           />
+                           <YAxis 
+                             type="category" 
+                             dataKey="name" 
+                             width={80} 
+                             tick={{ fontSize: 12 }}
+                             tickLine={{ stroke: '#ccc' }}
+                             axisLine={{ stroke: '#ccc' }}
+                           />
+                           <Tooltip 
+                             formatter={(value: number) => [`$${value.toLocaleString()}`, 'Total Sales']}
+                             contentStyle={{
+                               backgroundColor: 'white',
+                               border: '1px solid #ccc',
+                               borderRadius: '6px',
+                               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                             }}
+                           />
+                           <Bar dataKey="sales" name="Total Sales ($)" radius={[0, 4, 4, 0]}>
+                             {getEmployeeChartData().map((entry, index) => (
+                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                             ))}
+                           </Bar>
+                         </BarChart>
+                       </ResponsiveContainer>
+                     ) : (
+                       <div className="flex items-center justify-center h-full text-gray-500">
+                         <div className="text-center">
+                           <div className="text-4xl mb-2">👥</div>
+                           <p>No employee data available</p>
+                           <p className="text-sm mt-1">Try adjusting your filters or time period</p>
+                         </div>
                        </div>
-                     </div>
+                     )
+                   ) : (
+                     // Show single employee chart when specific employee is selected
+                     getChartData().length > 0 ? (
+                       <ResponsiveContainer width="100%" height="100%">
+                         <BarChart data={getChartData()}>
+                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                           <XAxis 
+                             dataKey="date" 
+                             tick={{ fontSize: 10 }}
+                             tickLine={{ stroke: '#ccc' }}
+                             axisLine={{ stroke: '#ccc' }}
+                             angle={-45}
+                             textAnchor="end"
+                             height={80}
+                             interval={getChartData().length > 10 ? Math.floor(getChartData().length / 10) : 0}
+                             minTickGap={20}
+                           />
+                           <YAxis 
+                             tick={{ fontSize: 12 }}
+                             tickLine={{ stroke: '#ccc' }}
+                             axisLine={{ stroke: '#ccc' }}
+                             tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                           />
+                           <Tooltip 
+                             formatter={(value: number) => [`$${value.toLocaleString()}`, 'Sales']}
+                             labelFormatter={(label: string) => `Date: ${label}`}
+                             contentStyle={{
+                               backgroundColor: 'white',
+                               border: '1px solid #ccc',
+                               borderRadius: '6px',
+                               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                             }}
+                           />
+                           <Legend />
+                           <Bar dataKey="sales" name="Sales ($)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                         </BarChart>
+                       </ResponsiveContainer>
+                     ) : (
+                       <div className="flex items-center justify-center h-full text-gray-500">
+                         <div className="text-center">
+                           <div className="text-4xl mb-2">📊</div>
+                           <p>No sales data available for this employee</p>
+                           <p className="text-sm mt-1">Try adjusting your filters or time period</p>
+                         </div>
+                       </div>
+                     )
                    )}
                  </div>
               </CardContent>

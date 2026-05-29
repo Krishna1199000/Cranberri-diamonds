@@ -203,7 +203,7 @@ export function createEmailTemplate({
                     </div>
                 `}
                 <p><strong style="color: #1a1a1a;">Cranberri Diamonds</strong></p>
-                <p>B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India</p>
+                <p>Swastik Disa Corporate Park #517, Nityanand Nagar, Ghatkopar West, Mumbai, Maharashtra 400086</p>
                 <p>Email: <a href="mailto:accounts@cranberridiamonds.in">accounts@cranberridiamonds.in</a></p>
                 <p>Website: <a href="https://www.cranberridiamonds.in" target="_blank">www.cranberridiamonds.in</a></p>
                 ${footerContent}
@@ -329,7 +329,7 @@ export async function sendInvoiceEmail({
     <ul>
         <li><strong>Email:</strong> <a href="mailto:accounts@cranberridiamonds.in">accounts@cranberridiamonds.in</a></li>
         <li><strong>Website:</strong> <a href="https://www.cranberridiamonds.in" target="_blank">www.cranberridiamonds.in</a></li>
-        <li><strong>Address:</strong> B-16, Chandrakant Bhavan, Marol Andheri East, Mumbai 400059 India</li>
+        <li><strong>Address:</strong> Swastik Disa Corporate Park #517, Nityanand Nagar, Ghatkopar West, Mumbai, Maharashtra 400086</li>
     </ul>
     
     <p>We truly appreciate your business and look forward to serving you again. Thank you for trusting Cranberri Diamonds with your diamond needs.</p>

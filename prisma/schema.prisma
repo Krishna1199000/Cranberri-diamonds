@@ -169,6 +169,7 @@ model User {
   requirements       Requirement[]
   notifications      Notification[]
   approvalRequests   CustomerApprovalRequest[]
+  deliveryChallans   DeliveryChallan[]
 
   @@map("users")
 }
@@ -207,6 +208,7 @@ model SalesEntry {
   trackingId      String?
   shipmentCarrier String?
   companyName     String?
+  state           String?
   description     String?
   isNoSale        Boolean    @default(false)
   saleDate        DateTime   @default(now())
@@ -229,6 +231,8 @@ model SaleItem {
   carat         Float?
   color         String?
   clarity       String?
+  shape         String?
+  lab           String?
   certificateNo String?
   pricePerCarat Float?
   totalValue    Float?
@@ -262,17 +266,29 @@ model ParcelGoods {
 }
 
 model Requirement {
-  id           String   @id @default(uuid())
-  customerName String   @map("customer_name")
-  description  String
-  state        String
-  country      String
-  isCompleted  Boolean  @default(false) @map("is_completed")
-  employeeId   String   @map("employee_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  employee     User     @relation(fields: [employeeId], references: [id])
+  id              String   @id @default(uuid())
+  customerName    String   @map("customer_name")
+  description     String   // JSON: RequirementSpec (4Cs) or legacy items array
+  state           String
+  country         String   @default("") // Client country (when known)
+  personName      String   @default("") @map("person_name")
+  phoneNumber     String?  @map("phone_number")
+  email           String?
+  masterId        String?  @map("master_id")
+  requirementDate DateTime @default(now()) @map("requirement_date")
+  notes           String?
+  budget          Float?
+  isCompleted     Boolean  @default(false) @map("is_completed")
+  employeeId      String   @map("employee_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  employee        User     @relation(fields: [employeeId], references: [id])
 
+  @@index([employeeId], map: "requirements_employee_id_idx")
+  @@index([createdAt], map: "requirements_created_at_idx")
+  @@index([requirementDate], map: "requirements_requirement_date_idx")
+  @@index([state], map: "requirements_state_idx")
+  @@index([masterId], map: "requirements_master_id_idx")
   @@map("requirements")
 }
 
@@ -307,11 +323,19 @@ model Invoice {
   shipmentCost  Float         @default(0) @map("shipment_cost")
   subtotal      Float         @default(0)
   totalAmount   Float         @default(0) @map("total_amount")
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
   shipment      Shipment?     @relation(fields: [shipmentId], references: [id])
   user          User          @relation(fields: [userId], references: [id])
   items         InvoiceItem[]
   notifications Notification[]
   salesEntries  SalesEntry[]
+
+  @@index([userId], map: "invoices_user_id_idx")
+  @@index([shipmentId], map: "invoices_shipment_id_idx")
+  @@index([date], map: "invoices_date_idx")
+  @@index([dueDate], map: "invoices_due_date_idx")
+  @@index([state], map: "invoices_state_idx")
+  @@index([paymentStatus], map: "invoices_payment_status_idx")
 }
 
 model InvoiceItem {
@@ -320,6 +344,7 @@ model InvoiceItem {
   carat         Float
   color         String
   clarity       String
+  shape         String?
   lab           String
   reportNo      String
   pricePerCarat Float
@@ -335,6 +360,17 @@ enum Role {
   waiting_for_approval
 }
 
+enum PaymentStatus {
+  PENDING
+  PAYMENT_RECEIVED
+}
+
+enum MemoStatus {
+  ACTIVE
+  RETURNED
+  DISMISSED
+}
+
 // Updated InventoryItem model
 model InventoryItem {
   id            String   @id @default(uuid())
@@ -344,18 +380,27 @@ model InventoryItem {
   color         String
   clarity       String
   cut           String?
-  polish        String
-  sym           String
-  lab           String
+  polish        String?
+  sym           String?
+  lab           String?
   certificateNo String?  @map("certificate_no")
-  pricePerCarat Float    @map("price_per_carat")
-  finalAmount   Float    @map("final_amount")
+  pricePerCarat Float?   @map("price_per_carat")
+  finalAmount   Float    @default(0) @map("final_amount")
   status        DiamondStatus @default(AVAILABLE)
   videoUrl      String?  @map("video_url")
   imageUrl      String?  @map("image_url")
   certUrl       String?  @map("cert_url")
   measurement   String?  // New field: Measurement
   location      String?  // New field: Location
+  ratio         Float?   // Ratio field
+  table         Float?   // Table field
+  depth         Float?   // Depth field
+  growthType    String?  @map("growth_type") // Growth type field
+  flourence     String?  // Fluorescence field
+  greenPricePerCarat Float? @map("green_price_per_carat") // Green price per carat
+  greenPrice    Float?   @map("green_price") // Green price (total)
+  redPricePerCarat   Float? @map("red_price_per_carat") // Red price per carat
+  redPrice      Float?   @map("red_price") // Red price (total)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -391,10 +436,21 @@ model Memo {
   shipmentCost  Float       @default(0) @map("shipment_cost")
   subtotal      Float       @default(0)
   totalAmount   Float       @default(0) @map("total_amount")
+  memoTerms     Int         @default(30) @map("memo_terms") // Days for memo return
+  memoStatus    MemoStatus  @default(ACTIVE) @map("memo_status")
+  returnDate    DateTime?   @map("return_date") // When memo was marked as returned
+  processedBy   String?     @map("processed_by") // Admin who processed the return
   shipment      Shipment?   @relation(fields: [shipmentId], references: [id])
   user          User        @relation(fields: [userId], references: [id])
   items         MemoItem[]
 
+  @@index([userId], map: "memos_user_id_idx")
+  @@index([shipmentId], map: "memos_shipment_id_idx")
+  @@index([date], map: "memos_date_idx")
+  @@index([dueDate], map: "memos_due_date_idx")
+  @@index([state], map: "memos_state_idx")
+  @@index([memoStatus], map: "memos_memo_status_idx")
+  @@index([returnDate], map: "memos_return_date_idx")
   @@map("memos") // Added map
 }
 
@@ -404,6 +460,7 @@ model MemoItem {
   carat         Float
   color         String
   clarity       String
+  shape         String?
   lab           String
   reportNo      String
   pricePerCarat Float
@@ -412,6 +469,38 @@ model MemoItem {
   memo          Memo   @relation(fields: [memoId], references: [id], onDelete: Cascade) // Added onDelete Cascade
 
   @@map("memo_items") // Added map
+}
+
+model DeliveryChallan {
+  id            String   @id @default(uuid())
+  jangadNo      String   @unique @map("jangad_no")
+  partyName     String   @map("party_name")
+  date          DateTime
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  items         DeliveryChallanItem[]
+
+  @@map("delivery_challans")
+}
+
+model DeliveryChallanItem {
+  id              String         @id @default(uuid())
+  srNo            Int            @map("sr_no")
+  particulars     String
+  pktNo           String         @map("pkt_no")
+  shape           String
+  colorClarity    String         @map("color_clarity")
+  pcs             Int
+  cts             Float
+  pricePerCarat   Float          @map("price_per_carat")
+  pt              Float?
+  total           Float?
+  deliveryChallanId String       @map("delivery_challan_id")
+  deliveryChallan   DeliveryChallan @relation(fields: [deliveryChallanId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_challan_items")
 }
 
 model Notification {

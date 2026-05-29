@@ -3,6 +3,12 @@ import { PrismaClient } from '@prisma/client';
 import { getSession } from '@/lib/session';
 import { memoFormSchema, MemoItem as ImportedMemoItem } from '@/lib/validators/memo';
 import { numberToWords } from '@/lib/utils';
+import {
+  collectInventoryStockIds,
+  fetchInventoryTierMap,
+  normalizeItemsToAskingPrices,
+  validateInventoryTierPricing,
+} from '@/lib/utils/pricing-tiers';
 
 const prisma = new PrismaClient();
 
@@ -81,6 +87,32 @@ export async function PUT(
         }
 
         const validatedData = validation.data;
+        const userRole = session.role as string;
+
+        const stockIds = collectInventoryStockIds(validatedData.items);
+
+        if (stockIds.length > 0) {
+          const inventoryByStockId = await fetchInventoryTierMap(stockIds, (args) =>
+            prisma.inventoryItem.findMany(args)
+          );
+
+          const tierValidation = validateInventoryTierPricing(
+            validatedData.items,
+            inventoryByStockId,
+            userRole
+          );
+          if (!tierValidation.ok) {
+            return NextResponse.json(
+              { error: tierValidation.error },
+              { status: tierValidation.status }
+            );
+          }
+
+          validatedData.items = normalizeItemsToAskingPrices(
+            validatedData.items,
+            inventoryByStockId
+          );
+        }
 
         // --- Fetch existing memo to ensure it exists ---
         const existingMemo = await prisma.memo.findUnique({
@@ -89,6 +121,13 @@ export async function PUT(
 
         if (!existingMemo) {
             return NextResponse.json({ error: 'Memo not found' }, { status: 404 });
+        }
+
+        if ((existingMemo as { memoStatus?: string }).memoStatus === 'RETURNED') {
+            return NextResponse.json(
+              { error: 'Returned memos are permanent audit records and cannot be edited' },
+              { status: 403 }
+            );
         }
         // --------------------------------------------
 
@@ -120,10 +159,16 @@ export async function PUT(
             // 2. Create new items from the validated data
             await tx.memoItem.createMany({
                 data: validatedData.items.map((item: ImportedMemoItem) => ({
-                    ...item,
-                    memoId: resolvedParams.id, // Use resolvedParams.id
-                    id: undefined, // Let Prisma generate IDs for new items
-                    total: (Number(item.carat) || 0) * (Number(item.pricePerCarat) || 0), // Calculate item total
+                    description: item.description,
+                    carat: Number(item.carat) || 0,
+                    color: item.color,
+                    clarity: item.clarity,
+                    shape: item.shape || null,
+                    lab: item.lab,
+                    reportNo: item.reportNo,
+                    pricePerCarat: Number(item.pricePerCarat) || 0,
+                    memoId: resolvedParams.id,
+                    total: (Number(item.carat) || 0) * (Number(item.pricePerCarat) || 0),
                 })),
             });
 
@@ -169,6 +214,13 @@ export async function DELETE(
 
         if (!existingMemo) {
             return NextResponse.json({ error: 'Memo not found' }, { status: 404 });
+        }
+
+        if ((existingMemo as { memoStatus?: string }).memoStatus === 'RETURNED') {
+            return NextResponse.json(
+              { error: 'Returned memos are permanent audit records and cannot be deleted' },
+              { status: 403 }
+            );
         }
         // --------------------------------------------------------------
 

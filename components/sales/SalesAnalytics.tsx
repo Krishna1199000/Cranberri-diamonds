@@ -52,6 +52,12 @@ export function SalesAnalytics({
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // When a specific employee/admin is selected, scope the dataset to just them
+  const scopedData = React.useMemo(() => {
+    if (selectedEmployee === "all") return data
+    return data.filter(entry => entry.employeeId === selectedEmployee)
+  }, [data, selectedEmployee])
+
   // Fetch employees from API
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -97,39 +103,40 @@ export function SalesAnalytics({
 
   // Transform the sales data for employee performance chart
   const employeeChartData = React.useMemo(() => {
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!Array.isArray(scopedData) || scopedData.length === 0) {
       return []
     }
 
-    // Group sales by employee
+    // Group sales by employee ID to avoid duplicates (even if names are similar)
     const employeeStats: Record<string, { name: string; sales: number; count: number }> = {}
     
-    data
+    scopedData
       .filter(entry => entry && !entry.isNoSale && entry.saleValue > 0)
       .forEach(entry => {
+        const employeeId = entry.employeeId || 'unknown'
         const employeeName = entry.employeeName || 'Unknown'
         
-        if (!employeeStats[employeeName]) {
-          employeeStats[employeeName] = {
+        if (!employeeStats[employeeId]) {
+          employeeStats[employeeId] = {
             name: employeeName.split(' ')[0], // First name only
             sales: 0,
             count: 0
           }
         }
         
-        employeeStats[employeeName].sales += Number(entry.saleValue || 0)
-        employeeStats[employeeName].count += 1
+        employeeStats[employeeId].sales += Number(entry.saleValue || 0)
+        employeeStats[employeeId].count += 1
       })
 
     // Convert to array and sort by sales
     return Object.values(employeeStats)
       .sort((a, b) => b.sales - a.sales)
       .slice(0, 10) // Top 10 employees
-  }, [data])
+  }, [scopedData])
 
   // Transform the sales data for sales amount ranges
   const salesAmountData = React.useMemo(() => {
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!Array.isArray(scopedData) || scopedData.length === 0) {
       return []
     }
 
@@ -142,7 +149,7 @@ export function SalesAnalytics({
       { range: '$25K+', min: 25000, max: Infinity, count: 0 }
     ]
     
-    data
+    scopedData
       .filter(entry => entry && !entry.isNoSale && entry.saleValue > 0)
       .forEach(entry => {
         const saleAmount = Number(entry.saleValue || 0)
@@ -156,7 +163,54 @@ export function SalesAnalytics({
       })
 
     return ranges.filter(range => range.count > 0)
-  }, [data])
+  }, [scopedData])
+
+  // Transform the sales data for time-series chart (sales over time)
+  const timeSeriesChartData = React.useMemo(() => {
+    if (!Array.isArray(scopedData) || scopedData.length === 0) {
+      return []
+    }
+
+    // Group sales by date
+    const salesByDate: Record<string, { value: number; label: string }> = {}
+    
+    scopedData
+      .filter(entry => entry && !entry.isNoSale && entry.saleValue > 0)
+      .forEach(entry => {
+        // Use rawDate if available, otherwise parse the date string
+        const date = entry.rawDate 
+          ? new Date(entry.rawDate)
+          : new Date(entry.date)
+        
+        // Use shorter date format to prevent overlap: "MMM DD" instead of "MMM DD, YYYY"
+        const dateKey = date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric'
+        })
+        
+        // Store full date for sorting
+        const fullDateKey = date.toISOString().split('T')[0]
+        
+        if (!salesByDate[fullDateKey]) {
+          salesByDate[fullDateKey] = { value: 0, label: dateKey }
+        }
+        
+        salesByDate[fullDateKey].value += Number(entry.saleValue || 0)
+      })
+
+    // Convert to array and sort by date
+    return Object.entries(salesByDate)
+      .map(([fullDate, data]: [string, any]) => ({ 
+        date: data.label, 
+        fullDate,
+        value: data.value 
+      }))
+      .sort((a, b) => {
+        const dateA = new Date(a.fullDate).getTime()
+        const dateB = new Date(b.fullDate).getTime()
+        return dateA - dateB
+      })
+  }, [scopedData])
 
   // Find the selected employee object to display their name
   const selectedEmployeeObject = employees.find(emp => emp.id === selectedEmployee);
@@ -234,25 +288,94 @@ export function SalesAnalytics({
         </div>
       )}
 
+      {/* Sales Over Time Chart */}
+      <div className="h-64 mt-6 mb-6">
+        <h3 className="text-lg font-semibold mb-4">
+          {selectedEmployee === "all" ? "Sales Over Time" : `Sales Over Time — ${selectedEmployeeObject?.name || "Selected"}`}
+        </h3>
+        {timeSeriesChartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={timeSeriesChartData}
+              margin={{ top: 5, right: 30, left: 20, bottom: 60 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="date" 
+                tick={{ fontSize: 10 }}
+                tickLine={{ stroke: '#ccc' }}
+                axisLine={{ stroke: '#ccc' }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+                interval={timeSeriesChartData.length > 10 ? Math.floor(timeSeriesChartData.length / 10) : 0}
+                minTickGap={20}
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                tickLine={{ stroke: '#ccc' }}
+                axisLine={{ stroke: '#ccc' }}
+                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip 
+                formatter={(value) => [
+                  `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+                  'Sales'
+                ]}
+                labelFormatter={(label) => `Date: ${label}`}
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #ccc',
+                  borderRadius: '6px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              />
+              <Legend />
+              <Bar 
+                dataKey="value" 
+                name="Sales ($)" 
+                fill="#3b82f6" 
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            <div className="text-center">
+              <div className="text-4xl mb-2">📈</div>
+              <p>No sales data available for this period</p>
+              <p className="text-sm mt-1">Try adjusting your filters</p>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         {/* Employee Performance Chart */}
         <div className="h-64">
-          <h3 className="text-lg font-semibold mb-4">Top Employees by Sales</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            {selectedEmployee === "all" ? "Top Employees by Sales" : `Sales by ${selectedEmployeeObject?.name || "Selected"}`}
+          </h3>
           {employeeChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={employeeChartData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="name" 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 10 }}
                   tickLine={{ stroke: '#ccc' }}
                   axisLine={{ stroke: '#ccc' }}
+                  angle={-30}
+                  textAnchor="end"
+                  height={70}
+                  interval={0}
+                  minTickGap={15}
                 />
                 <YAxis 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 11 }}
                   tickLine={{ stroke: '#ccc' }}
                   axisLine={{ stroke: '#ccc' }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
