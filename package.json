@@ -36,7 +36,7 @@
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.1",
     "lucide-react": "^0.475.0",
-    "next": "15.1.7",
+    "next": "15.1.11",
     "next-auth": "^4.24.11",
     "next-cookies": "^2.0.3",
     "node-cron": "^3.0.3",
