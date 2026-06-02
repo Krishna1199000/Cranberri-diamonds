@@ -19,7 +19,7 @@ export async function PATCH(
       );
     }
 
-    const { memoStatus } = await request.json();
+    const { memoStatus, revertReturn } = await request.json();
 
     if (!memoStatus || !['ACTIVE', 'RETURNED', 'DISMISSED'].includes(memoStatus)) {
       return NextResponse.json(
@@ -40,12 +40,17 @@ export async function PATCH(
       );
     }
 
-    if (existingMemo.memoStatus === 'RETURNED') {
+    const isRevertToActive =
+      existingMemo.memoStatus === 'RETURNED' &&
+      memoStatus === 'ACTIVE' &&
+      revertReturn === true;
+
+    if (existingMemo.memoStatus === 'RETURNED' && !isRevertToActive) {
       return NextResponse.json(
         {
           success: false,
           message:
-            'Returned memos are permanent audit records. Status cannot be changed. Use Return History to view the record.',
+            'Returned memos are locked. To undo an accidental return, set status to Active with revertReturn: true.',
         },
         { status: 403 }
       );
@@ -58,13 +63,16 @@ export async function PATCH(
 
     const updateData: {
       memoStatus: typeof memoStatus;
-      returnDate?: Date;
-      processedBy?: string;
+      returnDate?: Date | null;
+      processedBy?: string | null;
     } = { memoStatus };
 
     if (memoStatus === 'RETURNED') {
       updateData.returnDate = new Date();
       updateData.processedBy = adminUser?.name || adminUser?.email || 'Admin';
+    } else if (isRevertToActive) {
+      updateData.returnDate = null;
+      updateData.processedBy = null;
     }
 
     const updatedMemo = await prisma.memo.update({

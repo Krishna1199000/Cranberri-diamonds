@@ -94,15 +94,21 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             <style jsx global>{`
                 @media print {
                     @page {
-                        size: A4; /* Or 'letter', etc. */
-                        margin: 0.5cm; /* Minimize margins */
+                        size: A4;
+                        margin: 0.4cm;
                     }
-                    body {
-                        margin: 0; /* Reset body margin for print */
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                        background: white !important;
+                    }
+                    .invoice-memo-print-root {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
                     }
                 }
             `}</style>
-            <div className="bg-white px-6 pb-6 pt-0 rounded-lg shadow-md print:shadow-none max-w-4xl mx-auto print:max-w-full print:mx-0 print:p-1 print:text-[10px]">
+            <div className="invoice-memo-print-root bg-white px-6 pb-6 pt-0 rounded-lg shadow-md print:shadow-none max-w-4xl mx-auto print:max-w-full print:mx-0 print:p-0.5 print:text-[9px]">
                 {/* Logo Section */}
                 <div className="flex justify-center items-center mb-0 print:mb-0">
                     {/* ... logo ... */} 
@@ -280,9 +286,9 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
 
                 {/* Signatures */} 
                 {/* ... Signature ... */} 
-                <div className="flex justify-end mt-2 print:mt-4"> {/* Added slightly more top margin for print */}
+                <div className="flex justify-end mt-2 print:mt-1">
                     <div className="w-48 text-center">
-                        <div className="h-12 print:h-16"></div> {/* Increased print height for signature space */}
+                        <div className="h-12 print:h-8"></div>
                         <div className="border-t border-gray-400"></div>
                         <div className="pt-0.5 text-sm print:text-[10px]">For Cranberri Diamonds</div>
                     </div>

@@ -65,8 +65,12 @@ export default function ViewMemoPage() {
         fetchMemo();
     }, [id]);
 
-    const handleMemoStatusUpdate = async (newStatus: 'ACTIVE' | 'RETURNED' | 'DISMISSED') => {
-        if (!memo || isReturned) return;
+    const handleMemoStatusUpdate = async (
+        newStatus: 'ACTIVE' | 'RETURNED' | 'DISMISSED',
+        options?: { revertReturn?: boolean }
+    ) => {
+        if (!memo) return;
+        if (isReturned && !(options?.revertReturn && newStatus === 'ACTIVE')) return;
 
         setUpdatingMemoStatus(true);
         try {
@@ -75,7 +79,10 @@ export default function ViewMemoPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ memoStatus: newStatus }),
+                body: JSON.stringify({
+                    memoStatus: newStatus,
+                    ...(options?.revertReturn ? { revertReturn: true } : {}),
+                }),
             });
 
             const result = await response.json();
@@ -143,9 +150,9 @@ export default function ViewMemoPage() {
     }
 
     return (
-        <div className="container py-10 max-w-6xl">
+        <div className="container py-10 max-w-6xl print:py-0 print:max-w-none print:px-0">
            {user?.role === 'admin' && (
-               <Card className="mb-6">
+               <Card className="mb-6 print:hidden">
                    <CardHeader>
                        <CardTitle className="flex items-center gap-2">
                            <FileText className="h-5 w-5" />
@@ -186,8 +193,8 @@ export default function ViewMemoPage() {
                            )}
                        </div>
                        {isReturned && (
-                         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md text-sm space-y-1">
-                           <p className="font-medium text-green-800">Permanent return record</p>
+                         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md text-sm space-y-2">
+                           <p className="font-medium text-green-800">Returned memo</p>
                            {memo.returnDate && (
                              <p>
                                <strong>Return date:</strong>{' '}
@@ -197,9 +204,18 @@ export default function ViewMemoPage() {
                            {memo.processedBy && (
                              <p><strong>Processed by:</strong> {memo.processedBy}</p>
                            )}
-                           <p className="text-muted-foreground">
-                             This memo cannot be edited, deleted, or reverted to active.
-                           </p>
+                           <Button
+                             type="button"
+                             variant="outline"
+                             size="sm"
+                             disabled={updatingMemoStatus}
+                             onClick={() => void handleMemoStatusUpdate('ACTIVE', { revertReturn: true })}
+                           >
+                             {updatingMemoStatus ? (
+                               <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                             ) : null}
+                             Restore to Active (undo return)
+                           </Button>
                          </div>
                        )}
                        {!isReturned && (

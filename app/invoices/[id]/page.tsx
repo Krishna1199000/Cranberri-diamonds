@@ -126,10 +126,10 @@ export default function ViewInvoicePage() {
     }
 
     return (
-        <div className="container py-10 max-w-6xl">
-           {/* Payment Status Card - Admin Only */}
+        <div className="container py-10 max-w-6xl print:py-0 print:max-w-none print:px-0">
+           {/* Payment Status Card - Admin Only (hidden when printing) */}
            {user?.role === 'admin' && (
-               <Card className="mb-6">
+               <Card className="mb-6 print:hidden">
                    <CardHeader>
                        <CardTitle className="flex items-center gap-2">
                            <DollarSign className="h-5 w-5" />

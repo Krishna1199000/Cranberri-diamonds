@@ -281,7 +281,7 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
+      <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8 print:py-0 print:px-0 print:max-w-none">
         {children}
       </main>
 

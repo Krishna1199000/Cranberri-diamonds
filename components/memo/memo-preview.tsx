@@ -93,19 +93,42 @@ export function MemoPreview({ memo }: MemoPreviewProps) {
         @media print {
           @page {
             size: A4;
-            margin: 0.5cm;
+            margin: 0.4cm;
           }
-          body {
+          html, body {
             margin: 0;
+            padding: 0;
+            background: white !important;
+          }
+          .invoice-memo-print-root {
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
         }
       `}</style>
-      <div className="bg-white px-6 pb-6 pt-0 rounded-lg shadow-md print:shadow-none max-w-4xl mx-auto print:max-w-full print:mx-0 print:p-1 print:text-[10px]">
-        {/* Logo Section (same) */}
-        <div className="flex justify-center items-center mb-2 print:mb-0.5">
+      <div className="invoice-memo-print-root bg-white px-6 pb-6 pt-0 rounded-lg shadow-md print:shadow-none max-w-4xl mx-auto print:max-w-full print:mx-0 print:p-0.5 print:text-[9px]">
+        {/* Logo Section */}
+        <div className="flex justify-center items-center mb-0 print:mb-0">
             <div className="w-72 h-28 flex items-center justify-center print:w-40 print:h-auto">
               <Image src="/logo.png" alt="Cranberri Diamonds Logo" width={240} height={90} className="print:w-[130px] print:h-auto" />
             </div>
+        </div>
+
+        {/* Company Address and Website */}
+        <div className="text-center -mt-2 mb-2 print:mb-1">
+          <p className="text-xs print:text-[8px] text-gray-600">
+            Swastik Disa Corporate Park #517, Nityanand Nagar, Ghatkopar West, Mumbai, Maharashtra 400086
+          </p>
+          <p className="text-xs print:text-[8px] text-gray-600">
+            <a
+              href="https://www.cranberridiamonds.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              www.cranberridiamonds.in
+            </a>
+          </p>
         </div>
 
         {/* Top Section: Memo Details */}
@@ -257,9 +280,9 @@ export function MemoPreview({ memo }: MemoPreviewProps) {
         </div>
 
         {/* Signatures (same) */} 
-         <div className="flex justify-end mt-2 print:mt-4">
+         <div className="flex justify-end mt-2 print:mt-1">
           <div className="w-48 text-center">
-            <div className="h-12 print:h-16"></div>
+            <div className="h-12 print:h-8"></div>
             <div className="border-t border-gray-400"></div>
             <div className="pt-0.5 text-sm print:text-[10px]">For Cranberri Diamonds</div>
           </div>

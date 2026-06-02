@@ -349,7 +349,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </AnimatePresence>
       </nav>
 
-      <main className="flex-grow max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <main className="flex-grow max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full print:py-0 print:px-0 print:max-w-none">
         {children}
       </main>
     </div>

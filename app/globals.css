@@ -158,3 +158,17 @@
     transform: translateY(0);
   }
 }
+
+/* Invoice & memo print: hide chrome, fit document on one page */
+@media print {
+  footer,
+  nav,
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+
+  .min-h-screen {
+    min-height: auto !important;
+    background: white !important;
+  }
+}
