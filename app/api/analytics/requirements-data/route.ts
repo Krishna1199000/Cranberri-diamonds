@@ -5,18 +5,21 @@ import { startOfDay, endOfDay, format } from 'date-fns';
 import {
   parseRequirementDescription,
   type RequirementSpec,
+  expandSpecField,
 } from '@/lib/requirements/types';
+import { CLARITY_GRADES, WHITE_COLOURS, FANCY_COLOURS } from '@/lib/requirements/constants';
 import { requireAdminAnalytics } from '@/lib/analytics/filters';
 
 type ParsedRow = {
   id: string;
   customerName: string;
   createdAt: Date;
+  specs: RequirementSpec[] | null;
   spec: RequirementSpec | null;
 };
 
-function specMatchesFilters(
-  spec: RequirementSpec | null,
+function specsMatchFilters(
+  specs: RequirementSpec[] | null,
   shapes: string[],
   caratRange: { min?: number | null; max?: number | null },
   clarityGrades: string[],
@@ -24,22 +27,32 @@ function specMatchesFilters(
   colourFancy: string[],
   labs: string[]
 ): boolean {
-  if (!spec) return false;
-  if (shapes.length && spec.shape && !shapes.includes(spec.shape)) return false;
-  if (clarityGrades.length && spec.clarity.length) {
-    if (!spec.clarity.some((c) => clarityGrades.includes(c))) return false;
-  }
-  const colors = spec.colorType === 'white' ? spec.colorWhite : spec.colorFancy;
-  const colourFilter = [...colourWhite, ...colourFancy];
-  if (colourFilter.length && colors.length) {
-    if (!colors.some((c) => colourFilter.includes(c))) return false;
-  }
-  if (labs.length && spec.lab && spec.lab !== 'Any' && !labs.includes(spec.lab)) return false;
-  const min = caratRange.min ?? null;
-  const max = caratRange.max ?? null;
-  if (min != null && spec.caratMax != null && spec.caratMax < min) return false;
-  if (max != null && spec.caratMin != null && spec.caratMin > max) return false;
-  return true;
+  if (!specs || specs.length === 0) return false;
+  return specs.some((spec) => {
+    if (shapes.length && spec.shape && !shapes.includes(spec.shape)) return false;
+    
+    const expandedClarity = expandSpecField(spec.clarity, CLARITY_GRADES);
+    if (clarityGrades.length && expandedClarity.length) {
+      if (!expandedClarity.some((c) => clarityGrades.includes(c))) return false;
+    }
+    
+    const colorsList = spec.colorType === 'white' ? WHITE_COLOURS : FANCY_COLOURS;
+    const expandedColors = expandSpecField(
+      spec.colorType === 'white' ? spec.colorWhite : spec.colorFancy,
+      colorsList
+    );
+    const colourFilter = [...colourWhite, ...colourFancy];
+    if (colourFilter.length && expandedColors.length) {
+      if (!expandedColors.some((c) => colourFilter.includes(c))) return false;
+    }
+    
+    if (labs.length && spec.lab && spec.lab !== 'Any' && !labs.includes(spec.lab)) return false;
+    const min = caratRange.min ?? null;
+    const max = caratRange.max ?? null;
+    if (min != null && spec.caratMax != null && spec.caratMax < min) return false;
+    if (max != null && spec.caratMin != null && spec.caratMin > max) return false;
+    return true;
+  });
 }
 
 function avgCarat(spec: RequirementSpec): number | null {
@@ -109,12 +122,12 @@ export async function POST(req: NextRequest) {
 
     const parsed: ParsedRow[] = raw
       .map((r) => {
-        const { spec } = parseRequirementDescription(r.description);
-        return { id: r.id, customerName: r.customerName, createdAt: r.createdAt, spec };
+        const { specs, spec } = parseRequirementDescription(r.description);
+        return { id: r.id, customerName: r.customerName, createdAt: r.createdAt, specs, spec };
       })
       .filter((r) =>
-        specMatchesFilters(
-          r.spec,
+        specsMatchFilters(
+          r.specs,
           shapes,
           caratRange,
           clarityGrades,
@@ -137,9 +150,11 @@ export async function POST(req: NextRequest) {
 
     const shapeBreakdown: Record<string, { name: string; count: number }> = {};
     parsed.forEach((row) => {
-      const shape = row.spec?.shape || 'Unknown';
-      if (!shapeBreakdown[shape]) shapeBreakdown[shape] = { name: shape, count: 0 };
-      shapeBreakdown[shape].count += 1;
+      (row.specs || [row.spec]).filter(Boolean).forEach((spec) => {
+        const shape = spec?.shape || 'Unknown';
+        if (!shapeBreakdown[shape]) shapeBreakdown[shape] = { name: shape, count: 0 };
+        shapeBreakdown[shape].count += 1;
+      });
     });
 
     const caratRanges = [
@@ -153,36 +168,43 @@ export async function POST(req: NextRequest) {
     const caratBreakdown = caratRanges.map((range) => ({
       name: range.label,
       count: parsed.filter((row) => {
-        const carat = row.spec ? avgCarat(row.spec) : null;
-        if (carat == null) return false;
-        return carat >= range.min && carat < range.max;
+        const specs = row.specs || (row.spec ? [row.spec] : []);
+        return specs.some((spec) => {
+          const carat = avgCarat(spec);
+          if (carat == null) return false;
+          return carat >= range.min && carat < range.max;
+        });
       }).length,
     }));
 
     const colourBreakdown: Record<string, { name: string; count: number }> = {};
     parsed.forEach((row) => {
-      const colors =
-        row.spec?.colorType === 'white'
-          ? row.spec.colorWhite
-          : row.spec?.colorFancy ?? [];
-      if (!colors.length) {
-        const key = 'Any';
-        if (!colourBreakdown[key]) colourBreakdown[key] = { name: key, count: 0 };
-        colourBreakdown[key].count += 1;
-        return;
-      }
-      colors.forEach((colour) => {
-        if (!colourBreakdown[colour]) colourBreakdown[colour] = { name: colour, count: 0 };
-        colourBreakdown[colour].count += 1;
+      (row.specs || (row.spec ? [row.spec] : [])).forEach((spec) => {
+        const colors =
+          spec?.colorType === 'white'
+            ? (spec.colorWhite ?? [])
+            : (spec?.colorFancy ?? []);
+        if (!colors.length) {
+          const key = 'Any';
+          if (!colourBreakdown[key]) colourBreakdown[key] = { name: key, count: 0 };
+          colourBreakdown[key].count += 1;
+          return;
+        }
+        colors.forEach((colour) => {
+          if (!colourBreakdown[colour]) colourBreakdown[colour] = { name: colour, count: 0 };
+          colourBreakdown[colour].count += 1;
+        });
       });
     });
 
     const clarityBreakdown: Record<string, { name: string; count: number }> = {};
     parsed.forEach((row) => {
-      const clarities = row.spec?.clarity?.length ? row.spec.clarity : ['Any'];
-      clarities.forEach((clarity) => {
-        if (!clarityBreakdown[clarity]) clarityBreakdown[clarity] = { name: clarity, count: 0 };
-        clarityBreakdown[clarity].count += 1;
+      (row.specs || (row.spec ? [row.spec] : [])).forEach((spec) => {
+        const clarities = spec?.clarity?.length ? spec.clarity : ['Any'];
+        clarities.forEach((clarity) => {
+          if (!clarityBreakdown[clarity]) clarityBreakdown[clarity] = { name: clarity, count: 0 };
+          clarityBreakdown[clarity].count += 1;
+        });
       });
     });
 
@@ -198,7 +220,7 @@ export async function POST(req: NextRequest) {
     );
 
     const carats = parsed
-      .map((r) => (r.spec ? avgCarat(r.spec) : null))
+      .flatMap((r) => (r.specs || (r.spec ? [r.spec] : [])).map(avgCarat))
       .filter((c): c is number => c != null);
 
     const totalRequirements = parsed.length;

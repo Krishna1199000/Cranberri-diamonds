@@ -26,7 +26,9 @@ export async function PUT(request: NextRequest,
       },
       data: {
         sieve: data.sieve,
-        price: parseFloat(data.price)
+        price: parseFloat(data.price),
+        color: data.color || null,
+        clarity: data.clarity || null,
       }
     });
 

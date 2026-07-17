@@ -90,6 +90,7 @@ export async function POST(request: Request) {
       accountHolderName = '',
       location = '',
       businessType = '',
+      source = 'manual',
     } = data;
 
     // Check if vendor with this company name already exists (only if companyName is provided)
@@ -123,6 +124,7 @@ export async function POST(request: Request) {
         accountHolderName: accountHolderName || '',
         location,
         businessType,
+        source,
       },
     });
 

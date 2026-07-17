@@ -4,7 +4,6 @@ import { getSession } from '@/lib/session';
 import {
   formatRequirementSpecSummary,
   parseRequirementDescription,
-  type RequirementSpec,
 } from '@/lib/requirements/types';
 
 function errorMessage(error: unknown): string {
@@ -32,10 +31,10 @@ function enrichRequirement(req: {
   updatedAt: Date;
   employee: { id: string; name: string; email: string };
 }) {
-  const { spec, legacySummary } = parseRequirementDescription(req.description);
+  const { specs, spec, legacySummary } = parseRequirementDescription(req.description);
   const displayPersonName = req.personName?.trim() || req.country?.trim() || '';
-  const summary = spec
-    ? formatRequirementSpecSummary(spec)
+  const summary = specs && specs.length > 0
+    ? specs.map(formatRequirementSpecSummary).join(' ; ')
     : legacySummary || req.description;
 
   return {
@@ -44,8 +43,9 @@ function enrichRequirement(req: {
     date: req.requirementDate?.toISOString() ?? req.createdAt.toISOString(),
     requirementDate: req.requirementDate?.toISOString() ?? req.createdAt.toISOString(),
     spec,
+    specs,
     summary,
-    isLegacy: !spec,
+    isLegacy: !specs,
   };
 }
 
@@ -77,6 +77,7 @@ export async function PUT(
       notes,
       budget,
       spec,
+      specs,
       description,
     } = body;
 
@@ -111,8 +112,10 @@ export async function PUT(
     if (budget !== undefined) {
       updateData.budget = budget != null && budget !== '' ? Number(budget) : null;
     }
-    if (spec?.version === 2) {
-      updateData.description = JSON.stringify(spec as RequirementSpec);
+    
+    const finalSpecs = specs || (spec ? [spec] : null);
+    if (finalSpecs) {
+      updateData.description = JSON.stringify(finalSpecs);
     } else if (description !== undefined) {
       updateData.description = description;
     }

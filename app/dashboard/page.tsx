@@ -36,6 +36,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RemarksDialog } from '@/components/ui/remarks-dialog'
 import { CranberriLoader } from "@/components/ui/CranberriLoader";
 import { CustomerVendorSearch } from "@/components/CustomerVendorSearch";
+import { Badge } from "@/components/ui/badge";
 
 interface Shipment {
   id: string
@@ -59,6 +60,7 @@ interface Shipment {
   businessType: string
   businessRegNo: string
   panNo: string
+  leadSource?: string
 }
 
 export default function Dashboard() {
@@ -76,6 +78,12 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [shipmentToDelete, setShipmentToDelete] = useState<string | null>(null);
+  const [subTab, setSubTab] = useState<'manual' | 'leads'>('manual');
+
+  const handleSubTabChange = (value: 'manual' | 'leads') => {
+    setSubTab(value);
+    setCurrentPage(1);
+  };
 
   const fetchShipments = useCallback(async () => {
     setLoading(true)
@@ -177,12 +185,24 @@ export default function Dashboard() {
       setShowDeleteConfirm(false);
   };
 
+  const manualShipments = useMemo(() => {
+    return filteredShipments.filter(s => s.leadSource !== 'Requirements Panel');
+  }, [filteredShipments]);
+
+  const leadShipments = useMemo(() => {
+    return filteredShipments.filter(s => s.leadSource === 'Requirements Panel');
+  }, [filteredShipments]);
+
+  const currentList = useMemo(() => {
+    return subTab === 'manual' ? manualShipments : leadShipments;
+  }, [subTab, manualShipments, leadShipments]);
+
   const paginatedShipments = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
-    return filteredShipments.slice(startIndex, startIndex + itemsPerPage)
-  }, [filteredShipments, currentPage, itemsPerPage])
+    return currentList.slice(startIndex, startIndex + itemsPerPage)
+  }, [currentList, currentPage, itemsPerPage])
 
-  const totalPages = Math.ceil(filteredShipments.length / itemsPerPage)
+  const totalPages = Math.ceil(currentList.length / itemsPerPage)
 
   const handleNextPage = () => {
     setCurrentPage(prev => Math.min(prev + 1, totalPages))
@@ -196,7 +216,7 @@ export default function Dashboard() {
     try {
       const csvContent = [
         ['Sr No', 'Company Name', 'Owner Name', 'Email', 'Phone', 'Sales Executive', 'Address Line 1', 'Address Line 2', 'Country', 'State', 'City', 'Postal Code', 'Website', 'Payment Terms', 'Carrier', 'Organization Type', 'Business Type', 'Business Reg No', 'PAN No', 'Last Updated'],
-        ...filteredShipments.map((shipment, index) => [
+        ...currentList.map((shipment, index) => [
           (index + 1).toString(),
           shipment.companyName || '',
           shipment.ownerName || '',
@@ -277,15 +297,49 @@ export default function Dashboard() {
         <TabsContent value="list">
           <Card>
         <CardHeader>
-            <div className="mb-4 relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <Input
-                type="text"
-                placeholder="Search Masters..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full"
-              />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+              <div className="relative max-w-sm w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <Input
+                  type="text"
+                  placeholder="Search Masters..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
+
+              {/* Sub-tabs for Manual / Leads */}
+              <div className="flex bg-gray-100 p-1 rounded-lg border max-w-xs self-start md:self-auto">
+                <button
+                  type="button"
+                  onClick={() => handleSubTabChange('manual')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    subTab === 'manual'
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-gray-600 hover:text-black'
+                  }`}
+                >
+                  <span>Manual Vendors</span>
+                  <Badge variant={subTab === 'manual' ? 'default' : 'secondary'} className="px-1.5 py-0.5 text-[10px]">
+                    {manualShipments.length}
+                  </Badge>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubTabChange('leads')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    subTab === 'leads'
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-gray-600 hover:text-black'
+                  }`}
+                >
+                  <span>Leads</span>
+                  <Badge variant={subTab === 'leads' ? 'default' : 'secondary'} className="px-1.5 py-0.5 text-[10px]">
+                    {leadShipments.length}
+                  </Badge>
+                </button>
+              </div>
             </div>
         </CardHeader>
         <CardContent>

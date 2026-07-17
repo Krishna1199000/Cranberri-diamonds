@@ -35,7 +35,8 @@ import {
   FileText,
   Users,
   ChevronDown,
-  Filter
+  Filter,
+  Plus,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -60,6 +61,7 @@ interface Requirement {
   notes?: string | null;
   budget?: number | null;
   spec?: RequirementSpec | null;
+  specs?: RequirementSpec[] | null;
   isLegacy?: boolean;
   employee: {
     id: string;
@@ -170,8 +172,8 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
           requirementDate: editFormData.requirementDate,
           notes: editFormData.notes,
           budget: editFormData.budget,
-          spec: editFormData.spec,
-          description: editFormData.legacyDescription,
+          specs: editFormData.isLegacy ? undefined : editFormData.specs,
+          description: editFormData.isLegacy ? editFormData.legacyDescription : undefined,
         }),
         credentials: 'include'
       });
@@ -274,7 +276,7 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
       requirementDate: new Date().toISOString().split('T')[0],
       notes: '',
       budget: '',
-      spec: defaultRequirementSpec(),
+      specs: [defaultRequirementSpec()],
       isLegacy: false,
       legacyDescription: '',
     });
@@ -290,7 +292,7 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
     requirementDate: new Date().toISOString().split('T')[0],
     notes: '',
     budget: '' as string | number,
-    spec: defaultRequirementSpec(),
+    specs: [defaultRequirementSpec()] as RequirementSpec[],
     isLegacy: false,
     legacyDescription: '',
   });
@@ -300,8 +302,11 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
     const reqDate = requirement.requirementDate || requirement.date
       ? new Date(requirement.requirementDate || requirement.date!).toISOString().split('T')[0]
       : new Date().toISOString().split('T')[0];
-    const parsed = requirement.spec ?? parseRequirementDescription(requirement.description).spec;
-    const isLegacy = requirement.isLegacy ?? !parsed;
+    const parsed = parseRequirementDescription(requirement.description);
+    const isLegacy = requirement.isLegacy ?? (!parsed.specs && !parsed.spec);
+    const specsToEdit = requirement.specs ||
+      ((parsed.specs ?? (parsed.spec ? [parsed.spec] : null)) ??
+      [defaultRequirementSpec()]);
     setEditFormData({
       customerName: requirement.customerName,
       personName: requirement.personName || '',
@@ -312,7 +317,7 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
       requirementDate: reqDate,
       notes: requirement.notes || '',
       budget: requirement.budget ?? '',
-      spec: parsed ?? defaultRequirementSpec(),
+      specs: specsToEdit,
       isLegacy,
       legacyDescription: isLegacy ? requirement.description : '',
     });
@@ -941,10 +946,63 @@ export function RequirementsManager({ userRole, currentUserId }: RequirementsMan
                 />
               </div>
             ) : (
-              <RequirementEntryForm
-                spec={editFormData.spec}
-                onChange={(spec) => setEditFormData((prev) => ({ ...prev, spec }))}
-              />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm text-slate-700">
+                    Diamond Specifications ({editFormData.specs.length})
+                  </h3>
+                </div>
+                {editFormData.specs.map((spec, index) => (
+                  <div key={index} className="relative">
+                    {editFormData.specs.length > 1 && (
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Specification #{index + 1}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-destructive hover:text-destructive"
+                          onClick={() =>
+                            setEditFormData((prev) => ({
+                              ...prev,
+                              specs: prev.specs.filter((_, i) => i !== index),
+                            }))
+                          }
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+                    <RequirementEntryForm
+                      spec={spec}
+                      onChange={(updated) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          specs: prev.specs.map((s, i) => (i === index ? updated : s)),
+                        }))
+                      }
+                    />
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-dashed"
+                  onClick={() =>
+                    setEditFormData((prev) => ({
+                      ...prev,
+                      specs: [...prev.specs, defaultRequirementSpec()],
+                    }))
+                  }
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Another Specification
+                </Button>
+              </div>
             )}
             <div>
               <Label>Notes</Label>

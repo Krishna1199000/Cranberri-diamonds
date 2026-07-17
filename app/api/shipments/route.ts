@@ -37,7 +37,7 @@ export async function GET() {
           // Return empty list to prevent unauthorized access if name is crucial
            return NextResponse.json({ success: true, shipments: [] })
       }
-      whereClause = { salesExecutive: currentUser.name };
+      whereClause = { OR: [{ salesExecutive: currentUser.name }, { userId: session.userId as string }] };
     } else {
         // Other roles (e.g., customer) are unauthorized for this list view
          return NextResponse.json(

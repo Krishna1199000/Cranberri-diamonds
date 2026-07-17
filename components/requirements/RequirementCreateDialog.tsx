@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { defaultRequirementSpec } from "@/lib/requirements/types";
 import type { RequirementSpec } from "@/lib/requirements/types";
@@ -55,7 +55,8 @@ export function RequirementCreateDialog({ loggedByName, onCreated }: Requirement
   );
   const [notes, setNotes] = useState("");
   const [budget, setBudget] = useState("");
-  const [spec, setSpec] = useState<RequirementSpec>(defaultRequirementSpec);
+  // Support multiple specs
+  const [specs, setSpecs] = useState<RequirementSpec[]>([defaultRequirementSpec()]);
 
   const fetchMasters = async () => {
     setLoadingMasters(true);
@@ -144,7 +145,19 @@ export function RequirementCreateDialog({ loggedByName, onCreated }: Requirement
     setRequirementDate(new Date().toISOString().split("T")[0]);
     setNotes("");
     setBudget("");
-    setSpec(defaultRequirementSpec());
+    setSpecs([defaultRequirementSpec()]);
+  };
+
+  const handleAddSpec = () => {
+    setSpecs((prev) => [...prev, defaultRequirementSpec()]);
+  };
+
+  const handleRemoveSpec = (index: number) => {
+    setSpecs((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSpecChange = (index: number, updatedSpec: RequirementSpec) => {
+    setSpecs((prev) => prev.map((s, i) => (i === index ? updatedSpec : s)));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -153,9 +166,11 @@ export function RequirementCreateDialog({ loggedByName, onCreated }: Requirement
       toast.error("Company name, person name, and state are required");
       return;
     }
-    if (!spec.shape?.trim()) {
-      toast.error("Shape is required");
-      return;
+    for (let i = 0; i < specs.length; i++) {
+      if (!specs[i].shape?.trim()) {
+        toast.error(`Shape is required for specification #${i + 1}`);
+        return;
+      }
     }
 
     setCreating(true);
@@ -175,7 +190,7 @@ export function RequirementCreateDialog({ loggedByName, onCreated }: Requirement
           requirementDate,
           notes,
           budget: budget === "" ? null : Number(budget),
-          spec,
+          specs,
         }),
       });
       const data = await response.json();
@@ -302,7 +317,51 @@ export function RequirementCreateDialog({ loggedByName, onCreated }: Requirement
               <Input value={loggedByName || "—"} readOnly className="bg-muted" />
             </div>
 
-            <RequirementEntryForm spec={spec} onChange={setSpec} />
+            {/* Multiple Specs */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm text-slate-700">
+                  Diamond Specifications ({specs.length})
+                </h3>
+              </div>
+
+              {specs.map((spec, index) => (
+                <div key={index} className="relative">
+                  {specs.length > 1 && (
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Specification #{index + 1}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-destructive hover:text-destructive"
+                        onClick={() => handleRemoveSpec(index)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Remove
+                      </Button>
+                    </div>
+                  )}
+                  <RequirementEntryForm
+                    spec={spec}
+                    onChange={(updated) => handleSpecChange(index, updated)}
+                  />
+                </div>
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full border-dashed"
+                onClick={handleAddSpec}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Another Specification
+              </Button>
+            </div>
 
             <div>
               <Label>Notes</Label>

@@ -3,8 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
-import { ChevronDown, Menu, X } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Menu, X } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Image from "next/image"
 
@@ -13,11 +12,6 @@ export default function Navbar() {
     { href: "/", label: "Home" },
     { href: "/Privacy-Policy", label: "Privacy Policy" },
     { href: "/terms-and-condition", label: "Terms and Conditions" },
-  ]
-
-  const moreItems = [
-    { href: "/Beyond-4cs", label: "Beyond 4c's" },
-    { href: "/nurture-nature", label: "Nurture Nature" },
   ]
 
   const [isOpen, setIsOpen] = useState(false)
@@ -47,29 +41,6 @@ export default function Navbar() {
         mass: 1
       }
     }
-  }
-
-  // Menu item variants
-  const menuItemVariants = {
-    initial: { y: -20, opacity: 0 },
-    animate: (i: number) => ({
-      y: 0,
-      opacity: 1,
-      transition: {
-        delay: i * 0.1,
-        duration: 0.5,
-        ease: [0.6, 0.05, 0.01, 0.9]
-      }
-    }),
-    hover: {
-      scale: 1.05,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 10
-      }
-    },
-    tap: { scale: 0.95 }
   }
 
   // Logo variants
@@ -213,49 +184,6 @@ export default function Navbar() {
               Sign Up
             </Link>
 
-            <motion.div
-              custom={4}
-              variants={menuItemVariants}
-              initial="initial"
-              animate="animate"
-              className="relative"
-            >
-              <DropdownMenu>
-                <DropdownMenuTrigger 
-                  className="flex items-center font-medium text-black hover:text-black group"
-                  style={{ pointerEvents: 'auto' }}
-                >
-                  More
-                  <motion.div
-                    initial={{ rotate: 0 }}
-                    animate={{ rotate: 0 }}
-                    whileHover={{ rotate: 180 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <ChevronDown className="ml-1 h-4 w-4 group-hover:text-blue-400 transition-colors duration-200" />
-                  </motion.div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-black text-white border-none shadow-lg rounded-md">
-                  {moreItems.map((item, i) => (
-                    <motion.div
-                      key={item.href}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                    >
-                      <DropdownMenuItem
-                        className="hover:bg-gray-800 transition-colors duration-200"
-                        asChild
-                      >
-                        <Link href={item.href} className="w-full">
-                          {item.label}
-                        </Link>
-                      </DropdownMenuItem>
-                    </motion.div>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </motion.div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -399,39 +327,6 @@ export default function Navbar() {
                       Sign Up
                     </Link>
                   </motion.div>
-
-                  <motion.div
-                    className="h-px bg-gray-300 my-6"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                  />
-
-                  {moreItems.map((item, i) => (
-                    <motion.div
-                      key={item.href}
-                      initial={{ opacity: 0, x: -50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{
-                        delay: (i + menuItems.length + 2) * 0.1,
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 20
-                      }}
-                      whileHover={{
-                        x: 5,
-                        transition: { type: "spring", stiffness: 400, damping: 10 }
-                      }}
-                    >
-                      <Link
-                        href={item.href}
-                        onClick={() => setIsOpen(false)}
-                        className="block py-3 text-lg font-medium text-black hover:text-black transition-colors"
-                      >
-                        {item.label}
-                      </Link>
-                    </motion.div>
-                  ))}
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}

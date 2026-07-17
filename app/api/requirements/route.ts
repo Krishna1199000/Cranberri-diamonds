@@ -6,7 +6,9 @@ import {
   formatRequirementSpecSummary,
   parseRequirementDescription,
   type RequirementSpec,
+  expandSpecField,
 } from '@/lib/requirements/types';
+import { CLARITY_GRADES, WHITE_COLOURS, FANCY_COLOURS } from '@/lib/requirements/constants';
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -44,10 +46,10 @@ function enrichRequirement(req: {
   updatedAt: Date;
   employee: { id: string; name: string; email: string };
 }) {
-  const { spec, legacySummary } = parseRequirementDescription(req.description);
+  const { specs, spec, legacySummary } = parseRequirementDescription(req.description);
   const displayPersonName = req.personName?.trim() || req.country?.trim() || '';
-  const summary = spec
-    ? formatRequirementSpecSummary(spec)
+  const summary = specs && specs.length > 0
+    ? specs.map(formatRequirementSpecSummary).join(' ; ')
     : legacySummary || req.description;
 
   return {
@@ -56,8 +58,9 @@ function enrichRequirement(req: {
     date: req.requirementDate?.toISOString() ?? req.createdAt.toISOString(),
     requirementDate: req.requirementDate?.toISOString() ?? req.createdAt.toISOString(),
     spec,
+    specs,
     summary,
-    isLegacy: !spec,
+    isLegacy: !specs,
   };
 }
 
@@ -124,25 +127,35 @@ export async function GET(request: NextRequest) {
 
     if (shapes.length || colors.length || clarities.length || labs.length || caratMin || caratMax) {
       filtered = filtered.filter((req) => {
-        if (!req.spec) return false;
-        const spec = req.spec as RequirementSpec;
-        if (shapes.length && spec.shape && !shapes.includes(spec.shape)) return false;
-        if (clarities.length && spec.clarity.length) {
-          if (!spec.clarity.some((c) => clarities.includes(c))) return false;
-        }
-        const colorValues =
-          spec.colorType === 'white' ? spec.colorWhite : spec.colorFancy;
-        if (colors.length && colorValues.length) {
-          if (!colorValues.some((c) => colors.includes(c))) return false;
-        }
-        if (labs.length && spec.lab && spec.lab !== 'Any' && !labs.includes(spec.lab)) {
-          return false;
-        }
-        const min = caratMin ? parseFloat(caratMin) : null;
-        const max = caratMax ? parseFloat(caratMax) : null;
-        if (min != null && spec.caratMax != null && spec.caratMax < min) return false;
-        if (max != null && spec.caratMin != null && spec.caratMin > max) return false;
-        return true;
+        if (!req.specs || req.specs.length === 0) return false;
+        return req.specs.some((spec: RequirementSpec) => {
+          if (shapes.length && spec.shape && !shapes.includes(spec.shape)) return false;
+          
+          // Expand clarity ranges
+          const expandedClarity = expandSpecField(spec.clarity, CLARITY_GRADES);
+          if (clarities.length && expandedClarity.length) {
+            if (!expandedClarity.some((c: string) => clarities.includes(c))) return false;
+          }
+          
+          // Expand color ranges
+          const colorList = spec.colorType === 'white' ? WHITE_COLOURS : FANCY_COLOURS;
+          const expandedColors = expandSpecField(
+            spec.colorType === 'white' ? spec.colorWhite : spec.colorFancy,
+            colorList
+          );
+          if (colors.length && expandedColors.length) {
+            if (!expandedColors.some((c: string) => colors.includes(c))) return false;
+          }
+          
+          if (labs.length && spec.lab && spec.lab !== 'Any' && !labs.includes(spec.lab)) {
+            return false;
+          }
+          const min = caratMin ? parseFloat(caratMin) : null;
+          const max = caratMax ? parseFloat(caratMax) : null;
+          if (min != null && spec.caratMax != null && spec.caratMax < min) return false;
+          if (max != null && spec.caratMin != null && spec.caratMin > max) return false;
+          return true;
+        });
       });
     }
 
@@ -190,6 +203,7 @@ export async function POST(request: NextRequest) {
       notes,
       budget,
       spec,
+      specs,
     } = body;
 
     if (!customerName?.trim() || !personName?.trim() || !state?.trim()) {
@@ -199,25 +213,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!spec || spec.version !== 2) {
+    const finalSpecs = specs || (spec ? [spec] : []);
+    if (finalSpecs.length === 0) {
       return NextResponse.json(
         { success: false, message: 'Invalid requirement specification' },
         { status: 400 }
       );
     }
 
-    if (!spec.shape?.trim()) {
-      return NextResponse.json(
-        { success: false, message: 'Shape is required' },
-        { status: 400 }
-      );
+    for (const s of finalSpecs) {
+      if (!s || s.version !== 2) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid requirement specification' },
+          { status: 400 }
+        );
+      }
+      if (!s.shape?.trim()) {
+        return NextResponse.json(
+          { success: false, message: 'Shape is required' },
+          { status: 400 }
+        );
+      }
     }
 
     const requirement = await prisma.requirement.create({
       data: {
         customerName: customerName.trim(),
         personName: personName.trim(),
-        description: JSON.stringify(spec),
+        description: JSON.stringify(finalSpecs),
         state: state.trim(),
         country: country?.trim() || '',
         phoneNumber: phoneNumber?.trim() || null,

@@ -27,7 +27,8 @@ export interface RequirementCreatePayload {
   requirementDate: string;
   notes?: string;
   budget?: number | null;
-  spec: RequirementSpec;
+  spec: RequirementSpec; // Keep for compatibility if needed, though we will store an array
+  specs?: RequirementSpec[];
 }
 
 export function defaultRequirementSpec(): RequirementSpec {
@@ -48,33 +49,79 @@ export function defaultRequirementSpec(): RequirementSpec {
   };
 }
 
+export function parseRange(value: string): { start: string; end: string } | null {
+  if (!value) return null;
+  const parts = value.split(/\s*-\s*/);
+  if (parts.length === 2) {
+    return { start: parts[0], end: parts[1] };
+  }
+  if (parts.length === 1) {
+    return { start: parts[0], end: parts[0] };
+  }
+  return null;
+}
+
+export function expandRange(start: string, end: string, list: string[]): string[] {
+  const startIndex = list.indexOf(start);
+  const endIndex = list.indexOf(end);
+  if (startIndex === -1 || endIndex === -1) {
+    return [];
+  }
+  const minIndex = Math.min(startIndex, endIndex);
+  const maxIndex = Math.max(startIndex, endIndex);
+  return list.slice(minIndex, maxIndex + 1);
+}
+
+export function expandSpecField(values: string[], list: readonly string[] | string[]): string[] {
+  if (!values || values.length === 0) return [];
+  const expanded = new Set<string>();
+  for (const val of values) {
+    const range = parseRange(val);
+    if (range) {
+      const rangeList = expandRange(range.start, range.end, list as string[]);
+      rangeList.forEach(item => expanded.add(item));
+    } else {
+      expanded.add(val);
+    }
+  }
+  return Array.from(expanded);
+}
+
 export function parseRequirementDescription(description: string): {
+  specs: RequirementSpec[] | null;
   spec: RequirementSpec | null;
   legacySummary: string | null;
 } {
   if (!description?.trim()) {
-    return { spec: null, legacySummary: null };
+    return { specs: null, spec: null, legacySummary: null };
   }
   try {
     const parsed = JSON.parse(description) as unknown;
-    if (parsed && typeof parsed === 'object' && 'version' in parsed && (parsed as RequirementSpec).version === 2) {
-      return { spec: parsed as RequirementSpec, legacySummary: null };
-    }
-    if (Array.isArray(parsed)) {
-      const summary = parsed
-        .map((item: Record<string, unknown>) => {
-          const parts = [item.shape, item.carat, item.color, item.clarity, item.lab, item.stockId, item.lotB]
-            .filter(Boolean);
-          return parts.join(' · ');
-        })
-        .filter(Boolean)
-        .join('; ');
-      return { spec: null, legacySummary: summary || 'Legacy requirement' };
+    if (parsed && typeof parsed === 'object') {
+      if ('version' in parsed && (parsed as RequirementSpec).version === 2) {
+        const spec = parsed as RequirementSpec;
+        return { specs: [spec], spec, legacySummary: null };
+      }
+      if (Array.isArray(parsed)) {
+        if (parsed.length > 0 && parsed[0] && typeof parsed[0] === 'object' && 'version' in parsed[0] && parsed[0].version === 2) {
+          const specs = parsed as RequirementSpec[];
+          return { specs, spec: specs[0] || null, legacySummary: null };
+        }
+        const summary = parsed
+          .map((item: Record<string, unknown>) => {
+            const parts = [item.shape, item.carat, item.color, item.clarity, item.lab, item.stockId, item.lotB]
+              .filter(Boolean);
+            return parts.join(' · ');
+          })
+          .filter(Boolean)
+          .join('; ');
+        return { specs: null, spec: null, legacySummary: summary || 'Legacy requirement' };
+      }
     }
   } catch {
-    return { spec: null, legacySummary: description };
+    return { specs: null, spec: null, legacySummary: description };
   }
-  return { spec: null, legacySummary: description };
+  return { specs: null, spec: null, legacySummary: description };
 }
 
 export function formatRequirementSpecSummary(spec: RequirementSpec): string {
@@ -99,4 +146,8 @@ export function formatRequirementSpecSummary(spec: RequirementSpec): string {
   ]
     .filter(Boolean)
     .join(' · ');
+}
+
+export function formatRequirementSpecsSummary(specs: RequirementSpec[]): string {
+  return specs.map(formatRequirementSpecSummary).join(' ; ');
 }

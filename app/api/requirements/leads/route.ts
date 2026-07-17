@@ -91,6 +91,31 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Also create a Vendor record with source='lead' for categorization
+    try {
+      await prisma.vendor.upsert({
+        where: { companyName: companyName.trim() },
+        update: {}, // Don't overwrite if already exists
+        create: {
+          companyName: companyName.trim(),
+          ownerName: personName.trim(),
+          contactNumber: phoneNumber?.trim() || '0000000000',
+          address: addressLine1?.trim() || 'Address pending',
+          gstNumber: '',
+          accountNumber: '',
+          ifscCode: '',
+          bankName: '',
+          accountHolderName: personName.trim(),
+          location: `${city?.trim() || state.trim()}, ${state.trim()}`,
+          businessType: 'Retail',
+          source: 'lead',
+        },
+      });
+    } catch (vendorError) {
+      // Don't fail the lead creation if vendor creation fails (e.g. unique constraint)
+      console.warn('Could not create vendor for lead:', vendorError);
+    }
+
     return NextResponse.json({
       success: true,
       lead: {

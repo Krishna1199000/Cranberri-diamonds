@@ -47,8 +47,8 @@ export async function GET(
           where: { id: session.userId as string },
           select: { name: true }
         });
-        // Deny if not admin AND shipment's salesExecutive doesn't match current user's name
-        if (shipment.salesExecutive !== currentUser?.name) {
+        // Deny if not admin AND shipment's salesExecutive doesn't match current user's name AND userId doesn't match
+        if (shipment.salesExecutive !== currentUser?.name && shipment.userId !== session.userId) {
            console.log('Permission denied - User:', session.userId, 'Role:', session.role, 'SalesExec:', shipment.salesExecutive);
            return NextResponse.json(
              { success: false, message: 'Unauthorized - You do not have permission to view this shipment' },
@@ -109,13 +109,13 @@ export async function PUT(
           where: { id: session.userId as string },
           select: { name: true }
         });
-       // Deny if not admin AND existing shipment's salesExecutive doesn't match current user's name
-       if (existingShipment.salesExecutive !== currentUser?.name) {
+       // Deny if not admin AND existing shipment's salesExecutive doesn't match current user's name AND userId doesn't match
+       if (existingShipment.salesExecutive !== currentUser?.name && existingShipment.userId !== session.userId) {
            console.log('Permission denied - User:', session.userId, 'Role:', session.role, 'SalesExec:', existingShipment.salesExecutive);
-           return NextResponse.json(
-             { success: false, message: 'Unauthorized - You do not have permission to edit this shipment' },
-             { status: 403 }
-           );
+            return NextResponse.json(
+              { success: false, message: 'Unauthorized - You do not have permission to edit this shipment' },
+              { status: 403 }
+            );
         }
     }
 
@@ -213,13 +213,13 @@ export async function DELETE(
           where: { id: session.userId as string },
           select: { name: true }
         });
-       // Deny if not admin AND existing shipment's salesExecutive doesn't match current user's name
-       if (existingShipment.salesExecutive !== currentUser?.name) {
-            console.log('Permission denied - User:', session.userId, 'Role:', session.role, 'SalesExec:', existingShipment.salesExecutive);
-           return NextResponse.json(
-             { success: false, message: 'Unauthorized - You do not have permission to delete this shipment' },
-             { status: 403 }
-           );
+       // Deny if not admin AND existing shipment's salesExecutive doesn't match current user's name AND userId doesn't match
+       if (existingShipment.salesExecutive !== currentUser?.name && existingShipment.userId !== session.userId) {
+             console.log('Permission denied - User:', session.userId, 'Role:', session.role, 'SalesExec:', existingShipment.salesExecutive);
+            return NextResponse.json(
+              { success: false, message: 'Unauthorized - You do not have permission to delete this shipment' },
+              { status: 403 }
+            );
         }
     }
 

@@ -38,7 +38,9 @@ export async function POST(req: Request) {
     const price = await prisma.parcelGoods.create({
       data: {
         sieve: data.sieve,
-        price: parseFloat(data.price)
+        price: parseFloat(data.price),
+        color: data.color || null,
+        clarity: data.clarity || null,
       }
     });
 

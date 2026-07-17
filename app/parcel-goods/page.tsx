@@ -14,7 +14,7 @@ import { CustomerLayout } from "@/components/layout/CustomerLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { CranberriLoader } from "@/components/ui/CranberriLoader";
-
+import { WHITE_COLOURS, CLARITY_GRADES } from "@/lib/requirements/constants";
 
 const SIEVE_SIZES = [
   "0.8", "0.9", "1", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8",
@@ -25,6 +25,8 @@ interface Price {
   id: string;
   sieve: string;
   price: number;
+  color?: string | null;
+  clarity?: string | null;
 }
 
 export default function ParcelGoods() {
@@ -36,6 +38,8 @@ export default function ParcelGoods() {
   const [formData, setFormData] = useState({
     sieve: "",
     price: "",
+    color: "",
+    clarity: "",
   });
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -104,7 +108,11 @@ export default function ParcelGoods() {
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          color: formData.color || null,
+          clarity: formData.clarity || null,
+        }),
         credentials: 'include'
       });
 
@@ -112,7 +120,7 @@ export default function ParcelGoods() {
 
       if (response.ok && data.success) {
         toast.success(`Price ${isEditing ? "updated" : "added"} successfully`);
-        setFormData({ sieve: "", price: "" });
+        setFormData({ sieve: "", price: "", color: "", clarity: "" });
         setIsEditing(false);
         setEditingId("");
         fetchPrices();
@@ -132,6 +140,8 @@ export default function ParcelGoods() {
     setFormData({
       sieve: price.sieve,
       price: price.price.toString(),
+      color: price.color || "",
+      clarity: price.clarity || "",
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -181,12 +191,12 @@ export default function ParcelGoods() {
   const handleExportCSV = async () => {
     try {
       const csvContent = [
-        ['Sieve Size (mm)', 'Price ($)', 'Created At', 'Updated At'],
+        ['Sieve Size (mm)', 'Color', 'Clarity', 'Price ($)'],
         ...prices.map((price) => [
           price.sieve,
+          price.color || '',
+          price.clarity || '',
           price.price.toString(),
-          new Date(price.id).toLocaleDateString('en-IN'), // Using id as proxy for created date
-          new Date().toLocaleDateString('en-IN') // Using current date as proxy for updated date
         ])
       ].map(row => row.join(',')).join('\n');
       
@@ -248,6 +258,42 @@ export default function ParcelGoods() {
                     </div>
 
                     <div>
+                      <label className="block text-sm font-medium mb-1">Color (optional)</label>
+                      <Select
+                        value={formData.color || "any"}
+                        onValueChange={(value) => setFormData((prev) => ({ ...prev, color: value === "any" ? "" : value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Any color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="any">Any</SelectItem>
+                          {WHITE_COLOURS.map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Clarity (optional)</label>
+                      <Select
+                        value={formData.clarity || "any"}
+                        onValueChange={(value) => setFormData((prev) => ({ ...prev, clarity: value === "any" ? "" : value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Any clarity" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="any">Any</SelectItem>
+                          {CLARITY_GRADES.map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
                       <label className="block text-sm font-medium mb-1">Price ($)</label>
                       <Input
                         type="number"
@@ -264,7 +310,7 @@ export default function ParcelGoods() {
                       {isEditing ? "Update Price" : "Add Price"}
                     </Button>
                      {isEditing && (
-                        <Button type="button" variant="outline" className="w-full" onClick={() => {setIsEditing(false); setEditingId(""); setFormData({ sieve: "", price: "" });}}>
+                        <Button type="button" variant="outline" className="w-full" onClick={() => {setIsEditing(false); setEditingId(""); setFormData({ sieve: "", price: "", color: "", clarity: "" });}}>
                             Cancel Edit
                         </Button>
                     )}
@@ -286,6 +332,12 @@ export default function ParcelGoods() {
                           Sieve Size (mm)
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Color
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Clarity
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                           Price
                         </th>
                         {canEdit && (
@@ -305,6 +357,12 @@ export default function ParcelGoods() {
                         >
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                             {price.sieve}mm
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {price.color || <span className="text-gray-400 italic">Any</span>}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {price.clarity || <span className="text-gray-400 italic">Any</span>}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                             ${price.price.toFixed(2)}
@@ -335,7 +393,7 @@ export default function ParcelGoods() {
                       ))}
                        {prices.length === 0 && (
                            <tr>
-                               <td colSpan={canEdit ? 3 : 2} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                               <td colSpan={canEdit ? 5 : 4} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                                    No prices have been added yet.
                                </td>
                            </tr>
